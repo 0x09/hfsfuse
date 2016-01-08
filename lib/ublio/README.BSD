@@ -1,0 +1,26 @@
+libublio uses BSD style data structure macros via queue.h and tree.h,
+something which is present in a form in all four major BSD variants.
+
+Upon trying to compile libublio on xBSD, one may ask: how do libublio's
+{quee,tree}.h headers relate to those of xBSD, and is it possible to use
+the native xBSD versions of these header files indeed?
+
+Briefly: you can use the native queue.h on all BSDs but you can use the
+native tree.h only on FreeBSD.
+
+In details:
+
+- queue.h is taken from OpenBSD as is. I choose the OpenBSD version because
+  that seemed to be the least stuffed with system-specific stuff. However,
+  those macros of queue.h which I use do the same on all BSDs.
+
+- tree.h was taken from FreeBSD with some modifications. I choose the FreeBSD
+  version for two features:
+  - it can generate a static tree function kit;
+  - it has the RB_NFIND macro which looks up the least upper bound of a sample
+    node.
+
+  I made some adjustments on both features.
+  - regarding the static functions: I made the code a bit more portable;
+  - regarding RB_NFIND: I replaced the FreeBSD implementation with a more
+    streamlined and optimized one.

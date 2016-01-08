@@ -1,0 +1,34 @@
+libublio is a small library with the aim of providing a buffered I/O
+layer in userspace. It's primary motivation is to make it easy to fulfil
+the I/O alignment constraints of disk devices on FreeBSD (and derivative
+OS-es). (These exist since FreeBSD chose to ditch block devices and
+make all disks and alike character devices). However, libublio is
+generic code and might prove to be useful in other cases as well.
+
+libublio provides a random positioned I/O API which is translated into
+blocksize aligned I/O (where blocksize is defined by the user).
+libublio also caches data; the caching algorithm uses red/black trees
+and puts emphasis on making all cache operations logarithmic (in terms
+of the number of cache entries).
+
+Note that libublio is _not_ thread safe.
+
+Usage:
+
+- Take a look at the ublio_conf.h to see if you want to make any compile
+  time cusomization (you can tune there some diagnostic features and
+  some platform specific settings which could be much better determined by
+  autotools if I have taken the effort to use autotools).
+
+- Compile either a static libublio.a with the help of the provided
+  Makefile or throw directly ublio.c among your source files (in the
+  latter case make sure that it can include the ublio.h and ublio_conf.h
+  header files).
+
+- See ublio.h for the API and runtime tunables. Include ublio.h to your
+  program, compile, enjoy.
+
+Feedback, bugreports is to be sent to csaba.henk creo.hu .
+                                                ^
+                                                |
+                                                @
