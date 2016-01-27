@@ -17,7 +17,8 @@ ifeq ($(OS), Darwin)
 	FUSE_FLAGS += -I/usr/local/include/osxfuse -DHAVE_BIRTHTIME
 	FUSE_LIB = -losxfuse
 else ifeq ($(OS), FreeBSD)
-	FUSE_FLAGS += -DHAVE_BIRTHTIME
+	FUSE_FLAGS += -I/usr/local/include -DHAVE_BIRTHTIME
+	FUSE_LIB += -L/usr/local/lib
 endif
 
 SRCS = $(wildcard src/*.c)

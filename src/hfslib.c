@@ -215,6 +215,7 @@ struct hf_device {
 #define DISKBLOCKSIZE DKIOCGETPHYSICALBLOCKSIZE
 #define DISKIDEALSIZE DKIOCGETMAXBYTECOUNTREAD
 #elif defined(__FreeBSD__)
+#include <sys/disk.h>
 #define DISKBLOCKSIZE DIOCGSECTORSIZE
 #define DISKIDEALSIZE DIOCGSTRIPESIZE
 #elif defined(__linux__)

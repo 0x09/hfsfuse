@@ -31,7 +31,7 @@
 #define be32toh(x) OSSwapBigToHostInt32(x)
 #define be64toh(x) OSSwapBigToHostInt64(x)
 #else
-#include <endian.h>
+#include <sys/endian.h>
 #endif
 
 #endif
