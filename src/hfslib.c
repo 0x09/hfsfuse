@@ -178,7 +178,9 @@ void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st,
 	st->st_ino   = key->file.cnid;
 	st->st_uid   = key->file.bsd.owner_id;
 	st->st_gid   = key->file.bsd.group_id;
+#ifndef __linux__
 	st->st_flags = (key->file.bsd.admin_flags << 16) | key->file.bsd.owner_flags;
+#endif
 	if(S_ISBLK(st->st_mode) || S_ISCHR(st->st_mode))
 		st->st_rdev  = key->file.bsd.special.raw_device;
 	st->st_atime     = HFSTIMETOEPOCH(key->file.date_accessed);
@@ -219,6 +221,7 @@ struct hf_device {
 #define DISKBLOCKSIZE DIOCGSECTORSIZE
 #define DISKIDEALSIZE DIOCGSTRIPESIZE
 #elif defined(__linux__)
+#include <linux/fs.h>
 #define DISKBLOCKSIZE BLKBSZGET
 #define DISKIDEALSIZE BLKIOOPT
 #endif

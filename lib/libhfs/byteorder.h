@@ -30,6 +30,8 @@
 #define be16toh(x) OSSwapBigToHostInt16(x)
 #define be32toh(x) OSSwapBigToHostInt32(x)
 #define be64toh(x) OSSwapBigToHostInt64(x)
+#elif __linux__
+#include <endian.h>
 #else
 #include <sys/endian.h>
 #endif
