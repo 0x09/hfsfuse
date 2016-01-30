@@ -17,7 +17,6 @@ This driver is read-only and cannot write to or damage the target filesystem in 
 #TODO
 * HFS+ NFD special cases (u2000-u2FFF, uF900-uFAFF)
 * Extended attributes / Finder info
-* DMG mounting
 * UID remapping
 
 ###minor TODO
@@ -25,7 +24,7 @@ This driver is read-only and cannot write to or damage the target filesystem in 
 * hook into FUSE options system
 
 #Installation
-###Configuring
+##Configuring
 hfsfuse can use [utf8proc](http://julialang.org/utf8proc/) and [ublio](https://www.freshports.org/devel/libublio/), either bundled or system versions, but it doesn't require them (however, utf8proc is required for working with most non-ASCII pathnames).  
 To configure, run `make config` with WITH_DEP=(none/local/system). For example, to build without ublio, and with the system's utf8proc, use
 
@@ -33,16 +32,31 @@ To configure, run `make config` with WITH_DEP=(none/local/system). For example, 
 	
 The default behavior is equivalent to `make config WITH_UBLIO=local WITH_UTF8PROC=local`
 
-###Building
+##Building
     make
     make install
 
-###Use
+##Use
     hfsfuse <opts> <device> <mountpoint>
 
 Where <opts> are any series of arguments to be passed along to FUSE. Use `hfsfuse -h` for a list of switches.
 
-The hfsfuse binary takes its arguments in a form suitable for fstab mounting.
+# DMG Mounting
+Disk images can be mounted using [dmg2img](http://vu1tur.eu.org/dmg2img).
+
+One-liner to extract the HFS+ partition in a DMG to an img:
+
+	dmg2img -p$(dmg2img -l image.dmg | grep Apple_HFS | cut -d' ' -f2 | cut -d: -f1) image.dmg image.img
+
+## FreeBSD
+
+	hfsfuse <opts> /dev/md`mdconfig -f image.img` <mountpoint>
+
+## Linux
+
+	mnt=$(losetup -f)
+	losetup $mnt image.img
+	hfsfuse <opts> $mnt <mountpoint>
 
 #Resources
 * [sys/fs/hfs/ in the NetBSD source tree](http://cvsweb.netbsd.org/bsdweb.cgi/src/sys/fs/hfs/)
