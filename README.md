@@ -39,7 +39,7 @@ The default behavior is equivalent to `make config WITH_UBLIO=local WITH_UTF8PRO
 ##Use
     hfsfuse <opts> <device> <mountpoint>
 
-Where <opts> are any series of arguments to be passed along to FUSE. Use `hfsfuse -h` for a list of switches.
+Where `<opts>` are any series of arguments to be passed along to FUSE. Use `hfsfuse -h` for a list of switches.
 
 # DMG Mounting
 Disk images can be mounted using [dmg2img](http://vu1tur.eu.org/dmg2img).
