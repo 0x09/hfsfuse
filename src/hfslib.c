@@ -231,7 +231,7 @@ struct hf_device {
 int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 	struct hf_device* dev = calloc(1,sizeof(*dev));
 	if(!dev)
-		BAIL(ENOMEM);
+		return -(errno = ENOMEM);
 	if((dev->fd = open(name,O_RDONLY)) < 0)
 		BAIL(errno);
 
@@ -270,11 +270,11 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 error:
 	if(dev->fd >= 0)
 		close(dev->fd);
-	free(dev);
 #ifdef HAVE_UBLIO
 	if(dev->ubfh)
 		ublio_close(dev->ubfh);
 #endif
+	free(dev);
 	return -errno;
 }
 
