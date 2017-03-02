@@ -36,6 +36,8 @@ The default behavior is equivalent to `make config WITH_UBLIO=local WITH_UTF8PRO
     make
     make install
 
+Makefile dialect is GNU, so substitute `gmake` on FreeBSD.
+
 ##Use
     hfsfuse <opts> <device> <mountpoint>
 
