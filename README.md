@@ -7,23 +7,23 @@ Unlike the Linux kernel driver, supports reading of Time Machine volumes.
 
 This driver is read-only and cannot write to or damage the target filesystem in any way.
 
-#Supported
+# Supported
 * Journaled and non-journaled HFS+
 * Unicode normalization for pathnames via utf8proc
 * Hard links, including directory hard links (i.e. Time Machine backups)
 * OS X-style resource fork access via /rsrc
 * birthtime (with compatible FUSE)
 
-#TODO
+# TODO
 * Extended attributes / Finder info
 * UID remapping
 
-###minor TODO
+### minor TODO
 * better record cache
 * hook into FUSE options system
 
-#Installation
-##Configuring
+# Installation
+## Configuring
 hfsfuse can use [utf8proc](http://julialang.org/utf8proc/) and [ublio](https://www.freshports.org/devel/libublio/), either bundled or system versions, but it doesn't require them (however, utf8proc is required for working with most non-ASCII pathnames).  
 To configure, run `make config` with WITH_DEP=(none/local/system). For example, to build without ublio, and with the system's utf8proc, use
 
@@ -31,13 +31,13 @@ To configure, run `make config` with WITH_DEP=(none/local/system). For example, 
 	
 The default behavior is equivalent to `make config WITH_UBLIO=local WITH_UTF8PROC=local`
 
-##Building
+## Building
     make
     make install
 
 Makefile dialect is GNU, so substitute `gmake` on FreeBSD.
 
-##Use
+## Use
     hfsfuse <opts> <device> <mountpoint>
 
 Where `<opts>` are any series of arguments to be passed along to FUSE. Use `hfsfuse -h` for a list of switches.
@@ -59,6 +59,6 @@ One-liner to extract the HFS+ partition in a DMG to an img:
 	losetup $mnt image.img
 	hfsfuse <opts> $mnt <mountpoint>
 
-#Resources
+# Resources
 * [sys/fs/hfs/ in the NetBSD source tree](http://cvsweb.netbsd.org/bsdweb.cgi/src/sys/fs/hfs/)
 * [Apple Technical Note 1150](http://dubeiko.com/development/FileSystems/HFSPLUS/tn1150.html)
