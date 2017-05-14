@@ -47,7 +47,7 @@ Disk images can be mounted using [dmg2img](http://vu1tur.eu.org/dmg2img).
 
 One-liner to extract the HFS+ partition in a DMG to an img:
 
-	dmg2img -p$(dmg2img -l image.dmg | grep Apple_HFS | cut -d' ' -f2 | cut -d: -f1) image.dmg image.img
+	dmg2img -p $(dmg2img -l image.dmg | grep Apple_HFS | cut -d' ' -f2 | cut -d: -f1) image.dmg image.img
 
 ## FreeBSD
 
