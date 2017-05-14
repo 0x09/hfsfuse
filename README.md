@@ -9,13 +9,12 @@ This driver is read-only and cannot write to or damage the target filesystem in 
 
 #Supported
 * Journaled and non-journaled HFS+
-* Unicode normalization for pathnames via utf8proc (but see TODO)
+* Unicode normalization for pathnames via utf8proc
 * Hard links, including directory hard links (i.e. Time Machine backups)
 * OS X-style resource fork access via /rsrc
 * birthtime (with compatible FUSE)
 
 #TODO
-* HFS+ NFD special cases (u2000-u2FFF, uF900-uFAFF)
 * Extended attributes / Finder info
 * UID remapping
 

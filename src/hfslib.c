@@ -34,7 +34,7 @@
 #ifdef HAVE_UTF8PROC
 #include "utf8proc.h"
 #else
-#define utf8proc_NFD(x) strdup((const char*)(x))
+#define hfs_utf8proc_NFD(x) strdup((const char*)(x))
 #endif
 
 #ifdef HAVE_UBLIO
@@ -120,8 +120,77 @@ ssize_t hfs_pathname_to_unix(const hfs_unistr255_t* u16, char u8[512]) {
 		*rep++ = ':';
 	return err ? err : len;
 }
+
+#ifdef HAVE_UTF8PROC
+
+// According to Apple Technical Q&A #QA1173,
+// "HFS Plus (Mac OS Extended) uses a variant of Normal Form D in which U+2000 through U+2FFF, U+F900 through U+FAFF, and U+2F800 through U+2FAFF are not decomposed"
+// However TN1150 makes no mention of the U+2xxxx range and states that Unicode 2.0 (which predates these) be strictly followed
+// experiments suggest that codepoints over U+FFFF are passed through silently and do not even undergo combining character ordering
+#define HFSINRANGE(codepoint) ( \
+	((codepoint) >= 0x0000 && (codepoint) <= 0xFFFF) &&  \
+	!(((codepoint) >= 0x2000 && (codepoint) <= 0x2FFF) ||\
+	  ((codepoint) >= 0xF900 && (codepoint) <= 0xFAFF))  \
+)
+
+static inline void sort_combining_characters(utf8proc_int32_t* buf, size_t len) {
+	if(len <= 1)
+		return;
+
+	utf8proc_propval_t rclass = utf8proc_get_property(buf[1])->combining_class;
+	if(HFSINRANGE(buf[0]) && HFSINRANGE(buf[1]) && rclass && utf8proc_get_property(buf[0])->combining_class > rclass) {
+		utf8proc_int32_t tmp = buf[0];
+		buf[0] = buf[1];
+		buf[1] = tmp;
+	}
+
+	for(size_t i = 1; i < len - 1; ) {
+		rclass = utf8proc_get_property(buf[i+1])->combining_class;
+		if(!(rclass && HFSINRANGE(buf[i+1])))
+			i += 2;
+		else if(HFSINRANGE(buf[i]) && utf8proc_get_property(buf[i])->combining_class > rclass) {
+			utf8proc_int32_t tmp = buf[i];
+			buf[i] = buf[i+1];
+			buf[i+1] = tmp;
+			i--;
+		}
+		else i++;
+	}
+}
+
+static char* hfs_utf8proc_NFD(const uint8_t* u8) {
+	utf8proc_int32_t codepoint,* buf;
+	utf8proc_ssize_t ct, result;
+	size_t len = 0;
+	for(const uint8_t* it = u8; *it && (result = utf8proc_iterate(it, -1, &codepoint)) > 0; it += result) {
+		if(HFSINRANGE(codepoint)) {
+			if((ct = utf8proc_decompose_char(codepoint, NULL, 0, UTF8PROC_DECOMPOSE, NULL)) > 0)
+				len += ct;
+			else {
+				len = 0;
+				break;
+			}
+		}
+		else len++;
+	}
+
+	if(result < 0 || !(len && (buf = malloc(sizeof(*buf)*len+1))))
+		return NULL;
+
+	for(utf8proc_int32_t* it = buf; *u8 && (result = utf8proc_iterate(u8, -1, &codepoint)) > 0; u8 += result)
+		if(HFSINRANGE(codepoint))
+			it += utf8proc_decompose_char(codepoint, it, buf+len-it, UTF8PROC_DECOMPOSE, NULL);
+		else *it++ = codepoint;
+
+	sort_combining_characters(buf, len);
+	utf8proc_reencode(buf, len, UTF8PROC_STABLE);
+	return (char*)buf;
+}
+
+#endif
+
 ssize_t hfs_pathname_from_unix(const char* u8, hfs_unistr255_t* u16) {
-	char* norm = (char*)utf8proc_NFD((const uint8_t*)u8);
+	char* norm = (char*)hfs_utf8proc_NFD((const uint8_t*)u8);
 	if(!norm)
 		return -ENOMEM;
 	char* rep = norm;
