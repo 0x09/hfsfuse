@@ -116,7 +116,7 @@ utf8_to_utf16(uint16_t *dst, size_t dst_len,
 	    if (dst && dpos < dst_len)
 		dst[dpos] = (0xd800 | ((cc-0x10000)>>10));
 	    dpos++;
-	    c = 0xdc00 | ((cc-0x10000) & 0x3ffff);
+	    c = 0xdc00 | ((cc-0x10000) & 0x3ff);
 	}
 
 	if (dst && dpos < dst_len)
@@ -159,14 +159,14 @@ utf16_to_utf8(char *dst, size_t dst_len,
 	else if ((src[spos] & 0xdc00) == 0xd800) {
 	    uint32_t c;
 	    /* first surrogate */
-	    if (spos == src_len - 1 || (src[spos] & 0xdc00) != 0xdc00) {
+	    if (spos == src_len - 1 || (src[spos+1] & 0xdc00) != 0xdc00) {
 		/* no second surrogate present */
 		error++;
 		continue;
 	    }
 	    spos++;
 	    CHECK_LENGTH(4);
-	    c = (((src[spos]&0x3ff) << 10) | (src[spos+1]&0x3ff)) + 0x10000;
+	    c = (((src[spos-1]&0x3ff) << 10) | (src[spos]&0x3ff)) + 0x10000;
 	    ADD_BYTE(0xf0 | (c>>18));
 	    ADD_BYTE(0x80 | ((c>>12) & 0x3f));
 	    ADD_BYTE(0x80 | ((c>>6) & 0x3f));
