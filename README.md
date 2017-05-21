@@ -11,7 +11,7 @@ This driver is read-only and cannot write to or damage the target filesystem in 
 * Journaled and non-journaled HFS+
 * Unicode normalization for pathnames via utf8proc
 * Hard links, including directory hard links (i.e. Time Machine backups)
-* OS X-style resource fork access via /rsrc
+* Resource fork, Finder info, and creation/backup time access via extended attributes
 * birthtime (with compatible FUSE)
 
 # TODO
