@@ -224,18 +224,85 @@ static int hfsfuse_getxtimes(const char* path, struct timespec* bkuptime, struct
 	return 0;
 }
 
+#define declare_attr(name, buf, bufsize, accum) do {\
+	accum += strlen(name)+1;\
+	if(bufsize >= accum) {\
+		strcpy(buf,name);\
+		buf += strlen(name)+1;\
+	}\
+} while(0)
+
 static int hfsfuse_listxattr(const char* path, char* attr, size_t size) {
-	const char list[] = "birthtime";
-	const size_t listsz = strlen(list)+1;
-	if(!attr)
-		return listsz;
-	memcpy(attr,list,(size < listsz ? size : listsz));
-	return listsz;
+	hfs_volume* vol = fuse_get_context()->private_data;
+	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key;
+	int ret = hfs_lookup(vol,path,&rec,&key,NULL);
+	if(ret < 0) return ret;
+	else if(ret > 0) return -ENOENT;
+
+	declare_attr("hfsfuse.record.date_created", attr, size, ret);
+	if(rec.file.date_backedup)
+		declare_attr("hfsfuse.record.date_backedup", attr, size, ret);
+
+	if(rec.file.rsrc_fork.logical_size)
+		declare_attr("com.apple.ResourceFork", attr, size, ret);
+	if(memcmp(&rec.file,(char[32]){0},32))
+		declare_attr("com.apple.FinderInfo", attr, size, ret);
+
+	return ret;
 }
+
+#define define_attr(attr, name, size, attrsize, block) do {\
+	if(!strcmp(attr, name)) {\
+		if(size) {\
+			if(size < attrsize) return -ERANGE;\
+			else block \
+		}\
+		return attrsize;\
+	}\
+} while(0)
+
 static int hfsfuse_getxattr(const char* path, const char* attr, char* value, size_t size) {
-	// todo
-	return 0;
+	hfs_volume* vol = fuse_get_context()->private_data;
+	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key;
+	int ret = hfs_lookup(vol,path,&rec,&key,NULL);
+	if(ret < 0) return ret;
+	else if(ret > 0) return -ENOENT;
+
+	define_attr(attr, "com.apple.FinderInfo", size, 32, {
+		hfs_serialize_finderinfo(&rec, value);
+	});
+	ret = rec.file.rsrc_fork.logical_size;
+	define_attr(attr, "com.apple.ResourceFork", size, ret, {
+		hfs_extent_descriptor_t* extents = NULL;
+		uint64_t bytes;
+		if(size > ret)
+			size = ret;
+		uint16_t nextents = hfslib_get_file_extents(vol,rec.file.cnid,HFS_RSRCFORK,&extents,NULL);
+		if((ret = hfslib_readd_with_extents(vol,value,&bytes,size,0,extents,nextents,NULL)) >= 0)
+			ret = bytes;
+		else ret = -EIO;
+		free(extents);
+	});
+
+	define_attr(attr, "hfsfuse.record.date_created", size, 24, {
+		struct tm t;
+		localtime_r(&(time_t){HFSTIMETOEPOCH(rec.file.date_created)}, &t);
+		strftime(value, 24, "%FT%T%z", &t);
+	});
+
+	define_attr(attr, "hfsfuse.record.date_backedup", size, 24, {
+		struct tm t;
+		localtime_r(&(time_t){HFSTIMETOEPOCH(rec.file.date_backedup)}, &t);
+		strftime(value, 24, "%FT%T%z", &t);
+	});
+
+	return -1;
 }
+
+static int hfsfuse_getxattr_darwin(const char* path, const char* attr, char* value, size_t size, u_int32_t unused) {
+	return hfsfuse_getxattr(path, attr, value, size);
+}
+
 static struct fuse_operations hfsfuse_ops = {
 	.init        = hfsfuse_init,
 	.destroy     = hfsfuse_destroy,
@@ -249,8 +316,12 @@ static struct fuse_operations hfsfuse_ops = {
 	.getattr     = hfsfuse_getattr,
 	.readlink    = hfsfuse_readlink,
 	.fgetattr    = hfsfuse_fgetattr,
-//	.listxattr   = hfsfuse_listxattr,
-//	.getxattr    = hfsfuse_getxattr,
+	.listxattr   = hfsfuse_listxattr,
+#ifdef __APPLE__
+	.getxattr    = hfsfuse_getxattr_darwin,
+#else
+	.getxattr    = hfsfuse_getxattr,
+#endif
 #ifdef __APPLE__
 	.getxtimes   = hfsfuse_getxtimes,
 #else

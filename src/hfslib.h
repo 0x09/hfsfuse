@@ -33,6 +33,8 @@
 #include "libhfs.h"
 #include "unicode.h"
 
+#define HFSTIMETOEPOCH(x) (x>2082844800?x-2082844800:0)
+
 void ringbuffer_init();
 void ringbuffer_destroy();
 
@@ -41,6 +43,7 @@ ssize_t hfs_pathname_from_unix(const char* u8, hfs_unistr255_t* u16);
 
 int  hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key, uint8_t* fork);
 void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st, uint8_t fork);
+void hfs_serialize_finderinfo(hfs_catalog_keyed_record_t*, char[32]);
 
 // libhfs callbacks
 int  hfs_open(hfs_volume*,const char*,hfs_callback_args*);

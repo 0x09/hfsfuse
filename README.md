@@ -15,7 +15,7 @@ This driver is read-only and cannot write to or damage the target filesystem in 
 * birthtime (with compatible FUSE)
 
 # TODO
-* Extended attributes / Finder info
+* User-defined extended attributes
 * UID remapping
 
 ### minor TODO
