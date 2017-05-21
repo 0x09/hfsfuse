@@ -224,11 +224,17 @@ static int hfsfuse_getxtimes(const char* path, struct timespec* bkuptime, struct
 	return 0;
 }
 
+#ifdef __APPLE__
+#define attrname(name) name
+#else
+#define attrname(name) "user." name
+#endif
+
 #define declare_attr(name, buf, bufsize, accum) do {\
-	accum += strlen(name)+1;\
+	accum += strlen(attrname(name))+1;\
 	if(bufsize >= accum) {\
-		strcpy(buf,name);\
-		buf += strlen(name)+1;\
+		strcpy(buf,attrname(name));\
+		buf += strlen(attrname(name))+1;\
 	}\
 } while(0)
 
@@ -252,7 +258,7 @@ static int hfsfuse_listxattr(const char* path, char* attr, size_t size) {
 }
 
 #define define_attr(attr, name, size, attrsize, block) do {\
-	if(!strcmp(attr, name)) {\
+	if(!strcmp(attr, attrname(name))) {\
 		if(size) {\
 			if(size < attrsize) return -ERANGE;\
 			else block \
