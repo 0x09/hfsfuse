@@ -56,7 +56,7 @@ $(LIBS): always_check
 	$(MAKE) -C $(dir $@)
 
 $(TARGET): $(LIBS) $(OBJS)
-	$(CC) $(CFLAGS) $(FUSE_LIB) -o $@ lib/libhfs/*.o $^ -lpthread
+	$(CC) $(CFLAGS) -o $@ lib/libhfs/*.o $^ $(FUSE_LIB) -lpthread
 
 amalgamation: $(foreach dir, $(LIBDIRS), $(dir)*.c) $(SRCS)
 	cat $^ | $(CC) $(CFLAGS) $(FUSE_FLAGS) $(FUSE_LIB) $(INCLUDE) -o $(TARGET) -x c -
