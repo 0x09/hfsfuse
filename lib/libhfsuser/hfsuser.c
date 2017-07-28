@@ -75,6 +75,8 @@ void ringbuffer_init() {
 }
 
 void ringbuffer_destroy() {
+	if(!head)
+		return;
 	pthread_rwlock_wrlock(&cachelock);
 	struct recordcache* end = head;
 	do {
@@ -88,6 +90,8 @@ void ringbuffer_destroy() {
 }
 
 bool ringbuffer_lookup(const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key) {
+	if(!head)
+		return false;
 	bool ret = false;
 	pthread_rwlock_rdlock(&cachelock);
 	struct recordcache* it = head;
@@ -106,6 +110,8 @@ bool ringbuffer_lookup(const char* path, hfs_catalog_keyed_record_t* record, hfs
 }
 
 void ringbuffer_add(const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key) {
+	if(!head)
+		return;
 	pthread_rwlock_wrlock(&cachelock);
 	struct recordcache* tail = head->prev;
 	tail->path = realloc(tail->path,strlen(path)+1);
