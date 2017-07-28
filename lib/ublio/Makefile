@@ -18,3 +18,10 @@ $(OUT): $(OBJ)
 
 clean:
 	rm -f $(OBJ) $(OUT)
+
+install: $(OUT)
+	$(INSTALL) ublio.h $(PREFIX)/include/
+	$(INSTALL) libublio.a $(PREFIX)/lib/
+
+uninstall:
+	rm -f $(PREFIX)/include/ublio.h

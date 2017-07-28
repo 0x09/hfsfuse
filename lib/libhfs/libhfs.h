@@ -52,7 +52,6 @@
 #include <string.h>
 #include <assert.h>
 #define KASSERT(x) assert(x)
-#include "byteorder.h"
 #endif /* !defined(_KERNEL) && !defined(STANDALONE) */
 
 #define max(A,B) ((A) > (B) ? (A):(B))

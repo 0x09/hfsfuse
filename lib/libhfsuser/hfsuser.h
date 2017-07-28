@@ -1,6 +1,6 @@
 /*
- * hfsfuse - FUSE driver for HFS+ filesystems
- * Copyright 2013-2016 0x09.net.
+ * libhfsuser - Userspace support library for NetBSD's libhfs
+ * Copyright 2013-2017 0x09.net.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -25,13 +25,9 @@
 #ifndef HFSLIB_H
 #define HFSLIB_H
 
-#include <stdbool.h>
-#include <errno.h>
-#include <limits.h>
 #include <sys/stat.h>
 
 #include "libhfs.h"
-#include "unicode.h"
 
 #define HFSTIMETOEPOCH(x) (x>2082844800?x-2082844800:0)
 

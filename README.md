@@ -37,6 +37,8 @@ The default behavior is equivalent to `make config WITH_UBLIO=local WITH_UTF8PRO
 
 Makefile dialect is GNU, so substitute `gmake` on FreeBSD.
 
+hfsfuse's support libraries can be also built standalone using `make lib` and `make install-lib` and used to read from HFS+ volumes without FUSE by including hfsuser.h and linking with libhfsuser, libhfs, and ublio/utf8proc if configured.
+
 ## Use
     hfsfuse <opts> <device> <mountpoint>
 

@@ -33,7 +33,8 @@ else # GNU/Linux, at least (Windows should probably use cmake)
 endif
 
 # installation directories (for 'make install')
-prefix=/usr/local
+prefix?=$(PREFIX)
+prefix?=/usr/local
 libdir=$(prefix)/lib
 includedir=$(prefix)/include
 

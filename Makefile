@@ -1,75 +1,81 @@
 -include config.mak
 
 CC ?= cc
+AR ?= ar
+RANLIB ?= ranlib
+INSTALL ?= install
 PREFIX ?= /usr/local
 CONFIG_CFLAGS ?= -O3 -std=gnu11
 WITH_UBLIO ?= local
 WITH_UTF8PROC ?= local
 CFLAGS := $(CONFIG_CFLAGS) $(CFLAGS)
 
-export CC
-export CFLAGS
-
 FUSE_FLAGS = -DFUSE_USE_VERSION=28 -D_FILE_OFFSET_BITS=64
 FUSE_LIB = -lfuse
 OS := $(shell uname)
 ifeq ($(OS), Darwin)
-	FUSE_FLAGS += -I/usr/local/include/osxfuse -DHAVE_BIRTHTIME
+	APP_FLAGS += -DHAVE_BIRTHTIME
+	FUSE_FLAGS += -I/usr/local/include/osxfuse
 	FUSE_LIB = -losxfuse
 else ifeq ($(OS), FreeBSD)
-	FUSE_FLAGS += -I/usr/local/include -DHAVE_BIRTHTIME
-	FUSE_LIB += -L/usr/local/lib
+	APP_FLAGS += -DHAVE_BIRTHTIME
+	APP_FLAGS += -I/usr/local/include
+	APP_LIB += -L/usr/local/lib
 endif
 
-SRCS = $(wildcard src/*.c)
-OBJS = $(SRCS:%.c=%.o)
-LIBS = lib/libhfs/libhfs.a
-LIBDIRS = $(dir $(LIBS))
+LIBS = lib/libhfsuser/libhfsuser.a lib/libhfs/libhfs.a
+LIBDIRS = $(abspath $(dir $(LIBS)))
 INCLUDE = $(foreach dir, $(LIBDIRS), -I$(dir))
-TARGET = hfsfuse
 
 ifneq ($(WITH_UBLIO), none)
-	FUSE_FLAGS += -DHAVE_UBLIO
+	APP_FLAGS += -DHAVE_UBLIO
 	ifeq ($(WITH_UBLIO), system)
-		FUSE_LIB += -lublio
+		APP_LIB += -lublio
 	else ifeq ($(WITH_UBLIO), local)
-		LIBS += lib/ublio/ublio.o
+		LIBS += lib/ublio/libublio.a
 	endif
 endif
 ifneq ($(WITH_UTF8PROC), none)
-	FUSE_FLAGS += -DHAVE_UTF8PROC
+	APP_FLAGS += -DHAVE_UTF8PROC
 	ifeq ($(WITH_UTF8PROC), system)
-		FUSE_LIB += -lutf8proc
+		APP_LIB += -lutf8proc
 	else ifeq ($(WITH_UTF8PROC), local)
-		LIBS += lib/utf8proc/utf8proc.o
+		LIBS += lib/utf8proc/libutf8proc.a
 	endif
 endif
 
-.PHONY: all amalgamation clean always_check config install uninstall
+export PREFIX CC CFLAGS APP_FLAGS LIBDIRS AR RANLIB INCLUDE
 
-all: $(TARGET)
+.PHONY: all clean always_check config install uninstall install-lib uninstall-lib lib
+
+all: hfsfuse
 
 %.o: %.c
-	$(CC) $(CFLAGS) $(FUSE_FLAGS) $(INCLUDE) -c -o $*.o $^
+	$(CC) $(CFLAGS) $(APP_FLAGS) $(FUSE_FLAGS) $(INCLUDE) -c -o $*.o $^
 
 $(LIBS): always_check
 	$(MAKE) -C $(dir $@)
 
-$(TARGET): $(LIBS) $(OBJS)
-	$(CC) $(CFLAGS) -o $@ lib/libhfs/*.o $^ $(FUSE_LIB) -lpthread
+lib: $(LIBS)
 
-amalgamation: $(foreach dir, $(LIBDIRS), $(dir)*.c) $(SRCS)
-	cat $^ | $(CC) $(CFLAGS) $(FUSE_FLAGS) $(FUSE_LIB) $(INCLUDE) -o $(TARGET) -x c -
+hfsfuse: src/hfsfuse.o $(LIBS)
+	$(CC) $(CFLAGS) $(APP_LIB) -o $@ $^ $(FUSE_LIB) -lpthread
 
 clean:
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir clean; done
-	rm -f $(OBJS) $(TARGET)
+	rm -f src/hfsfuse.o hfsfuse
 
-install: $(TARGET)
+install-lib: $(LIBS)
+	for dir in $(LIBDIRS); do $(MAKE) -C $$dir install; done
+
+uninstall-lib: $(LIBS)
+	for dir in $(LIBDIRS); do $(MAKE) -C $$dir uninstall; done
+
+install: hfsfuse
 	install $< $(PREFIX)/bin/
 
 uninstall:
-	rm -f $(PREFIX)/bin/$(TARGET)
+	rm -f $(PREFIX)/bin/hfsfuse
 
 config:
 	echo CC=$(CC) > config.mak

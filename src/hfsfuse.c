@@ -22,8 +22,10 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "hfslib.h"
+#include "hfsuser.h"
 
+#include <errno.h>
+#include <limits.h>
 #include <fuse/fuse.h>
 
 static void* hfsfuse_init(struct fuse_conn_info* conn) {

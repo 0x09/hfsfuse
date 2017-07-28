@@ -1,6 +1,6 @@
 /*
- * hfsfuse - FUSE driver for HFS+ filesystems
- * Copyright 2013-2016 0x09.net.
+ * libhfsuser - Userspace support library for NetBSD's libhfs
+ * Copyright 2013-2017 0x09.net.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -22,14 +22,19 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "hfslib.h"
+#include "hfsuser.h"
 
+#include <stdbool.h>
+#include <errno.h>
+#include <limits.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <syslog.h>
 #include <sys/ioctl.h>
+
+#include "unicode.h"
 
 #ifdef HAVE_UTF8PROC
 #include "utf8proc.h"

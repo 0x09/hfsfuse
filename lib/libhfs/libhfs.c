@@ -47,6 +47,7 @@
  */
 
 #include "libhfs.h"
+#include "byteorder.h"
 
 /* global private file/folder keys */
 hfs_catalog_key_t hfs_gMetadataDirectoryKey; /* contains HFS+ inodes */
