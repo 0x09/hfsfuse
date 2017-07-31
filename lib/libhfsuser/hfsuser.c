@@ -298,7 +298,6 @@ int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* re
 
 void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st, uint8_t fork) {
 	st->st_mode  = key->file.bsd.file_mode;
-	st->st_nlink = key->file.bsd.special.link_count;
 	st->st_ino   = key->file.cnid;
 	st->st_uid   = key->file.bsd.owner_id;
 	st->st_gid   = key->file.bsd.group_id;
@@ -307,6 +306,8 @@ void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st,
 #endif
 	if(S_ISBLK(st->st_mode) || S_ISCHR(st->st_mode))
 		st->st_rdev  = key->file.bsd.special.raw_device;
+	else st->st_nlink = key->file.bsd.special.link_count;
+
 	st->st_atime     = HFSTIMETOEPOCH(key->file.date_accessed);
 	st->st_mtime     = HFSTIMETOEPOCH(key->file.date_content_mod);
 	st->st_ctime     = HFSTIMETOEPOCH(key->file.date_attrib_mod);
