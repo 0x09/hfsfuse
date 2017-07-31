@@ -48,7 +48,7 @@ export PREFIX CC CFLAGS APP_FLAGS LIBDIRS AR RANLIB INCLUDE
 
 .PHONY: all clean always_check config install uninstall install-lib uninstall-lib lib
 
-all: hfsfuse
+all: hfsfuse hfsdump
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(APP_FLAGS) $(FUSE_FLAGS) $(INCLUDE) -c -o $*.o $^
@@ -61,9 +61,12 @@ lib: $(LIBS)
 hfsfuse: src/hfsfuse.o $(LIBS)
 	$(CC) $(CFLAGS) $(APP_LIB) -o $@ $^ $(FUSE_LIB) -lpthread
 
+hfsdump: src/hfsdump.o $(LIBS)
+	$(CC) $(CFLAGS) $(APP_LIB) -o $@ $^ -lpthread
+
 clean:
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir clean; done
-	rm -f src/hfsfuse.o hfsfuse
+	rm -f src/hfsfuse.o hfsfuse src/hfsdump.o hfsdump
 
 install-lib: $(LIBS)
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir install; done
@@ -71,11 +74,11 @@ install-lib: $(LIBS)
 uninstall-lib: $(LIBS)
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir uninstall; done
 
-install: hfsfuse
+install: hfsfuse hfsdump
 	install $< $(PREFIX)/bin/
 
 uninstall:
-	rm -f $(PREFIX)/bin/hfsfuse
+	rm -f $(PREFIX)/bin/hfsfuse $(PREFIX)/bin/hfsdump
 
 config:
 	echo CC=$(CC) > config.mak

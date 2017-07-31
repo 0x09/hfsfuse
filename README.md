@@ -7,6 +7,8 @@ Unlike the Linux kernel driver, supports reading of Time Machine volumes.
 
 This driver is read-only and cannot write to or damage the target filesystem in any way.
 
+hfsfuse also includes a standalone tool, hfsdump, to inspect the contents of an HFS+ volume without FUSE.
+
 # Supported
 * Journaled and non-journaled HFS+
 * Unicode normalization for pathnames via utf8proc
@@ -39,10 +41,20 @@ Makefile dialect is GNU, so substitute `gmake` on FreeBSD.
 
 hfsfuse's support libraries can be also built standalone using `make lib` and `make install-lib` and used to read from HFS+ volumes without FUSE by including hfsuser.h and linking with libhfsuser, libhfs, and ublio/utf8proc if configured.
 
+hfsdump is also built by default, but can be built standalone with `make hfsdump`, in which case the FUSE library is not needed.
+
 ## Use
+### hfsfuse
     hfsfuse <opts> <device> <mountpoint>
 
 Where `<opts>` are any series of arguments to be passed along to FUSE. Use `hfsfuse -h` for a list of switches.
+
+### hfsdump
+	hfsdump <device> <command> <node>
+	
+`command` may be either `stat` or `read`: `stat` prints the record structure, while `read` copies the node's contents to standard out (or lists if node is a directory).  
+`node` is either an inode/CNID to lookup, or a full path from the root of the volume being inspected.  
+If the command and node are ommitted, hfsdump prints the volume header and exits.
 
 # DMG Mounting
 Disk images can be mounted using [dmg2img](http://vu1tur.eu.org/dmg2img).
