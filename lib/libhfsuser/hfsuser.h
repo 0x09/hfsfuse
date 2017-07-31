@@ -34,6 +34,7 @@
 void ringbuffer_init();
 void ringbuffer_destroy();
 
+ssize_t hfs_unistr_to_utf8(const hfs_unistr255_t* u16, char u8[]);
 ssize_t hfs_pathname_to_unix(const hfs_unistr255_t* u16, char u8[]);
 ssize_t hfs_pathname_from_unix(const char* u8, hfs_unistr255_t* u16);
 
