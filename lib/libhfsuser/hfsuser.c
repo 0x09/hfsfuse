@@ -218,6 +218,46 @@ ssize_t hfs_pathname_from_unix(const char* u8, hfs_unistr255_t* u16) {
 	return err ? err : u16->length;
 }
 
+// libhfs has `hfslib_path_elements_to_cnid` but we want to be able to use our hfs_pathname_to_unix on the individual elements
+char* hfs_get_path(hfs_volume* vol, hfs_cnid_t cnid) {
+	hfs_thread_record_t	parent_thread;
+	hfs_unistr255_t* elements = NULL,* newelements;
+	size_t size = 0;
+	size_t len = 0;
+	char* out = NULL;
+
+	while(cnid != HFS_CNID_ROOT_FOLDER) {
+		if(!(newelements = realloc(elements, sizeof(*elements) * (size+1))))
+			goto end;
+		elements = newelements;
+		if(!(cnid = hfslib_find_parent_thread(vol, cnid, &parent_thread, NULL)))
+			goto end;
+		elements[size] = parent_thread.name;
+		len += elements[size].length + 1;
+		size++;
+	}
+
+	if(!len)
+		len = 1;
+	if(!(out = malloc(len+1)))
+		goto end;
+	*out = '/';
+
+	char* it = out+1;
+	hfs_unistr255_t* elem = elements+size;
+	while(elem != elements) {
+		elem--;
+		hfs_pathname_to_unix(elem, it);
+		it += elem->length;
+		*it++ = '/';
+	}
+	out[len] = '\0';
+
+end:
+	free(elements);
+	return out;
+}
+
 int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key, uint8_t* fork) {
 #define RET(val) do{ free(splitpath); return -val; } while(0)
 	if(fork) *fork = HFS_DATAFORK;
