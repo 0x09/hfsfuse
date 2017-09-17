@@ -2501,7 +2501,8 @@ hfslib_compare_catalog_keys_bc (
 		return memcmp(((const hfs_catalog_key_t*)a)->name.unicode,
 			((const hfs_catalog_key_t*)b)->name.unicode,
 			min(((const hfs_catalog_key_t*)a)->name.length,
-				((const hfs_catalog_key_t*)b)->name.length));
+				((const hfs_catalog_key_t*)b)->name.length)
+			* sizeof(unichar_t));
 	}
 	else
 	{
