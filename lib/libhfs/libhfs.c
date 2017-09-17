@@ -2484,6 +2484,7 @@ hfslib_compare_catalog_keys_bc (
 	const void *a,
 	const void *b)
 {
+	int rc;
 	if(((const hfs_catalog_key_t*)a)->parent_cnid
 		== ((const hfs_catalog_key_t*)b)->parent_cnid)
 	{
@@ -2498,11 +2499,22 @@ hfslib_compare_catalog_keys_bc (
 
 		/* FIXME: This does a byte-per-byte comparison, whereas the HFS spec
 		 * mandates a uint16_t chunk comparison. */
-		return memcmp(((const hfs_catalog_key_t*)a)->name.unicode,
+		rc = memcmp(((const hfs_catalog_key_t*)a)->name.unicode,
 			((const hfs_catalog_key_t*)b)->name.unicode,
 			min(((const hfs_catalog_key_t*)a)->name.length,
 				((const hfs_catalog_key_t*)b)->name.length)
 			* sizeof(unichar_t));
+
+		if (rc != 0)
+			return rc;
+
+		/*
+		 * all other things being equal, the key with the shorter name sorts first.
+		 * this also handles the case where the keys are equivalent (a.len - b.len = 0).
+		 */
+		return ((const hfs_catalog_key_t*)a)->name.length -
+			((const hfs_catalog_key_t*)b)->name.length;
+
 	}
 	else
 	{
