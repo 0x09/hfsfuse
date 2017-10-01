@@ -29,12 +29,10 @@
 #include <fuse/fuse.h>
 
 static void* hfsfuse_init(struct fuse_conn_info* conn) {
-	ringbuffer_init();
 	return fuse_get_context()->private_data;
 }
 
 static void hfsfuse_destroy(void* vol) {
-	ringbuffer_destroy();
 	hfslib_close_volume(vol, NULL);
 }
 

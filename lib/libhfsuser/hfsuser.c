@@ -23,6 +23,7 @@
  */
 
 #include "hfsuser.h"
+#include "cache.h"
 
 #include <stdbool.h>
 #include <errno.h>
@@ -46,81 +47,17 @@
 #include "ublio.h"
 #endif
 
-
 #define RING_BUFFER_SIZE 1024
 
-struct recordcache {
-	struct recordcache* next,* prev;
-	char* path;
-	hfs_catalog_keyed_record_t record;
-	hfs_catalog_key_t key;
-}* head;
-
-pthread_rwlock_t cachelock;
-
-void ringbuffer_init() {
-	pthread_rwlock_init(&cachelock,NULL);
-	pthread_rwlock_wrlock(&cachelock);
-	struct recordcache* tail = head = malloc(sizeof(*head));
-	head->path = NULL;
-	for(int i = 0; i < RING_BUFFER_SIZE; i++) {
-		tail->next = malloc(sizeof(*tail));
-		tail->next->prev = tail;
-		tail = tail->next;
-		tail->path = NULL;
-	}
-	tail->next = head;
-	head->prev = tail;
-	pthread_rwlock_unlock(&cachelock);
-}
-
-void ringbuffer_destroy() {
-	if(!head)
-		return;
-	pthread_rwlock_wrlock(&cachelock);
-	struct recordcache* end = head;
-	do {
-		free(head->path);
-		struct recordcache* tmp = head->next;
-		free(head);
-		head = tmp;
-	} while(head != end);
-	pthread_rwlock_unlock(&cachelock);
-	pthread_rwlock_destroy(&cachelock);
-}
-
-bool ringbuffer_lookup(const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key) {
-	if(!head)
-		return false;
-	bool ret = false;
-	pthread_rwlock_rdlock(&cachelock);
-	struct recordcache* it = head;
-	do {
-		if(!it->path) break;
-		if(!strcmp(it->path,path)) {
-			*record = it->record;
-			*key = it->key;
-			ret = true;
-			break;
-		}
-		it = it->next;
-	} while(it != head);
-	pthread_rwlock_unlock(&cachelock);
-	return ret;
-}
-
-void ringbuffer_add(const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key) {
-	if(!head)
-		return;
-	pthread_rwlock_wrlock(&cachelock);
-	struct recordcache* tail = head->prev;
-	tail->path = realloc(tail->path,strlen(path)+1);
-	strcpy(tail->path,path);
-	tail->key = *key;
-	tail->record = *record;
-	head = tail;
-	pthread_rwlock_unlock(&cachelock);
-}
+struct hf_device {
+	int fd;
+	uint32_t blksize;
+	struct hfs_record_cache* cache;
+#ifdef HAVE_UBLIO
+	ublio_filehandle_t ubfh;
+	pthread_mutex_t ubmtx;
+#endif
+};
 
 ssize_t hfs_unistr_to_utf8(const hfs_unistr255_t* u16, char u8[512]) {
 	int err;
@@ -260,8 +197,9 @@ end:
 
 int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key, uint8_t* fork) {
 #define RET(val) do{ free(splitpath); return -val; } while(0)
+	struct hfs_record_cache* cache = ((struct hf_device*)vol->cbdata)->cache;
 	if(fork) *fork = HFS_DATAFORK;
-	if(ringbuffer_lookup(path,record,key))
+	if(hfs_record_cache_lookup(cache,path,record,key))
 		return 0;
 	if(hfslib_find_catalog_record_with_cnid(vol,HFS_CNID_ROOT_FOLDER,record,key,NULL)) return -7;
 	int ret;
@@ -288,7 +226,7 @@ int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* re
 	   hfslib_get_hardlink(vol, record->file.bsd.special.inode_num, record, NULL))
 		return -6;
 	if(!splitptr) // don't cache rsrc lookups
-		ringbuffer_add(path,record,key);
+		hfs_record_cache_add(cache,path,record,key);
 	return 0;
 #undef RET
 }
@@ -369,15 +307,6 @@ void hfs_serialize_finderinfo(hfs_catalog_keyed_record_t* rec, char buf[32]) {
 	}
 }
 
-struct hf_device {
-	int fd;
-	uint32_t blksize;
-#ifdef HAVE_UBLIO
-	ublio_filehandle_t ubfh;
-	pthread_mutex_t ubmtx;
-#endif
-};
-
 #ifdef __APPLE__
 #include <sys/disk.h>
 #define DISKBLOCKSIZE DKIOCGETPHYSICALBLOCKSIZE
@@ -418,6 +347,9 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 		dev->blksize = st.st_blksize;
 	else BAIL(EINVAL);
 
+	if(!(dev->cache = hfs_record_cache_create(RING_BUFFER_SIZE)))
+		BAIL(ENOMEM);
+
 #ifdef HAVE_UBLIO
 	struct ublio_param p = {
 		.up_priv = &dev->fd,
@@ -430,12 +362,14 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 	if((errno = pthread_mutex_init(&dev->ubmtx,NULL)))
 		BAIL(errno);
 #endif
+
 	vol->cbdata = dev;
 	return 0;
 
 error:
 	if(dev->fd >= 0)
 		close(dev->fd);
+	hfs_record_cache_destroy(dev->cache);
 #ifdef HAVE_UBLIO
 	if(dev->ubfh)
 		ublio_close(dev->ubfh);
@@ -446,6 +380,7 @@ error:
 
 void hfs_close(hfs_volume* vol, hfs_callback_args* cbargs) {
 	struct hf_device* dev = vol->cbdata;
+	hfs_record_cache_destroy(dev->cache);
 #ifdef HAVE_UBLIO
 	ublio_close(dev->ubfh);
 	pthread_mutex_destroy(&dev->ubmtx);

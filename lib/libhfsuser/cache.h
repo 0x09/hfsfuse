@@ -22,32 +22,18 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef HFSUSER_H
-#define HFSUSER_H
+#ifndef HFSUSER_CACHE_H
+#define HFSUSER_CACHE_H
 
-#include <sys/stat.h>
+#include "hfsuser.h"
 
-#include "libhfs.h"
+#include <stdbool.h>
 
-#define HFSTIMETOEPOCH(x) (x>2082844800?x-2082844800:0)
+struct hfs_record_cache;
 
-ssize_t hfs_unistr_to_utf8(const hfs_unistr255_t* u16, char u8[]);
-ssize_t hfs_pathname_to_unix(const hfs_unistr255_t* u16, char u8[]);
-ssize_t hfs_pathname_from_unix(const char* u8, hfs_unistr255_t* u16);
-
-char* hfs_get_path(hfs_volume* vol, hfs_cnid_t cnid);
-int  hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key, uint8_t* fork);
-void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st, uint8_t fork);
-void hfs_serialize_finderinfo(hfs_catalog_keyed_record_t*, char[32]);
-
-// libhfs callbacks
-int  hfs_open(hfs_volume*,const char*,hfs_callback_args*);
-void hfs_close(hfs_volume*,hfs_callback_args*);
-int  hfs_read(hfs_volume*,void*,uint64_t,uint64_t,hfs_callback_args*);
-void*hfs_malloc(size_t,hfs_callback_args*);
-void*hfs_realloc(void*,size_t,hfs_callback_args*);
-void hfs_free(void*,hfs_callback_args*);
-void hfs_vprintf(const char*,const char*,int,va_list);
-void hfs_vsyslog(const char*,const char*,int,va_list);
+struct hfs_record_cache* hfs_record_cache_create(size_t length);
+void hfs_record_cache_destroy(struct hfs_record_cache*);
+bool hfs_record_cache_lookup(struct hfs_record_cache*, const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key);
+void hfs_record_cache_add(struct hfs_record_cache*, const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key);
 
 #endif
