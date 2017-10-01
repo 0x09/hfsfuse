@@ -35,52 +35,49 @@ struct ringnode {
 };
 
 struct hfs_record_cache {
-	struct ringnode* head;
 	pthread_rwlock_t lock;
+	struct ringnode* head;
+	struct ringnode backing[];
 };
 
 struct hfs_record_cache* hfs_record_cache_create(size_t length) {
 	if(!length)
 		return NULL;
-	struct hfs_record_cache* cache = malloc(sizeof(*cache));
-	pthread_rwlock_init(&cache->lock,NULL);
-	pthread_rwlock_wrlock(&cache->lock);
-	struct ringnode* tail = cache->head = malloc(sizeof(*cache->head));
-	cache->head->path = NULL;
-	for(int i = 0; i < length; i++) {
-		tail->next = malloc(sizeof(*tail));
+	struct hfs_record_cache* buf = malloc(sizeof(*buf) + sizeof(*buf->backing)*length);
+	if(!buf || pthread_rwlock_init(&buf->lock,NULL)) {
+		free(buf);
+		return NULL;
+	}
+
+	struct ringnode* tail = buf->head = buf->backing;
+	for(int i = 0; i <= length; i++) {
+		tail->next = buf->backing + i%length;
 		tail->next->prev = tail;
 		tail = tail->next;
 		tail->path = NULL;
 	}
-	tail->next = cache->head;
-	cache->head->prev = tail;
-	pthread_rwlock_unlock(&cache->lock);
-	return cache;
+	return buf;
 }
 
-void hfs_record_cache_destroy(struct hfs_record_cache* cache) {
-	if(!cache)
+void hfs_record_cache_destroy(struct hfs_record_cache* buf) {
+	if(!buf)
 		return;
-	pthread_rwlock_wrlock(&cache->lock);
-	struct ringnode* head = cache->head;
+    pthread_rwlock_wrlock(&buf->lock);
+	struct ringnode* tail = buf->head;
 	do {
-		free(head->path);
-		struct ringnode* tmp = head->next;
-		free(head);
-		head = tmp;
-	} while(head != cache->head);
-	pthread_rwlock_unlock(&cache->lock);
-	pthread_rwlock_destroy(&cache->lock);
-	free(cache);
+		free(tail->path);
+		tail = tail->next;
+	} while(tail != buf->head);
+	pthread_rwlock_unlock(&buf->lock);
+	pthread_rwlock_destroy(&buf->lock);
+	free(buf);
 }
 
-bool hfs_record_cache_lookup(struct hfs_record_cache* cache, const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key) {
-	if(!cache)
-		return false;
+bool hfs_record_cache_lookup(struct hfs_record_cache* buf, const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key) {
 	bool ret = false;
-	pthread_rwlock_rdlock(&cache->lock);
-	struct ringnode* it = cache->head;
+	if(!buf || pthread_rwlock_rdlock(&buf->lock))
+		return ret;
+	struct ringnode* it = buf->head;
 	do {
 		if(!it->path) break;
 		if(!strcmp(it->path,path)) {
@@ -90,20 +87,26 @@ bool hfs_record_cache_lookup(struct hfs_record_cache* cache, const char* path, h
 			break;
 		}
 		it = it->next;
-	} while(it != cache->head);
-	pthread_rwlock_unlock(&cache->lock);
+	} while(it != buf->head);
+	pthread_rwlock_unlock(&buf->lock);
 	return ret;
 }
 
-void hfs_record_cache_add(struct hfs_record_cache* cache, const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key) {
-	if(!cache)
+void hfs_record_cache_add(struct hfs_record_cache* buf, const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key) {
+	if(!buf || pthread_rwlock_wrlock(&buf->lock))
 		return;
-	pthread_rwlock_wrlock(&cache->lock);
-	struct ringnode* tail = cache->head->prev;
-	tail->path = realloc(tail->path,strlen(path)+1);
-	strcpy(tail->path,path);
+	struct ringnode* tail = buf->head->prev;
+	char* newpath = realloc(tail->path,strlen(path)+1);
+	if(!newpath) {
+		free(tail->path);
+		tail->path = NULL;
+		goto end;
+	}
+	strcpy(newpath, path);
+	tail->path = newpath;
 	tail->key = *key;
 	tail->record = *record;
-	cache->head = tail;
-	pthread_rwlock_unlock(&cache->lock);
+	buf->head = tail;
+end:
+	pthread_rwlock_unlock(&buf->lock);
 }
