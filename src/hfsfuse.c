@@ -332,10 +332,9 @@ static struct fuse_operations hfsfuse_ops = {
 #endif
 #ifdef __APPLE__
 	.getxtimes   = hfsfuse_getxtimes,
-#else
+#endif
 	.flag_nopath = 1,
 	.flag_nullpath_ok = 1
-#endif
 };
 
 int main(int argc, char* argv[]) {
