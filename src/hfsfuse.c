@@ -35,6 +35,7 @@ static void* hfsfuse_init(struct fuse_conn_info* conn) {
 
 static void hfsfuse_destroy(void* vol) {
 	ringbuffer_destroy();
+	hfslib_close_volume(vol, NULL);
 }
 
 
@@ -369,7 +370,6 @@ int main(int argc, char* argv[]) {
 	hfslib_callbacks()->error = hfs_vsyslog; // prepare to daemonize
 	ret = fuse_main(sizeof(argv2)/sizeof(*argv2)-1,argv2,&hfsfuse_ops,&vol);
 
-	hfslib_close_volume(&vol, NULL);
 done:
 	hfslib_done();
 	return ret;
