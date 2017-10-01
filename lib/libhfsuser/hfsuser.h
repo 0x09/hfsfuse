@@ -22,8 +22,8 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef HFSLIB_H
-#define HFSLIB_H
+#ifndef HFSUSER_H
+#define HFSUSER_H
 
 #include <sys/stat.h>
 
