@@ -49,7 +49,7 @@
 
 #define RING_BUFFER_SIZE 1024
 
-struct hf_device {
+struct hfs_device {
 	int fd;
 	uint32_t blksize;
 	struct hfs_record_cache* cache;
@@ -197,7 +197,7 @@ end:
 
 int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key, uint8_t* fork) {
 #define RET(val) do{ free(splitpath); return -val; } while(0)
-	struct hfs_record_cache* cache = ((struct hf_device*)vol->cbdata)->cache;
+	struct hfs_record_cache* cache = ((struct hfs_device*)vol->cbdata)->cache;
 	if(fork) *fork = HFS_DATAFORK;
 	if(hfs_record_cache_lookup(cache,path,record,key))
 		return 0;
@@ -324,7 +324,7 @@ void hfs_serialize_finderinfo(hfs_catalog_keyed_record_t* rec, char buf[32]) {
 #define BAIL(e) do { errno = e; goto error; } while(0)
 
 int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
-	struct hf_device* dev = calloc(1,sizeof(*dev));
+	struct hfs_device* dev = calloc(1,sizeof(*dev));
 	if(!dev)
 		return -(errno = ENOMEM);
 	if((dev->fd = open(name,O_RDONLY)) < 0)
@@ -379,7 +379,7 @@ error:
 }
 
 void hfs_close(hfs_volume* vol, hfs_callback_args* cbargs) {
-	struct hf_device* dev = vol->cbdata;
+	struct hfs_device* dev = vol->cbdata;
 	hfs_record_cache_destroy(dev->cache);
 #ifdef HAVE_UBLIO
 	ublio_close(dev->ubfh);
@@ -391,7 +391,7 @@ void hfs_close(hfs_volume* vol, hfs_callback_args* cbargs) {
 
 #ifdef HAVE_UBLIO
 int hfs_read(hfs_volume* vol, void* outbytes, uint64_t length, uint64_t offset, hfs_callback_args* cbargs) {
-	struct hf_device* dev = vol->cbdata;
+	struct hfs_device* dev = vol->cbdata;
 	int ret = 0;
 	pthread_mutex_lock(&dev->ubmtx);
 	if(ublio_pread(dev->ubfh, outbytes, length, offset) < 0)
@@ -401,7 +401,7 @@ int hfs_read(hfs_volume* vol, void* outbytes, uint64_t length, uint64_t offset, 
 }
 #else
 int hfs_read(hfs_volume* vol, void* outbytes, uint64_t length, uint64_t offset, hfs_callback_args* cbargs) {
-	struct hf_device* dev = vol->cbdata;
+	struct hfs_device* dev = vol->cbdata;
 	char* outbuf = outbytes;
 	ssize_t ret = 0;
 	offset += vol->offset;
