@@ -46,8 +46,28 @@ hfsdump is also built by default, but can be built standalone with `make hfsdump
 ### hfsfuse
     hfsfuse <opts> <device> <mountpoint>
 
-Where `<opts>` are any series of arguments to be passed along to FUSE. Use `hfsfuse -h` for general options or `hfsfuse -H` for a list of all switches supported by FUSE.
+Where `<opts>` are any series of arguments to be passed along to FUSE. Use `hfsfuse -h` for general options or `hfsfuse -H` for a list of all switches supported by FUSE.  
+hfsfuse-specific options are shown below
 
+    usage: hfsfuse [-hH] [-o options] device mountpoint
+    
+    general options:
+        -o opt,[opt...]        mount options
+        -h   --help            this help
+        -H   --fullhelp        list all FUSE options
+    
+    HFS options:
+        --force                force mount volumes with dirty journal
+        -o noallow_other       restrict filesystem access to mounting user
+        -o cache_size=N        size of lookup cache (1024)
+        -o blksize=N           set a custom read size/alignment in bytes
+                               you should only set this if you are sure it is being misdetected
+    
+        -o noublio             disable ublio read layer
+        -o ublio_nblocks=N     increase block size by factor of N (4)
+        -o ublio_items=N       number of ublio cache entries, 0 for no caching (64)
+        -o ublio_grace=N       reclaim cache entries only after N requests (32)
+    
 ### hfsdump
 	hfsdump <device> <command> <node>
 	
