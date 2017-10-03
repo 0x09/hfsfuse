@@ -52,6 +52,7 @@ struct hfs_device {
 	uint32_t blksize;
 	struct hfs_record_cache* cache;
 #ifdef HAVE_UBLIO
+	bool use_ublio;
 	ublio_filehandle_t ubfh;
 	pthread_mutex_t ubmtx;
 #endif
@@ -59,7 +60,10 @@ struct hfs_device {
 
 void hfs_volume_config_defaults(struct hfs_volume_config* cfg) {
 	*cfg = (struct hfs_volume_config) {
-		.cache_size = 1024
+		.cache_size = 1024,
+		.ublio_nblocks = 4,
+		.ublio_items = 64,
+		.ublio_grace = 32,
 	};
 }
 
@@ -365,16 +369,19 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 		BAIL(ENOMEM);
 
 #ifdef HAVE_UBLIO
-	struct ublio_param p = {
-		.up_priv = &dev->fd,
-		.up_blocksize = dev->blksize,
-		.up_items = 64,
-		.up_grace = 32,
-	};
-	if(!(dev->ubfh = ublio_open(&p)))
-		BAIL(errno);
-	if((errno = pthread_mutex_init(&dev->ubmtx,NULL)))
-		BAIL(errno);
+	dev->use_ublio = !cfg.noublio;
+	if(dev->use_ublio) {
+		struct ublio_param p = {
+			.up_priv = &dev->fd,
+			.up_blocksize = dev->blksize * cfg.ublio_nblocks,
+			.up_items = cfg.ublio_items,
+			.up_grace = cfg.ublio_grace,
+		};
+		if(!(dev->ubfh = ublio_open(&p)))
+			BAIL(errno);
+		if((errno = pthread_mutex_init(&dev->ubmtx,NULL)))
+			BAIL(errno);
+	}
 #endif
 
 	vol->cbdata = dev;
@@ -396,16 +403,17 @@ void hfs_close(hfs_volume* vol, hfs_callback_args* cbargs) {
 	struct hfs_device* dev = vol->cbdata;
 	hfs_record_cache_destroy(dev->cache);
 #ifdef HAVE_UBLIO
-	ublio_close(dev->ubfh);
-	pthread_mutex_destroy(&dev->ubmtx);
+	if(dev->use_ublio) {
+		ublio_close(dev->ubfh);
+		pthread_mutex_destroy(&dev->ubmtx);
+	}
 #endif
 	close(dev->fd);
 	free(dev);
 }
 
 #ifdef HAVE_UBLIO
-int hfs_read(hfs_volume* vol, void* outbytes, uint64_t length, uint64_t offset, hfs_callback_args* cbargs) {
-	struct hfs_device* dev = vol->cbdata;
+static inline int hfs_read_ublio(struct hfs_device* dev, void* outbytes, uint64_t length, uint64_t offset) {
 	int ret = 0;
 	pthread_mutex_lock(&dev->ubmtx);
 	if(ublio_pread(dev->ubfh, outbytes, length, offset) < 0)
@@ -413,12 +421,11 @@ int hfs_read(hfs_volume* vol, void* outbytes, uint64_t length, uint64_t offset, 
 	pthread_mutex_unlock(&dev->ubmtx);
 	return ret;
 }
-#else
-int hfs_read(hfs_volume* vol, void* outbytes, uint64_t length, uint64_t offset, hfs_callback_args* cbargs) {
-	struct hfs_device* dev = vol->cbdata;
+#endif
+
+static inline int hfs_read_pread(struct hfs_device* dev, void* outbytes, uint64_t length, uint64_t offset) {
 	char* outbuf = outbytes;
 	ssize_t ret = 0;
-	offset += vol->offset;
 	uint64_t rem = length % dev->blksize;
 	length -= rem;
 	while(length && (ret = pread(dev->fd,outbuf,length,offset)) > 0) {
@@ -440,7 +447,17 @@ int hfs_read(hfs_volume* vol, void* outbytes, uint64_t length, uint64_t offset, 
 		return -errno;
 	return 0;
 }
+
+int hfs_read(hfs_volume* vol, void* outbytes, uint64_t length, uint64_t offset, hfs_callback_args* cbargs) {
+	struct hfs_device* dev = vol->cbdata;
+	offset += vol->offset;
+#ifdef HAVE_UBLIO
+	if(dev->use_ublio)
+		return hfs_read_ublio(dev, outbytes, length, offset);
 #endif
+	return hfs_read_pread(dev, outbytes, length, offset);
+}
+
 
 void* hfs_malloc(size_t size, hfs_callback_args* cbargs) { return malloc(size); }
 void* hfs_realloc(void* data, size_t size, hfs_callback_args* cbargs) { return size ? realloc(data,size) : NULL; }
