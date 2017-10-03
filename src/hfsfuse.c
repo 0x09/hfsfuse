@@ -346,8 +346,11 @@ enum {
 struct hfsfuse_config {
 	struct hfs_volume_config volume_config;
 	const char* device;
+	int noallow_other;
 };
-#define OPTION(t, p) { t, offsetof(struct hfs_volume_config, p), 1 }
+
+#define HFS_OPTION(t, p) { t, offsetof(struct hfs_volume_config, p), 1 }
+#define HFSFUSE_OPTION(t, p) { t, offsetof(struct hfsfuse_config, p), 1 }
 static struct fuse_opt hfsfuse_opts[] = {
 	FUSE_OPT_KEY("-h",        HFSFUSE_OPT_KEY_HELP),
 	FUSE_OPT_KEY("--help",    HFSFUSE_OPT_KEY_HELP),
@@ -355,7 +358,8 @@ static struct fuse_opt hfsfuse_opts[] = {
 	FUSE_OPT_KEY("--fullhelp",HFSFUSE_OPT_KEY_FULLHELP),
 	FUSE_OPT_KEY("-V",        HFSFUSE_OPT_KEY_VERSION),
 	FUSE_OPT_KEY("--version", HFSFUSE_OPT_KEY_VERSION),
-	OPTION("cache_size=%zu",cache_size),
+	HFS_OPTION("cache_size=%zu",cache_size),
+	HFSFUSE_OPTION("noallow_other",noallow_other),
 	FUSE_OPT_END
 };
 
@@ -374,6 +378,7 @@ void help(const char* self, struct hfsfuse_config* cfg) {
 		"\n"
 		"HFS options:\n"
 		"    -o cache_size=N        size of lookup cache (%zu)\n"
+		"    -o noallow_other       restrict filesystem access to mounting user\n"
 		"\n",
 		cfg->volume_config.cache_size
 	);
@@ -425,7 +430,8 @@ int main(int argc, char* argv[]) {
 
 	char* opts = NULL;
 	fuse_opt_add_opt(&opts, "ro");
-	fuse_opt_add_opt(&opts, "allow_other");
+	if(!cfg.noallow_other)
+		fuse_opt_add_opt(&opts, "allow_other");
 	fuse_opt_add_opt(&opts, "use_ino");
 	fuse_opt_add_opt(&opts, "subtype=hfs");
 	fuse_opt_add_opt_escaped(&opts, fsname);
