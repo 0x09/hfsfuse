@@ -33,6 +33,7 @@
 
 struct hfs_volume_config {
 	size_t cache_size;
+	uint32_t blksize;
 };
 
 void hfs_volume_config_defaults(struct hfs_volume_config*);

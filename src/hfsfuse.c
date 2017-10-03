@@ -27,6 +27,7 @@
 #include <stddef.h>
 #include <errno.h>
 #include <limits.h>
+#include <inttypes.h>
 #include <fuse/fuse.h>
 
 static void* hfsfuse_init(struct fuse_conn_info* conn) {
@@ -359,6 +360,7 @@ static struct fuse_opt hfsfuse_opts[] = {
 	FUSE_OPT_KEY("-V",        HFSFUSE_OPT_KEY_VERSION),
 	FUSE_OPT_KEY("--version", HFSFUSE_OPT_KEY_VERSION),
 	HFS_OPTION("cache_size=%zu",cache_size),
+	HFS_OPTION("blksize=%" PRIu32,blksize),
 	HFSFUSE_OPTION("noallow_other",noallow_other),
 	FUSE_OPT_END
 };
@@ -378,6 +380,8 @@ void help(const char* self, struct hfsfuse_config* cfg) {
 		"\n"
 		"HFS options:\n"
 		"    -o cache_size=N        size of lookup cache (%zu)\n"
+		"    -o blksize=N           set a custom read size/alignment in bytes\n"
+		"                           you should only set this if you are sure it is being misdetected\n"
 		"    -o noallow_other       restrict filesystem access to mounting user\n"
 		"\n",
 		cfg->volume_config.cache_size

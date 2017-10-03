@@ -340,22 +340,26 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 	if((dev->fd = open(name,O_RDONLY)) < 0)
 		BAIL(errno);
 
-	struct stat st;
-	if(fstat(dev->fd, &st))
-		BAIL(errno);
-	if(S_ISCHR(st.st_mode) || S_ISBLK(st.st_mode)) {
+	if(cfg.blksize)
+		dev->blksize = cfg.blksize;
+	else {
+		struct stat st;
+		if(fstat(dev->fd, &st))
+			BAIL(errno);
+		if(S_ISCHR(st.st_mode) || S_ISBLK(st.st_mode)) {
 #ifdef DISKBLOCKSIZE
-		if(ioctl(dev->fd,DISKIDEALSIZE,&dev->blksize))
-			BAIL(errno);
-		if(!dev->blksize && ioctl(dev->fd,DISKBLOCKSIZE,&dev->blksize))
-			BAIL(errno);
+			if(ioctl(dev->fd,DISKIDEALSIZE,&dev->blksize))
+				BAIL(errno);
+			if(!dev->blksize && ioctl(dev->fd,DISKBLOCKSIZE,&dev->blksize))
+				BAIL(errno);
 #endif
-		if(!dev->blksize)
-			dev->blksize=512;
+			if(!dev->blksize)
+				dev->blksize=512;
+		}
+		else if(S_ISREG(st.st_mode))
+			dev->blksize = st.st_blksize;
+		else BAIL(EINVAL);
 	}
-	else if(S_ISREG(st.st_mode))
-		dev->blksize = st.st_blksize;
-	else BAIL(EINVAL);
 
 	if(cfg.cache_size && !(dev->cache = hfs_record_cache_create(cfg.cache_size)))
 		BAIL(ENOMEM);
