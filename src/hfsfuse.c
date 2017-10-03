@@ -348,6 +348,7 @@ struct hfsfuse_config {
 	struct hfs_volume_config volume_config;
 	const char* device;
 	int noallow_other;
+	int force;
 };
 
 #define HFS_OPTION(t, p) { t, offsetof(struct hfs_volume_config, p), 1 }
@@ -359,6 +360,7 @@ static struct fuse_opt hfsfuse_opts[] = {
 	FUSE_OPT_KEY("--fullhelp",HFSFUSE_OPT_KEY_FULLHELP),
 	FUSE_OPT_KEY("-V",        HFSFUSE_OPT_KEY_VERSION),
 	FUSE_OPT_KEY("--version", HFSFUSE_OPT_KEY_VERSION),
+	HFSFUSE_OPTION("--force",force),
 	HFSFUSE_OPTION("noallow_other",noallow_other),
 	HFS_OPTION("cache_size=%zu",cache_size),
 	HFS_OPTION("blksize=%" PRIu32,blksize),
@@ -385,6 +387,7 @@ void help(const char* self, struct hfsfuse_config* cfg) {
 		"    -H   --fullhelp        list all FUSE options\n"
 		"\n"
 		"HFS options:\n"
+		"    --force                force mount volumes with dirty journal\n"
 		"    -o noallow_other       restrict filesystem access to mounting user\n"
 		"    -o cache_size=N        size of lookup cache (%zu)\n"
 		"    -o blksize=N           set a custom read size/alignment in bytes\n"
@@ -470,7 +473,18 @@ int main(int argc, char* argv[]) {
 	int ret = hfslib_open_volume(cfg.device, 1, &vol, &(hfs_callback_args){ .openvol = &cfg.volume_config });
 	if(ret) {
 		perror("Couldn't open volume");
+		ret = errno;
 		goto done;
+	}
+	if(!hfslib_is_journal_clean(&vol)) {
+		fprintf(stderr,"Journal is dirty!");
+		if(cfg.force)
+			fprintf(stderr," Attempting to mount anyway (--force).\n");
+		else {
+			fprintf(stderr," Canceling mount. Use --force to ignore.\n");
+			ret = EIO;
+			goto done;
+		}
 	}
 	hfslib_callbacks()->error = hfs_vsyslog; // prepare to daemonize
 	ret = fuse_main(args.argc, args.argv, &hfsfuse_ops, &vol);
