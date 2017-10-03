@@ -94,4 +94,4 @@ One-liner to extract the HFS+ partition in a DMG to an img:
 
 # Resources
 * [sys/fs/hfs/ in the NetBSD source tree](http://cvsweb.netbsd.org/bsdweb.cgi/src/sys/fs/hfs/)
-* [Apple Technical Note 1150](http://dubeiko.com/development/FileSystems/HFSPLUS/tn1150.html)
+* [Apple Technical Note 1150](https://developer.apple.com/legacy/library/technotes/tn/tn1150.html)
