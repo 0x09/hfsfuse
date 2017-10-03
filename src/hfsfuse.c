@@ -24,6 +24,7 @@
 
 #include "hfsuser.h"
 
+#include <stddef.h>
 #include <errno.h>
 #include <limits.h>
 #include <fuse/fuse.h>
@@ -336,39 +337,118 @@ static struct fuse_operations hfsfuse_ops = {
 	.flag_nullpath_ok = 1
 };
 
+enum {
+	HFSFUSE_OPT_KEY_HELP,
+	HFSFUSE_OPT_KEY_FULLHELP,
+	HFSFUSE_OPT_KEY_VERSION
+};
+
+struct hfsfuse_config {
+	struct hfs_volume_config volume_config;
+	const char* device;
+};
+#define OPTION(t, p) { t, offsetof(struct hfs_volume_config, p), 1 }
+static struct fuse_opt hfsfuse_opts[] = {
+	FUSE_OPT_KEY("-h",        HFSFUSE_OPT_KEY_HELP),
+	FUSE_OPT_KEY("--help",    HFSFUSE_OPT_KEY_HELP),
+	FUSE_OPT_KEY("-H",        HFSFUSE_OPT_KEY_FULLHELP),
+	FUSE_OPT_KEY("--fullhelp",HFSFUSE_OPT_KEY_FULLHELP),
+	FUSE_OPT_KEY("-V",        HFSFUSE_OPT_KEY_VERSION),
+	FUSE_OPT_KEY("--version", HFSFUSE_OPT_KEY_VERSION),
+	OPTION("cache_size=%zu",cache_size),
+	FUSE_OPT_END
+};
+
+void usage(const char* self) {
+	fprintf(stderr,"usage: %s [-hH] [-o options] device mountpoint\n\n",self);
+}
+
+void help(const char* self, struct hfsfuse_config* cfg) {
+	usage(self);
+	fprintf(
+		stderr,
+		"general options:\n"
+		"    -o opt,[opt...]        mount options\n"
+		"    -h   --help            this help\n"
+		"    -H   --fullhelp        list all FUSE options\n"
+		"\n"
+		"HFS options:\n"
+		"    -o cache_size=N        size of lookup cache (%zu)\n"
+		"\n",
+		cfg->volume_config.cache_size
+	);
+}
+
+int hfsfuse_opt_proc(void* data, const char* arg, int key, struct fuse_args* args) {
+	struct hfsfuse_config* cfg = data;
+	switch(key) {
+		case HFSFUSE_OPT_KEY_HELP:
+		case HFSFUSE_OPT_KEY_FULLHELP: {
+			help(args->argv[0], cfg);
+			fuse_opt_add_arg(args, "-ho");
+			fuse_parse_cmdline(args, NULL, NULL, NULL);
+			if(key == HFSFUSE_OPT_KEY_FULLHELP) {
+				// fuse_mount and fuse_new print their own set of options
+				fuse_mount(NULL, args);
+				fuse_new(NULL, args, NULL, 0, NULL);
+			}
+			fuse_opt_free_args(args);
+			exit(0);
+		}
+		case FUSE_OPT_KEY_NONOPT:
+			if(!cfg->device) {
+				cfg->device = strdup(arg);
+				return 0;
+			}
+		default: return 1;
+	}
+};
+
 int main(int argc, char* argv[]) {
-	// cheat a lot with option parsing to stay within the fuse_main high level API
-	if(argc < 3 || !strcmp(argv[1],"-h")) {
-		fuse_main(2,((char*[]){"hfsfuse","-h"}),NULL,NULL);
-		return 0;
+	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
+
+	struct hfsfuse_config cfg = {0};
+	hfs_volume_config_defaults(&cfg.volume_config);
+
+	if(fuse_opt_parse(&args, &cfg, hfsfuse_opts, hfsfuse_opt_proc) == -1) {
+		fuse_opt_free_args(&args);
+		return 1;
 	}
 
-	const char opts[] = "-oro,allow_other,use_ino,subtype=hfs,fsname=";
-	const char* device = argv[argc-2];
-	char* mount = argv[argc-1];
-	char* argv2[argc+2];
-	argv2[0] = "hfsfuse";
-	argv2[1] = mount;
-	argv2[2] = strcat(strcpy(malloc(strlen(opts)+strlen(device)+1),opts),device);
-	argv2[3] = "-s";
-	for(int i = 1; i < argc-2; i++)
-		argv2[i+3] = argv[i];
-	argv2[argc+1] = NULL;
+	char* fsname = malloc(strlen("fsname=") + strlen(cfg.device) + 1);
+	if(!fsname) {
+		fuse_opt_free_args(&args);
+		return 1;
+	}
+	strcpy(fsname, "fsname=");
+	strcat(fsname, cfg.device);
 
-	hfs_callbacks cb = {hfs_vprintf, hfs_malloc, hfs_realloc, hfs_free, hfs_open, hfs_close, hfs_read};
-	hfslib_init(&cb);
+	char* opts = NULL;
+	fuse_opt_add_opt(&opts, "ro");
+	fuse_opt_add_opt(&opts, "allow_other");
+	fuse_opt_add_opt(&opts, "use_ino");
+	fuse_opt_add_opt(&opts, "subtype=hfs");
+	fuse_opt_add_opt_escaped(&opts, fsname);
+	fuse_opt_add_arg(&args, "-o");
+	fuse_opt_add_arg(&args, opts);
+	fuse_opt_add_arg(&args, "-s");
+	free(fsname);
+
+	hfslib_init(&(hfs_callbacks){hfs_vprintf, hfs_malloc, hfs_realloc, hfs_free, hfs_open, hfs_close, hfs_read});
 
 	// open volume
 	hfs_volume vol;
-	int ret = hfslib_open_volume(device, 1, &vol, NULL);
+	int ret = hfslib_open_volume(cfg.device, 1, &vol, &(hfs_callback_args){ .openvol = &cfg.volume_config });
 	if(ret) {
 		perror("Couldn't open volume");
-		//goto done;
+		goto done;
 	}
 	hfslib_callbacks()->error = hfs_vsyslog; // prepare to daemonize
-	ret = fuse_main(sizeof(argv2)/sizeof(*argv2)-1,argv2,&hfsfuse_ops,&vol);
+	ret = fuse_main(args.argc, args.argv, &hfsfuse_ops, &vol);
 
 done:
 	hfslib_done();
+	fuse_opt_free_args(&args);
+	free((void*)cfg.device);
 	return ret;
 }

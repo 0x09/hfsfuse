@@ -22,7 +22,6 @@ hfsfuse also includes a standalone tool, hfsdump, to inspect the contents of an 
 
 ### minor TODO
 * better record cache
-* hook into FUSE options system
 
 # Installation
 ## Configuring
@@ -47,7 +46,7 @@ hfsdump is also built by default, but can be built standalone with `make hfsdump
 ### hfsfuse
     hfsfuse <opts> <device> <mountpoint>
 
-Where `<opts>` are any series of arguments to be passed along to FUSE. Use `hfsfuse -h` for a list of switches.
+Where `<opts>` are any series of arguments to be passed along to FUSE. Use `hfsfuse -h` for general options or `hfsfuse -H` for a list of all switches supported by FUSE.
 
 ### hfsdump
 	hfsdump <device> <command> <node>
