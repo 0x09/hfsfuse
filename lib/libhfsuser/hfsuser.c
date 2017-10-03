@@ -47,8 +47,6 @@
 #include "ublio.h"
 #endif
 
-#define RING_BUFFER_SIZE 1024
-
 struct hfs_device {
 	int fd;
 	uint32_t blksize;
@@ -58,6 +56,12 @@ struct hfs_device {
 	pthread_mutex_t ubmtx;
 #endif
 };
+
+void hfs_volume_config_defaults(struct hfs_volume_config* cfg) {
+	*cfg = (struct hfs_volume_config) {
+		.cache_size = 1024
+	};
+}
 
 ssize_t hfs_unistr_to_utf8(const hfs_unistr255_t* u16, char u8[512]) {
 	int err;
@@ -327,6 +331,12 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 	struct hfs_device* dev = calloc(1,sizeof(*dev));
 	if(!dev)
 		return -(errno = ENOMEM);
+
+	struct hfs_volume_config cfg;
+	hfs_volume_config_defaults(&cfg);
+	if(cbargs && cbargs->openvol)
+		cfg = *(struct hfs_volume_config*)cbargs->openvol;
+
 	if((dev->fd = open(name,O_RDONLY)) < 0)
 		BAIL(errno);
 
@@ -347,7 +357,7 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 		dev->blksize = st.st_blksize;
 	else BAIL(EINVAL);
 
-	if(!(dev->cache = hfs_record_cache_create(RING_BUFFER_SIZE)))
+	if(cfg.cache_size && !(dev->cache = hfs_record_cache_create(cfg.cache_size)))
 		BAIL(ENOMEM);
 
 #ifdef HAVE_UBLIO

@@ -165,8 +165,13 @@ int main(int argc, char* argv[]) {
 	hfslib_init(&cb);
 	hfs_volume vol = {0};
 	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key; unsigned char fork;
+
+	struct hfs_volume_config cfg;
+	hfs_volume_config_defaults(&cfg);
+	cfg.cache_size = 0;
+
 	int ret = 0;
-	if((ret = hfslib_open_volume(argv[1],1,&vol,NULL))) {
+	if((ret = hfslib_open_volume(argv[1],1,&vol,&(hfs_callback_args){ .openvol = &cfg }))) {
 		fprintf(stderr,"Couldn't open volume\n");
 		hfslib_done();
 		return ret;
