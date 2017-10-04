@@ -445,6 +445,11 @@ int main(int argc, char* argv[]) {
 		fuse_opt_free_args(&args);
 		return 1;
 	}
+	if(!cfg.device) {
+		usage(args.argv[0]);
+		fuse_opt_free_args(&args);
+		return 1;
+	}
 
 	char* fsname = malloc(strlen("fsname=") + strlen(cfg.device) + 1);
 	if(!fsname) {
