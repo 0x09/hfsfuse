@@ -37,3 +37,23 @@ enum hfs_lib_features hfs_get_lib_features() {
 #endif
 	;
 }
+
+const char* hfs_lib_ublio_version() {
+#ifdef HAVE_UBLIO
+	static char ublio_version[14];
+	if(!ublio_version[0])
+		//undo the UBLIO_API_VERSION macro
+		snprintf(ublio_version, sizeof(ublio_version)-1, "%u.%u", (UBLIO_CURRENT_API) / 100, (UBLIO_CURRENT_API) % 100);
+	return ublio_version;
+#else
+	return NULL;
+#endif
+}
+
+const char* hfs_lib_utf8proc_version() {
+#ifdef HAVE_UTF8PROC
+	return utf8proc_version();
+#else
+	return NULL;
+#endif
+}
