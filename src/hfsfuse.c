@@ -364,12 +364,10 @@ static struct fuse_opt hfsfuse_opts[] = {
 	HFSFUSE_OPTION("noallow_other",noallow_other),
 	HFS_OPTION("cache_size=%zu",cache_size),
 	HFS_OPTION("blksize=%" PRIu32,blksize),
-#ifdef HAVE_UBLIO
 	HFS_OPTION("noublio", noublio),
 	HFS_OPTION("ublio_nblocks=%u",ublio_nblocks),
 	HFS_OPTION("ublio_items=%u",  ublio_items),
 	HFS_OPTION("ublio_grace=%llu",ublio_grace),
-#endif
 	FUSE_OPT_END
 };
 
@@ -392,22 +390,22 @@ void help(const char* self, struct hfsfuse_config* cfg) {
 		"    -o cache_size=N        size of lookup cache (%zu)\n"
 		"    -o blksize=N           set a custom read size/alignment in bytes\n"
 		"                           you should only set this if you are sure it is being misdetected\n"
-#ifdef HAVE_UBLIO
-		"\n"
-		"    -o noublio             disable ublio read layer\n"
-		"    -o ublio_nblocks=N     increase block size by factor of N (%zu)\n"
-		"    -o ublio_items=N       number of ublio cache entries, 0 for no caching (%" PRId32 ")\n"
-		"    -o ublio_grace=N       reclaim cache entries only after N requests (%" PRIu64 ")\n"
-#endif
 		"\n",
 		cfg->volume_config.cache_size
-#ifdef HAVE_UBLIO
-		,
-		cfg->volume_config.ublio_nblocks,
-		cfg->volume_config.ublio_items,
-		cfg->volume_config.ublio_grace
-#endif
 	);
+	if(hfs_get_lib_features() & HFS_LIB_FEATURES_UBLIO) {
+		fprintf(
+			stderr,
+			"    -o noublio             disable ublio read layer\n"
+			"    -o ublio_nblocks=N     increase block size by factor of N (%zu)\n"
+			"    -o ublio_items=N       number of ublio cache entries, 0 for no caching (%" PRId32 ")\n"
+			"    -o ublio_grace=N       reclaim cache entries only after N requests (%" PRIu64 ")\n"
+			"\n",
+			cfg->volume_config.ublio_nblocks,
+			cfg->volume_config.ublio_items,
+			cfg->volume_config.ublio_grace
+		);
+	}
 }
 
 int hfsfuse_opt_proc(void* data, const char* arg, int key, struct fuse_args* args) {

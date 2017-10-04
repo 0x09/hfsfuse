@@ -31,6 +31,14 @@
 
 #define HFSTIMETOEPOCH(x) (x>2082844800?x-2082844800:0)
 
+enum hfs_lib_features {
+	HFS_LIB_FEATURES_NONE = 0,
+	HFS_LIB_FEATURES_UBLIO = 1 << 0,
+	HFS_LIB_FEATURES_UTF8PROC = 1 << 1
+};
+
+enum hfs_lib_features hfs_get_lib_features(void);
+
 struct hfs_volume_config {
 	size_t cache_size;
 	uint32_t blksize;

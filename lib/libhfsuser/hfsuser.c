@@ -24,6 +24,7 @@
 
 #include "hfsuser.h"
 #include "cache.h"
+#include "features.h"
 
 #include <stdbool.h>
 #include <errno.h>
@@ -36,16 +37,6 @@
 #include <sys/ioctl.h>
 
 #include "unicode.h"
-
-#ifdef HAVE_UTF8PROC
-#include "utf8proc.h"
-#else
-#define hfs_utf8proc_NFD(x) strdup((const char*)(x))
-#endif
-
-#ifdef HAVE_UBLIO
-#include "ublio.h"
-#endif
 
 struct hfs_device {
 	int fd;
@@ -148,6 +139,8 @@ static char* hfs_utf8proc_NFD(const uint8_t* u8) {
 	return (char*)buf;
 }
 
+#else
+#define hfs_utf8proc_NFD(x) strdup((const char*)(x))
 #endif
 
 ssize_t hfs_pathname_from_unix(const char* u8, hfs_unistr255_t* u16) {

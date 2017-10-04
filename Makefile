@@ -51,7 +51,7 @@ export PREFIX CC CFLAGS APP_FLAGS LIBDIRS AR RANLIB INCLUDE
 all: hfsfuse hfsdump
 
 %.o: %.c
-	$(CC) $(CFLAGS) $(APP_FLAGS) $(FUSE_FLAGS) $(INCLUDE) -c -o $*.o $^
+	$(CC) $(CFLAGS) $(FUSE_FLAGS) $(INCLUDE) -c -o $*.o $^
 
 $(LIBS): always_check
 	$(MAKE) -C $(dir $@)
