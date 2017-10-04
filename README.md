@@ -49,12 +49,13 @@ hfsdump is also built by default, but can be built standalone with `make hfsdump
 Where `<opts>` are any series of arguments to be passed along to FUSE. Use `hfsfuse -h` for general options or `hfsfuse -H` for a list of all switches supported by FUSE.  
 hfsfuse-specific options are shown below
 
-    usage: hfsfuse [-hH] [-o options] device mountpoint
+    usage: hfsfuse [-hHv] [-o options] device mountpoint
     
     general options:
         -o opt,[opt...]        mount options
         -h   --help            this help
         -H   --fullhelp        list all FUSE options
+        -V   --version
     
     HFS options:
         --force                force mount volumes with dirty journal

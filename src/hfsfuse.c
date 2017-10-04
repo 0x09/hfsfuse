@@ -358,7 +358,7 @@ static struct fuse_opt hfsfuse_opts[] = {
 	FUSE_OPT_KEY("--help",    HFSFUSE_OPT_KEY_HELP),
 	FUSE_OPT_KEY("-H",        HFSFUSE_OPT_KEY_FULLHELP),
 	FUSE_OPT_KEY("--fullhelp",HFSFUSE_OPT_KEY_FULLHELP),
-	FUSE_OPT_KEY("-V",        HFSFUSE_OPT_KEY_VERSION),
+	FUSE_OPT_KEY("-v",        HFSFUSE_OPT_KEY_VERSION),
 	FUSE_OPT_KEY("--version", HFSFUSE_OPT_KEY_VERSION),
 	HFSFUSE_OPTION("--force",force),
 	HFSFUSE_OPTION("noallow_other",noallow_other),
@@ -372,7 +372,7 @@ static struct fuse_opt hfsfuse_opts[] = {
 };
 
 void usage(const char* self) {
-	fprintf(stderr,"usage: %s [-hH] [-o options] device mountpoint\n\n",self);
+	fprintf(stderr,"usage: %s [-hHv] [-o options] device mountpoint\n\n",self);
 }
 
 void help(const char* self, struct hfsfuse_config* cfg) {
@@ -383,6 +383,7 @@ void help(const char* self, struct hfsfuse_config* cfg) {
 		"    -o opt,[opt...]        mount options\n"
 		"    -h   --help            this help\n"
 		"    -H   --fullhelp        list all FUSE options\n"
+		"    -v   --version\n"
 		"\n"
 		"HFS options:\n"
 		"    --force                force mount volumes with dirty journal\n"
@@ -408,6 +409,24 @@ void help(const char* self, struct hfsfuse_config* cfg) {
 	}
 }
 
+void version() {
+	fprintf(
+		stderr,
+		"hfsfuse version HEAD\n" // cop out
+		"Built with:\n"
+		"    FUSE API v%d.%d\n"
+		"    libhfs RCSID %s\n",
+		FUSE_MAJOR_VERSION,
+		FUSE_MINOR_VERSION,
+		hfslib_get_rcsid()
+	);
+
+	if(hfs_get_lib_features() & HFS_LIB_FEATURES_UBLIO)
+		fprintf(stderr, "    ublio v%s\n", hfs_lib_ublio_version());
+	if(hfs_get_lib_features() & HFS_LIB_FEATURES_UTF8PROC)
+		fprintf(stderr, "    utf8proc v%s\n", hfs_lib_utf8proc_version());
+}
+
 int hfsfuse_opt_proc(void* data, const char* arg, int key, struct fuse_args* args) {
 	struct hfsfuse_config* cfg = data;
 	switch(key) {
@@ -421,6 +440,11 @@ int hfsfuse_opt_proc(void* data, const char* arg, int key, struct fuse_args* arg
 				fuse_mount(NULL, args);
 				fuse_new(NULL, args, NULL, 0, NULL);
 			}
+			fuse_opt_free_args(args);
+			exit(0);
+		}
+		case HFSFUSE_OPT_KEY_VERSION: {
+			version();
 			fuse_opt_free_args(args);
 			exit(0);
 		}
