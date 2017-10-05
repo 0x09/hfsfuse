@@ -44,9 +44,15 @@ ifneq ($(WITH_UTF8PROC), none)
 	endif
 endif
 
+GIT_HEAD_SHA=$(shell gt rev-parse --short HEAD 2> /dev/null)
+ifneq ($(GIT_HEAD_SHA), )
+	VERSION = \"0.$(shell git rev-list HEAD --count)-$(GIT_HEAD_SHA)\"
+	CFLAGS += -DHFSFUSE_VERSION_STRING=$(VERSION)
+endif
+
 export PREFIX CC CFLAGS APP_FLAGS LIBDIRS AR RANLIB INCLUDE
 
-.PHONY: all clean always_check config install uninstall install-lib uninstall-lib lib
+.PHONY: all clean always_check config install uninstall install-lib uninstall-lib lib version
 
 all: hfsfuse hfsdump
 
@@ -79,6 +85,9 @@ install: hfsfuse hfsdump
 
 uninstall:
 	rm -f $(PREFIX)/bin/hfsfuse $(PREFIX)/bin/hfsdump
+
+version:
+	echo \#define HFSFUSE_VERSION_STRING $(VERSION) > src/version.h
 
 config:
 	echo CC=$(CC) > config.mak

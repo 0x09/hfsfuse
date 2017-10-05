@@ -42,6 +42,8 @@ hfsfuse's support libraries can be also built standalone using `make lib` and `m
 
 hfsdump is also built by default, but can be built standalone with `make hfsdump`, in which case the FUSE library is not needed.
 
+Some version information is generated from the git repository. For out of tree builds, run `make version` within the repository first or provide your own version.h.
+
 ## Use
 ### hfsfuse
     hfsfuse <opts> <device> <mountpoint>

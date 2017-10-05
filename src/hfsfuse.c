@@ -30,6 +30,10 @@
 #include <inttypes.h>
 #include <fuse/fuse.h>
 
+#ifndef HFSFUSE_VERSION_STRING
+#include "version.h"
+#endif
+
 static void* hfsfuse_init(struct fuse_conn_info* conn) {
 	return fuse_get_context()->private_data;
 }
@@ -412,7 +416,7 @@ void help(const char* self, struct hfsfuse_config* cfg) {
 void version() {
 	fprintf(
 		stderr,
-		"hfsfuse version HEAD\n" // cop out
+		"hfsfuse version " HFSFUSE_VERSION_STRING "\n"
 		"Built with:\n"
 		"    FUSE API v%d.%d\n"
 		"    libhfs RCSID %s\n",
