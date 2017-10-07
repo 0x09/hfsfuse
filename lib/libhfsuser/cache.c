@@ -98,8 +98,11 @@ void hfs_record_cache_add(struct hfs_record_cache* buf, const char* path, hfs_ca
 	struct ringnode* tail = buf->head->prev;
 	char* newpath = realloc(tail->path,strlen(path)+1);
 	if(!newpath) {
-		free(tail->path);
-		tail->path = NULL;
+		do {
+			free(tail->path);
+			tail->path = NULL;
+			tail = tail->next;
+		} while(tail != buf->head->prev);
 		goto end;
 	}
 	strcpy(newpath, path);
