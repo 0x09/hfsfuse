@@ -161,8 +161,11 @@ static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, 
 	char pelem[512];
 	int ret = 0;
 	for(int i = 0; i < d->npaths; i++) {
-		if((ret = hfs_pathname_to_unix(d->paths+i,pelem)) < 0)
-			break;
+		int err;
+		if((err = hfs_pathname_to_unix(d->paths+i,pelem)) < 0) {
+			ret = err;
+			continue;
+		}
 		struct stat st;
 		hfs_stat(vol,d->keys+i,&st,0);
 		if(filler(buf,pelem,&st,0)) {
@@ -193,8 +196,11 @@ static int hfsfuse_readdir2(const char* path, void* buf, fuse_fill_dir_t filler,
 	char pelem[512];
 	int ret = 0;
 	for(off_t i = max(0,offset-2); i < d->npaths; i++) {
-		if((ret = hfs_pathname_to_unix(d->paths+i,pelem)) < 0)
-			break;
+		int err;
+		if((err = hfs_pathname_to_unix(d->paths+i,pelem)) < 0) {
+			ret = err;
+			continue;
+		}
 		hfs_stat(vol,d->keys+i,&st,0);
 		if(filler(buf,pelem,&st,i+3))
 			break;
