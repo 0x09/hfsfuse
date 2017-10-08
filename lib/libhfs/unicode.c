@@ -150,24 +150,29 @@ utf16_to_utf8(char *dst, size_t dst_len,
 			CHECK_LENGTH(2);
 			ADD_BYTE(0xc0 | (src[spos]>>6));
 			ADD_BYTE(0x80 | (src[spos] & 0x3f));
-		} else if ((src[spos] & 0xdc00) == 0xd800) {
-			uint32_t c;
-			/* first surrogate */
-			if (spos == src_len - 1 || (src[spos+1] & 0xdc00) != 0xdc00) {
-				/* no second surrogate present */
+		} else if(src[spos] >= 0xd800 && src[spos] < 0xe000) {
+			 if ((src[spos] & 0xdc00) == 0xd800) {
+				uint32_t c;
+				/* first surrogate */
+				if (spos == src_len - 1 || (src[spos+1] & 0xdc00) != 0xdc00) {
+					/* no second surrogate present */
+					error++;
+					continue;
+				}
+				spos++;
+				CHECK_LENGTH(4);
+				c = (((src[spos-1]&0x3ff) << 10) | (src[spos]&0x3ff)) + 0x10000;
+				ADD_BYTE(0xf0 | (c>>18));
+				ADD_BYTE(0x80 | ((c>>12) & 0x3f));
+				ADD_BYTE(0x80 | ((c>>6) & 0x3f));
+				ADD_BYTE(0x80 | (c & 0x3f));
+			} else if ((src[spos] & 0xdc00) == 0xdc00) {
+				/* second surrogate without preceding first surrogate */
 				error++;
-				continue;
+			} else {
+				/* in surrogate pair range but none found */
+				error++;
 			}
-			spos++;
-			CHECK_LENGTH(4);
-			c = (((src[spos-1]&0x3ff) << 10) | (src[spos]&0x3ff)) + 0x10000;
-			ADD_BYTE(0xf0 | (c>>18));
-			ADD_BYTE(0x80 | ((c>>12) & 0x3f));
-			ADD_BYTE(0x80 | ((c>>6) & 0x3f));
-			ADD_BYTE(0x80 | (c & 0x3f));
-		} else if ((src[spos] & 0xdc00) == 0xdc00) {
-			/* second surrogate without preceding first surrogate */
-			error++;
 		} else {
 			CHECK_LENGTH(3);
 			ADD_BYTE(0xe0 | src[spos]>>12);
