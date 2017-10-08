@@ -48,10 +48,11 @@
 
 #include "rcsid.h"
 __KERNEL_RCSID(0, "$NetBSD: libhfs.c,v 1.14 2015/06/21 13:40:25 maxv Exp $");
-const char* hfslib_get_rcsid() { return hfs_rcsid; }
 
 #include "libhfs.h"
 #include "byteorder.h"
+
+const char* hfslib_get_rcsid() { return hfs_rcsid; }
 
 /* global private file/folder keys */
 hfs_catalog_key_t hfs_gMetadataDirectoryKey; /* contains HFS+ inodes */
