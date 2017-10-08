@@ -22,8 +22,8 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "features.h"
-#include "hfsuser.h"
+#include "libhfsuser/features.h"
+#include "libhfsuser/hfsuser.h"
 
 #include <stdio.h>
 

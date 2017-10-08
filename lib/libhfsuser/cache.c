@@ -22,7 +22,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "cache.h"
+#include "libhfsuser/cache.h"
 
 #include <stdlib.h>
 #include <pthread.h>

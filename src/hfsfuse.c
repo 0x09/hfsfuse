@@ -22,7 +22,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "hfsuser.h"
+#include "libhfsuser/hfsuser.h"
 
 #include <stddef.h>
 #include <errno.h>

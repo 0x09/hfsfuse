@@ -25,7 +25,7 @@ endif
 
 LIBS = lib/libhfsuser/libhfsuser.a lib/libhfs/libhfs.a
 LIBDIRS = $(abspath $(dir $(LIBS)))
-INCLUDE = $(foreach dir, $(LIBDIRS), -I$(dir))
+INCLUDE = -I $(abspath lib)
 
 ifneq ($(WITH_UBLIO), none)
 	APP_FLAGS += -DHAVE_UBLIO

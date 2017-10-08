@@ -24,7 +24,7 @@
 
 // TODO: interpret more fields, output formatting
 
-#include "hfsuser.h"
+#include "libhfsuser/hfsuser.h"
 
 #include <time.h>
 #include <inttypes.h>

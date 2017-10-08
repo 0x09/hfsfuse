@@ -22,9 +22,9 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "hfsuser.h"
-#include "cache.h"
-#include "features.h"
+#include "libhfsuser/hfsuser.h"
+#include "libhfsuser/cache.h"
+#include "libhfsuser/features.h"
 
 #include <stdbool.h>
 #include <errno.h>
@@ -36,7 +36,7 @@
 #include <syslog.h>
 #include <sys/ioctl.h>
 
-#include "unicode.h"
+#include "libhfs/unicode.h"
 
 struct hfs_device {
 	int fd;
