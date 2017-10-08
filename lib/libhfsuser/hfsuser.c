@@ -52,7 +52,6 @@ struct hfs_device {
 void hfs_volume_config_defaults(struct hfs_volume_config* cfg) {
 	*cfg = (struct hfs_volume_config) {
 		.cache_size = 1024,
-		.ublio_nblocks = 4,
 		.ublio_items = 64,
 		.ublio_grace = 32,
 	};
@@ -339,7 +338,7 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 
 	if(cfg.blksize)
 		dev->blksize = cfg.blksize;
-	else {
+	else if(cfg.noublio) {
 		struct stat st;
 		if(fstat(dev->fd, &st))
 			BAIL(errno);
@@ -350,13 +349,14 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 			if(!dev->blksize && ioctl(dev->fd,DISKBLOCKSIZE,&dev->blksize))
 				BAIL(errno);
 #endif
-			if(!dev->blksize)
-				dev->blksize=512;
 		}
 		else if(S_ISREG(st.st_mode))
 			dev->blksize = st.st_blksize;
 		else BAIL(EINVAL);
 	}
+
+	if(!dev->blksize)
+		dev->blksize=512;
 
 	if(cfg.cache_size && !(dev->cache = hfs_record_cache_create(cfg.cache_size)))
 		BAIL(ENOMEM);
@@ -366,7 +366,7 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 	if(dev->use_ublio) {
 		struct ublio_param p = {
 			.up_priv = &dev->fd,
-			.up_blocksize = dev->blksize * cfg.ublio_nblocks,
+			.up_blocksize = dev->blksize,
 			.up_items = cfg.ublio_items,
 			.up_grace = cfg.ublio_grace,
 		};

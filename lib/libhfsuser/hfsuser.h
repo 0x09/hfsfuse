@@ -47,7 +47,6 @@ struct hfs_volume_config {
 	uint32_t blksize;
 	// Unused if not built with ublio
 	int noublio;
-	size_t ublio_nblocks;
 	int32_t ublio_items;
 	uint64_t ublio_grace;
 };
