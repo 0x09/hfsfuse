@@ -67,7 +67,6 @@ hfsfuse-specific options are shown below
                                you should only set this if you are sure it is being misdetected
     
         -o noublio             disable ublio read layer
-        -o ublio_nblocks=N     increase block size by factor of N (4)
         -o ublio_items=N       number of ublio cache entries, 0 for no caching (64)
         -o ublio_grace=N       reclaim cache entries only after N requests (32)
     
