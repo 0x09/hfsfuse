@@ -17,9 +17,6 @@ hfsfuse also includes a standalone tool, hfsdump, to inspect the contents of an 
 * User-defined extended attributes
 * UID remapping
 
-### minor TODO
-* better record cache
-
 # Installation
 ## Configuring
 hfsfuse can use [utf8proc](http://julialang.org/utf8proc/) and [ublio](https://www.freshports.org/devel/libublio/), either bundled or system versions, but it doesn't require them (however, utf8proc is required for working with most non-ASCII pathnames).  
