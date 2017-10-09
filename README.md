@@ -1,9 +1,6 @@
 [FUSE](https://github.com/libfuse/libfuse) driver for HFS+, based on NetBSD's kernel driver with modifications.
 
-Created for FreeBSD where at the time (maybe still?) there was no way of reading HFS+ filesystems.  
-Tested and used extensively on FreeBSD, OS X, and Linux.
-
-Unlike the Linux kernel driver, supports reading of Time Machine volumes.
+Created for use on FreeBSD which lacks a native driver, but also functions as an alternative to the kernel drivers on Linux and macOS.
 
 This driver is read-only and cannot write to or damage the target filesystem in any way.
 
