@@ -160,36 +160,42 @@ ssize_t hfs_pathname_from_unix(const char* u8, hfs_unistr255_t* u16) {
 char* hfs_get_path(hfs_volume* vol, hfs_cnid_t cnid) {
 	hfs_thread_record_t	parent_thread;
 	hfs_unistr255_t* elements = NULL,* newelements;
-	size_t size = 0;
-	size_t len = 0;
+	size_t nelems = 0, buflen = 1, outlen = 1;
 	char* out = NULL;
 
 	while(cnid != HFS_CNID_ROOT_FOLDER) {
-		if(!(newelements = realloc(elements, sizeof(*elements) * (size+1))))
+		if(!(newelements = realloc(elements, sizeof(*elements) * (nelems+1))))
 			goto end;
 		elements = newelements;
 		if(!(cnid = hfslib_find_parent_thread(vol, cnid, &parent_thread, NULL)))
 			goto end;
-		elements[size] = parent_thread.name;
-		len += elements[size].length + 1;
-		size++;
+		elements[nelems] = parent_thread.name;
+		buflen += elements[nelems].length * 2 + 1;
+		nelems++;
 	}
 
-	if(!len)
-		len = 1;
-	if(!(out = malloc(len+1)))
+	if(!(out = malloc(buflen+1)))
 		goto end;
-	*out = '/';
 
-	char* it = out+1;
-	hfs_unistr255_t* elem = elements+size;
+	char* it = out;
+	*it++ = '/';
+	hfs_unistr255_t* elem = elements+nelems;
 	while(elem != elements) {
 		elem--;
-		hfs_pathname_to_unix(elem, it);
-		it += elem->length;
+		size_t utf8len = hfs_pathname_to_unix(elem, it);
+		if(utf8len <= 0) {
+			free(out);
+			out = NULL;
+			goto end;
+		}
+
+		outlen += utf8len + 1;
+		it += utf8len;
 		*it++ = '/';
 	}
-	out[len] = '\0';
+	if(outlen == 1)
+		outlen++;
+	out[outlen-1] = '\0';
 
 end:
 	free(elements);
