@@ -60,13 +60,14 @@ void hfs_volume_config_defaults(struct hfs_volume_config* cfg) {
 ssize_t hfs_unistr_to_utf8(const hfs_unistr255_t* u16, char u8[512]) {
 	int err;
 	ssize_t len = utf16_to_utf8(u8,512-1,u16->unicode,u16->length,0,&err);
-	u8[len] = '\0';
+	if(u8)
+		u8[len] = '\0';
 	return err ? -err : len;
 }
 
 ssize_t hfs_pathname_to_unix(const hfs_unistr255_t* u16, char u8[512]) {
 	ssize_t ret = hfs_unistr_to_utf8(u16, u8);
-	if(ret > 0)
+	if(ret > 0 && u8)
 		for(char* rep = u8; (rep = strchr(rep,'/')); rep++)
 			*rep = ':';
 	return ret;
