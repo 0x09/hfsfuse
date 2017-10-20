@@ -192,6 +192,7 @@ int main(int argc, char* argv[]) {
 			fprintf(stderr,"CNID lookup failure: %" PRIu32 "\n", cnid);
 			goto end;
 		}
+		fork = HFS_DATAFORK;
 	}
 	else if((ret = hfs_lookup(&vol,argv[3],&rec,&key,&fork))) {
 		fprintf(stderr,"Path lookup failure: %s\n", argv[3]);
