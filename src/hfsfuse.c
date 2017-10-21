@@ -315,7 +315,7 @@ static int hfsfuse_getxattr(const char* path, const char* attr, char* value, siz
 		strftime(value, 24, "%FT%T%z", &t);
 	});
 
-	return -1;
+	return -ENODATA;
 }
 
 static int hfsfuse_getxattr_darwin(const char* path, const char* attr, char* value, size_t size, u_int32_t unused) {
