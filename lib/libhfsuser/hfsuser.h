@@ -46,6 +46,7 @@ struct hfs_volume_config {
 	size_t cache_size;
 	uint32_t blksize;
 	char* rsrc_suff;
+	int rsrc_only;
 	// Unused if not built with ublio
 	int noublio;
 	int32_t ublio_items;

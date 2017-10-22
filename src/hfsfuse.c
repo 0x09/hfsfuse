@@ -384,6 +384,7 @@ static struct fuse_opt hfsfuse_opts[] = {
 	HFS_OPTION("ublio_items=%u",  ublio_items),
 	HFS_OPTION("ublio_grace=%llu",ublio_grace),
 	HFS_OPTION("rsrc_ext=%s",rsrc_suff),
+	HFS_OPTION("rsrc_only",rsrc_only),
 	FUSE_OPT_END
 };
 
@@ -403,11 +404,13 @@ void help(const char* self, struct hfsfuse_config* cfg) {
 		"\n"
 		"HFS options:\n"
 		"    --force                force mount volumes with dirty journal\n"
+		"    -o rsrc_only           only mount the resource forks of files\n"
 		"    -o noallow_other       restrict filesystem access to mounting user\n"
 		"    -o cache_size=N        size of lookup cache (%zu)\n"
 		"    -o blksize=N           set a custom read size/alignment in bytes\n"
 		"                           you should only set this if you are sure it is being misdetected\n"
 		"    -o rsrc_ext=suffix     special suffix for filenames which can be used to access their resource fork\n"
+		"                           or alternatively their data fork if mounted in rsrc_only mode\n"
 		"\n",
 		cfg->volume_config.cache_size
 	);

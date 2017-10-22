@@ -44,6 +44,7 @@ struct hfs_device {
 	struct hfs_record_cache* cache;
 	char* rsrc_suff;
 	size_t rsrc_len;
+	uint8_t default_fork;
 #ifdef HAVE_UBLIO
 	bool use_ublio;
 	ublio_filehandle_t ubfh;
@@ -216,7 +217,8 @@ int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* re
 	struct hfs_device* dev = vol->cbdata;
 	struct hfs_record_cache* cache = dev->cache;
 
-	if(fork) *fork = HFS_DATAFORK;
+	if(fork)
+		*fork = dev->default_fork;
 	if(hfs_record_cache_lookup(cache,path,record,key))
 		return 0;
 
@@ -251,8 +253,9 @@ int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* re
 			RET(7);
 	}
 	if(splitptr) {
-		if(record->type != HFS_REC_FILE || strcmp(splitptr,"rsrc")) RET(5);
-		else if(fork) *fork = HFS_RSRCFORK;
+		if(record->type != HFS_REC_FILE || strcmp(splitptr,"rsrc"))RET(5);
+		else if(fork)
+			*fork = (*fork == HFS_DATAFORK ? HFS_RSRCFORK : HFS_DATAFORK); //alternate fork lookup
 	}
 	free(splitpath);
 	if(record->type == HFS_REC_FILE &&
@@ -367,6 +370,7 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 	if(cbargs && cbargs->openvol)
 		cfg = *(struct hfs_volume_config*)cbargs->openvol;
 
+	dev->default_fork = cfg.rsrc_only ? HFS_RSRCFORK : HFS_DATAFORK;
 	if(cfg.rsrc_suff) {
 		dev->rsrc_len = strlen(cfg.rsrc_suff);
 		dev->rsrc_suff = hfs_memdup(cfg.rsrc_suff,dev->rsrc_len+1);

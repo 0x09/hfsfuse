@@ -100,12 +100,15 @@ hfsfuse exposes some nonstandard HFS+ attributes as extended attributes. These i
 * com.apple.FinderInfo: The Finder info as binary data, presented the same as with the macOS native driver.
 * com.apple.ResourceFork: The resource fork as binary data.
 
-The resource fork may also be accessed by defining a special suffix with the `rsrc_ext` option. When this is set, any lookup that ends in this suffix returns resource fork data for the corresponding file. For example, when mounting with `-orsrc_ext=.rsrc`, "image.psd.rsrc" can be used to acccess the resource fork for image.psd.  
+The resource fork may also be accessed during normal use by defining a special file suffix with the `rsrc_ext` option. When this is set, any lookup that ends in this suffix returns resource fork data for the corresponding file. For example, when mounting with `-orsrc_ext=.rsrc`, "image.psd.rsrc" can be used to acccess the resource fork for image.psd.  
 Of course, "image.psd.rsrc" may also exist independently, so this option can be set to anything suitable (`:rsrc`, `-resource`, etc) with the only condition being that it cannot include a path separator (as FUSE intercepts these).  
 Because of this, the more familiar `/rsrc` suffix used by previous releases of macOS is not supported in hfsfuse, but may still be used with hfsdump.
 
+Finally, the entire volume may be mounted in resource-fork only mode using the `rsrc_only` option. In this mode, all entries on the filesystem are presented using the size and contents of their resource fork. Files with no resource fork will appear as empty, 0 size entries.  
+This option may be combined with the `rsrc_ext` option described above, in which case the special suffix will instead be used to access the regular data fork.
+
 On Linux you may encounter the following error when inspecting xattrs: `user.com.apple.ResourceFork: Argument list too long`  
-This occurs when the resource fork is larger than the maximum allowed extended attribute size of 64kb. In this case you can still access the resource fork as described above by setting the `rsrc_ext` option.
+This occurs when the resource fork is larger than the maximum allowed extended attribute size of 64kb. In this case you can still access the resource fork as described above by setting the `rsrc_ext` option or mounting in `rsrc_only` mode.
 
 Other, user-created extended attributes are not currently supported as their on-disk structure is not fully specified.
 
