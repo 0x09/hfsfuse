@@ -15,7 +15,6 @@ hfsfuse also includes a standalone tool, hfsdump, to inspect the contents of an 
 
 # TODO
 * User-defined extended attributes
-* UID remapping
 
 # Installation
 ## Configuring
@@ -87,6 +86,9 @@ One-liner to extract the HFS+ partition in a DMG to an img:
 	mnt=$(losetup -f)
 	losetup $mnt image.img
 	hfsfuse <opts> $mnt <mountpoint>
+
+# ID re-mapping
+When sharing a disk between systems it's often convenient to establish a mapping between corresponding users/groups. FUSE offers `uid` and `gid` options to force ownership of all files on the mounted system to the provided id, but more involved mappings for multiple users or specific user and group combinations can be done using the [idmap](https://github.com/0x09/fuse-idmap) FUSE module.
 
 # Resources
 * [sys/fs/hfs/ in the NetBSD source tree](http://cvsweb.netbsd.org/bsdweb.cgi/src/sys/fs/hfs/)
