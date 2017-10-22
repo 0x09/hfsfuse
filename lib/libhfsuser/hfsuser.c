@@ -209,7 +209,10 @@ int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* re
 	if(hfs_record_cache_lookup(cache,path,record,key))
 		return 0;
 
-	size_t found_pathlen = hfs_record_cache_lookup_parents(cache, strdup(path), record, key);
+	char* mpath = strdup(path);
+	size_t found_pathlen = hfs_record_cache_lookup_parents(cache, mpath, record, key);
+	free(mpath);
+
 	if(!found_pathlen && hfslib_find_catalog_record_with_cnid(vol,HFS_CNID_ROOT_FOLDER,record,key,NULL)) return -7;
 
 	int ret;
