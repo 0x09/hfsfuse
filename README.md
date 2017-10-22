@@ -57,11 +57,13 @@ hfsfuse-specific options are shown below
     
     HFS options:
         --force                force mount volumes with dirty journal
+        -o rsrc_only           only mount the resource forks of files
         -o noallow_other       restrict filesystem access to mounting user
         -o cache_size=N        size of lookup cache (1024)
         -o blksize=N           set a custom read size/alignment in bytes
                                you should only set this if you are sure it is being misdetected
         -o rsrc_ext=suffix     special suffix for filenames which can be used to access their resource fork
+                               or alternatively their data fork if mounted in rsrc_only mode
     
         -o noublio             disable ublio read layer
         -o ublio_items=N       number of ublio cache entries, 0 for no caching (64)
