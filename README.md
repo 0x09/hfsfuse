@@ -13,8 +13,9 @@ hfsfuse also includes a standalone tool, hfsdump, to inspect the contents of an 
 * Resource fork, Finder info, and creation/backup time access via extended attributes
 * birthtime (with compatible FUSE)
 
-# TODO
-* User-defined extended attributes
+# Not supported
+* Writing
+* User-defined extended attributes (undocumented)
 
 # Installation
 ## Configuring
