@@ -304,15 +304,21 @@ static int hfsfuse_getxattr(const char* path, const char* attr, char* value, siz
 	});
 
 	define_attr(attr, "hfsfuse.record.date_created", size, 24, {
+		// some strftime implementations require room for the null terminator
+		// but we don't want this in the returned attribute value
+		char timebuf[25];
 		struct tm t;
 		localtime_r(&(time_t){HFSTIMETOEPOCH(rec.file.date_created)}, &t);
-		strftime(value, 24, "%FT%T%z", &t);
+		strftime(timebuf, 25, "%FT%T%z", &t);
+		memcpy(value, timebuf, 24);
 	});
 
 	define_attr(attr, "hfsfuse.record.date_backedup", size, 24, {
+		char timebuf[25];
 		struct tm t;
 		localtime_r(&(time_t){HFSTIMETOEPOCH(rec.file.date_backedup)}, &t);
-		strftime(value, 24, "%FT%T%z", &t);
+		strftime(timebuf, 25, "%FT%T%z", &t);
+		memcpy(value, timebuf, 24);
 	});
 
 	return -ENODATA;
