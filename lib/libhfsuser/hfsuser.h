@@ -45,6 +45,7 @@ const char* hfs_lib_utf8proc_version();
 struct hfs_volume_config {
 	size_t cache_size;
 	uint32_t blksize;
+	char* rsrc_suff;
 	// Unused if not built with ublio
 	int noublio;
 	int32_t ublio_items;

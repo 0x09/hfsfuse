@@ -42,6 +42,8 @@ struct hfs_device {
 	int fd;
 	uint32_t blksize;
 	struct hfs_record_cache* cache;
+	char* rsrc_suff;
+	size_t rsrc_len;
 #ifdef HAVE_UBLIO
 	bool use_ublio;
 	ublio_filehandle_t ubfh;
@@ -202,14 +204,24 @@ end:
 	return out;
 }
 
+static inline void* hfs_memdup(const void* ptr, size_t size) {
+	char* p = malloc(size);
+	if(!p)
+		return NULL;
+	return memcpy(p,ptr,size);
+}
+
 int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key, uint8_t* fork) {
 #define RET(val) do{ free(splitpath); return -val; } while(0)
-	struct hfs_record_cache* cache = ((struct hfs_device*)vol->cbdata)->cache;
+	struct hfs_device* dev = vol->cbdata;
+	struct hfs_record_cache* cache = dev->cache;
+
 	if(fork) *fork = HFS_DATAFORK;
 	if(hfs_record_cache_lookup(cache,path,record,key))
 		return 0;
 
-	char* mpath = strdup(path);
+	size_t pathlen = strlen(path);
+	char* mpath = hfs_memdup(path, pathlen+1);
 	size_t found_pathlen = hfs_record_cache_lookup_parents(cache, mpath, record, key);
 	free(mpath);
 
@@ -217,7 +229,16 @@ int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* re
 
 	int ret;
 	hfs_unistr255_t upath;
-	char* splitpath = strdup(path);
+	char* splitpath;
+
+	size_t baselen = pathlen-dev->rsrc_len;
+	if(dev->rsrc_suff && pathlen > dev->rsrc_len+2 && !strcmp(path+baselen, dev->rsrc_suff)) {
+		splitpath = malloc(baselen + 6);
+		memcpy(splitpath, path, baselen);
+		memcpy(splitpath+baselen, "/rsrc", 6);
+	}
+	else splitpath = hfs_memdup(path,pathlen+1);
+
 	char* splitptr  = splitpath + found_pathlen + 1;
 	char* pelem;
 	while(record->type == HFS_REC_FLDR && (pelem = strsep(&splitptr,"/")) && *pelem) {
@@ -346,6 +367,11 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 	if(cbargs && cbargs->openvol)
 		cfg = *(struct hfs_volume_config*)cbargs->openvol;
 
+	if(cfg.rsrc_suff) {
+		dev->rsrc_len = strlen(cfg.rsrc_suff);
+		dev->rsrc_suff = hfs_memdup(cfg.rsrc_suff,dev->rsrc_len+1);
+	}
+
 	if((dev->fd = open(name,O_RDONLY)) < 0)
 		BAIL(errno);
 
@@ -408,6 +434,7 @@ error:
 void hfs_close(hfs_volume* vol, hfs_callback_args* cbargs) {
 	struct hfs_device* dev = vol->cbdata;
 	hfs_record_cache_destroy(dev->cache);
+	free(dev->rsrc_suff);
 #ifdef HAVE_UBLIO
 	if(dev->use_ublio) {
 		ublio_close(dev->ubfh);

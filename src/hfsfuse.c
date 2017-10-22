@@ -383,6 +383,7 @@ static struct fuse_opt hfsfuse_opts[] = {
 	HFS_OPTION("noublio", noublio),
 	HFS_OPTION("ublio_items=%u",  ublio_items),
 	HFS_OPTION("ublio_grace=%llu",ublio_grace),
+	HFS_OPTION("rsrc_ext=%s",rsrc_suff),
 	FUSE_OPT_END
 };
 
@@ -406,6 +407,7 @@ void help(const char* self, struct hfsfuse_config* cfg) {
 		"    -o cache_size=N        size of lookup cache (%zu)\n"
 		"    -o blksize=N           set a custom read size/alignment in bytes\n"
 		"                           you should only set this if you are sure it is being misdetected\n"
+		"    -o rsrc_ext=suffix     special suffix for filenames which can be used to access their resource fork\n"
 		"\n",
 		cfg->volume_config.cache_size
 	);
@@ -476,21 +478,25 @@ int main(int argc, char* argv[]) {
 	struct hfsfuse_config cfg = {0};
 	hfs_volume_config_defaults(&cfg.volume_config);
 
-	if(fuse_opt_parse(&args, &cfg, hfsfuse_opts, hfsfuse_opt_proc) == -1) {
-		fuse_opt_free_args(&args);
-		return 1;
-	}
+	int ret = 1;
+	if(fuse_opt_parse(&args, &cfg, hfsfuse_opts, hfsfuse_opt_proc) == -1)
+		goto opt_err;
+
 	if(!cfg.device) {
 		usage(args.argv[0]);
-		fuse_opt_free_args(&args);
-		return 1;
+		goto opt_err;
+	}
+
+	if(cfg.volume_config.rsrc_suff && strchr(cfg.volume_config.rsrc_suff,'/')) {
+		// FUSE tokenizes paths before lookup, so lookup would end at the file 'file.ext' before ever seeing e.g. 'file.ext/rsrc'.
+		fprintf(stderr, "Error: rsrc_ext option may not include path separator: %s\n", cfg.volume_config.rsrc_suff);
+		goto opt_err;
 	}
 
 	char* fsname = malloc(strlen("fsname=") + strlen(cfg.device) + 1);
-	if(!fsname) {
-		fuse_opt_free_args(&args);
-		return 1;
-	}
+	if(!fsname)
+		goto opt_err;
+
 	strcpy(fsname, "fsname=");
 	strcat(fsname, cfg.device);
 
@@ -510,8 +516,7 @@ int main(int argc, char* argv[]) {
 
 	// open volume
 	hfs_volume vol;
-	int ret = hfslib_open_volume(cfg.device, 1, &vol, &(hfs_callback_args){ .openvol = &cfg.volume_config });
-	if(ret) {
+	if(hfslib_open_volume(cfg.device, 1, &vol, &(hfs_callback_args){ .openvol = &cfg.volume_config })) {
 		perror("Couldn't open volume");
 		ret = errno;
 		goto done;
@@ -531,7 +536,8 @@ int main(int argc, char* argv[]) {
 
 done:
 	hfslib_done();
-	fuse_opt_free_args(&args);
 	free((void*)cfg.device);
+opt_err:
+	fuse_opt_free_args(&args);
 	return ret;
 }
