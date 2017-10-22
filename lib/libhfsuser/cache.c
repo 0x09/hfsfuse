@@ -96,7 +96,7 @@ size_t hfs_record_cache_lookup_parents(struct hfs_record_cache* buf, char* path,
 	char* c;
 	while((c = strrchr(path, '/'))) {
 		*c = '\0';
-		if(hfs_record_cache_lookup(buf, path, record, key))
+		if(*path && hfs_record_cache_lookup(buf, path, record, key))
 			break;
 	}
 	return strlen(path);
