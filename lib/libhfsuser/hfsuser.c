@@ -208,11 +208,14 @@ int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* re
 	if(fork) *fork = HFS_DATAFORK;
 	if(hfs_record_cache_lookup(cache,path,record,key))
 		return 0;
-	if(hfslib_find_catalog_record_with_cnid(vol,HFS_CNID_ROOT_FOLDER,record,key,NULL)) return -7;
+
+	size_t found_pathlen = hfs_record_cache_lookup_parents(cache, strdup(path), record, key);
+	if(!found_pathlen && hfslib_find_catalog_record_with_cnid(vol,HFS_CNID_ROOT_FOLDER,record,key,NULL)) return -7;
+
 	int ret;
 	hfs_unistr255_t upath;
 	char* splitpath = strdup(path);
-	char* splitptr  = splitpath+1;
+	char* splitptr  = splitpath + found_pathlen + 1;
 	char* pelem;
 	while(record->type == HFS_REC_FLDR && (pelem = strsep(&splitptr,"/")) && *pelem) {
 		if(hfs_pathname_from_unix(pelem,&upath) < 0) RET(3);

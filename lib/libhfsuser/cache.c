@@ -92,6 +92,16 @@ bool hfs_record_cache_lookup(struct hfs_record_cache* buf, const char* path, hfs
 	return ret;
 }
 
+size_t hfs_record_cache_lookup_parents(struct hfs_record_cache* buf, char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key) {
+	char* c;
+	while((c = strrchr(path, '/'))) {
+		*c = '\0';
+		if(hfs_record_cache_lookup(buf, path, record, key))
+			break;
+	}
+	return strlen(path);
+}
+
 void hfs_record_cache_add(struct hfs_record_cache* buf, const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key) {
 	if(!buf || pthread_rwlock_wrlock(&buf->lock))
 		return;
