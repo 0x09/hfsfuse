@@ -70,7 +70,8 @@ hfsfuse-specific options are shown below
 	
 `command` may be either `stat` or `read`: `stat` prints the record structure, while `read` copies the node's contents to standard out (or lists if node is a directory).  
 `node` is either an inode/CNID to lookup, or a full path from the root of the volume being inspected.  
-If the command and node are ommitted, hfsdump prints the volume header and exits.
+If the command and node are ommitted, hfsdump prints the volume header and exits.  
+`/rsrc` may be appended to the path of a read operation to dump the resource fork instead.
 
 # DMG Mounting
 Disk images can be mounted using [dmg2img](http://vu1tur.eu.org/dmg2img).
@@ -91,6 +92,22 @@ One-liner to extract the HFS+ partition in a DMG to an img:
 
 # ID re-mapping
 When sharing a disk between systems it's often convenient to establish a mapping between corresponding users/groups. FUSE offers `uid` and `gid` options to force ownership of all files on the mounted system to the provided id, but more involved mappings for multiple users or specific user and group combinations can be done using the [idmap](https://github.com/0x09/fuse-idmap) FUSE module.
+
+# Extended attributes and resource forks
+hfsfuse exposes some nonstandard HFS+ attributes as extended attributes. These include:
+* hfsfuse.record.date_created: The date created as an ISO-8601 timestamp. Identical to `st_birthtime` on macOS.
+* hfsfuse.record.date_backedup: The backup time of a file as an ISO-8601 timestamp.
+* com.apple.FinderInfo: The Finder info as binary data, presented the same as with the macOS native driver.
+* com.apple.ResourceFork: The resource fork as binary data.
+
+The resource fork may also be accessed by defining a special suffix with the `rsrc_ext` option. When this is set, any lookup that ends in this suffix returns resource fork data for the corresponding file. For example, when mounting with `-orsrc_ext=.rsrc`, "image.psd.rsrc" can be used to acccess the resource fork for image.psd.  
+Of course, "image.psd.rsrc" may also exist independently, so this option can be set to anything suitable (`:rsrc`, `-resource`, etc) with the only condition being that it cannot include a path separator (as FUSE intercepts these).  
+Because of this, the more familiar `/rsrc` suffix used by previous releases of macOS is not supported in hfsfuse, but may still be used with hfsdump.
+
+On Linux you may encounter the following error when inspecting xattrs: `user.com.apple.ResourceFork: Argument list too long`  
+This occurs when the resource fork is larger than the maximum allowed extended attribute size of 64kb. In this case you can still access the resource fork as described above by setting the `rsrc_ext` option.
+
+Other, user-created extended attributes are not currently supported as their on-disk structure is not fully specified.
 
 # Resources
 * [sys/fs/hfs/ in the NetBSD source tree](http://cvsweb.netbsd.org/bsdweb.cgi/src/sys/fs/hfs/)
