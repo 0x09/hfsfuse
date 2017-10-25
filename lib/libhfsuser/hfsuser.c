@@ -466,7 +466,7 @@ static inline int hfs_read_pread(struct hfs_device* dev, void* outbytes, uint64_
 	uint64_t rem = length % dev->blksize;
 	length -= rem;
 	while(length && (ret = pread(dev->fd,outbuf,length,offset)) > 0) {
-		if((ret = min(length,ret)) <= 0)
+		if((ret = min((ssize_t)length,ret)) <= 0)
 			break;
 		outbuf += ret;
 		offset += ret;
@@ -477,7 +477,7 @@ static inline int hfs_read_pread(struct hfs_device* dev, void* outbytes, uint64_
 	if(rem) {
 		char buf[dev->blksize];
 		ret = pread(dev->fd,buf,dev->blksize,offset);
-		if((ret = min(rem,ret)) > 0)
+		if((ret = min((ssize_t)rem,ret)) > 0)
 			memcpy(outbuf,buf,ret);
 	}
 	if(ret < 0)

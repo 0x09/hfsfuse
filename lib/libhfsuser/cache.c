@@ -50,7 +50,7 @@ struct hfs_record_cache* hfs_record_cache_create(size_t length) {
 	}
 
 	struct ringnode* tail = buf->head = buf->backing;
-	for(int i = 0; i <= length; i++) {
+	for(size_t i = 0; i <= length; i++) {
 		tail->next = buf->backing + i%length;
 		tail->next->prev = tail;
 		tail = tail->next;

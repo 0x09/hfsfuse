@@ -160,7 +160,7 @@ static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, 
 	struct hf_dir* d = (struct hf_dir*)info->fh;
 	char pelem[512];
 	int ret = 0;
-	for(int i = 0; i < d->npaths; i++) {
+	for(size_t i = 0; i < d->npaths; i++) {
 		int err;
 		if((err = hfs_pathname_to_unix(d->paths+i,pelem)) < 0) {
 			ret = err;
@@ -245,7 +245,7 @@ static int hfsfuse_getxtimes(const char* path, struct timespec* bkuptime, struct
 
 #define declare_attr(name, buf, bufsize, accum) do {\
 	accum += strlen(attrname(name))+1;\
-	if(bufsize >= accum) {\
+	if(bufsize >= (size_t)accum) {\
 		strcpy(buf,attrname(name));\
 		buf += strlen(attrname(name))+1;\
 	}\
@@ -273,7 +273,7 @@ static int hfsfuse_listxattr(const char* path, char* attr, size_t size) {
 #define define_attr(attr, name, size, attrsize, block) do {\
 	if(!strcmp(attr, attrname(name))) {\
 		if(size) {\
-			if(size < attrsize) return -ERANGE;\
+			if(size < (size_t)attrsize) return -ERANGE;\
 			else block \
 		}\
 		return attrsize;\
@@ -294,7 +294,7 @@ static int hfsfuse_getxattr(const char* path, const char* attr, char* value, siz
 	define_attr(attr, "com.apple.ResourceFork", size, ret, {
 		hfs_extent_descriptor_t* extents = NULL;
 		uint64_t bytes;
-		if(size > ret)
+		if(size > (size_t)ret)
 			size = ret;
 		uint16_t nextents = hfslib_get_file_extents(vol,rec.file.cnid,HFS_RSRCFORK,&extents,NULL);
 		if((ret = hfslib_readd_with_extents(vol,value,&bytes,size,0,extents,nextents,NULL)) >= 0)
