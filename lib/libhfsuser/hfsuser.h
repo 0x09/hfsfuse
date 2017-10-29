@@ -57,7 +57,7 @@ void hfs_volume_config_defaults(struct hfs_volume_config*);
 
 ssize_t hfs_unistr_to_utf8(const hfs_unistr255_t* u16, char u8[]);
 ssize_t hfs_pathname_to_unix(const hfs_unistr255_t* u16, char u8[]);
-ssize_t hfs_pathname_from_unix(const char* u8, hfs_unistr255_t* u16);
+int hfs_pathname_from_unix(const char* u8, hfs_unistr255_t* u16);
 
 char* hfs_get_path(hfs_volume* vol, hfs_cnid_t cnid);
 int  hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key, uint8_t* fork);

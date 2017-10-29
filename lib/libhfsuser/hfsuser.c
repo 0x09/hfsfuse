@@ -146,7 +146,7 @@ static char* hfs_utf8proc_NFD(const uint8_t* u8) {
 #define hfs_utf8proc_NFD(x) strdup((const char*)(x))
 #endif
 
-ssize_t hfs_pathname_from_unix(const char* u8, hfs_unistr255_t* u16) {
+int hfs_pathname_from_unix(const char* u8, hfs_unistr255_t* u16) {
 	char* norm = (char*)hfs_utf8proc_NFD((const uint8_t*)u8);
 	if(!norm)
 		return -ENOMEM;
@@ -156,7 +156,7 @@ ssize_t hfs_pathname_from_unix(const char* u8, hfs_unistr255_t* u16) {
 	int err;
 	u16->length = utf8_to_utf16(u16->unicode,255,norm,strlen(norm),0,&err);
 	free(norm);
-	return err ? err : u16->length;
+	return err ? -EINVAL : 0;
 }
 
 // libhfs has `hfslib_path_elements_to_cnid` but we want to be able to use our hfs_pathname_to_unix on the individual elements
@@ -213,59 +213,89 @@ static inline void* hfs_memdup(const void* ptr, size_t size) {
 }
 
 int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key, uint8_t* fork) {
-#define RET(val) do{ free(splitpath); return -val; } while(0)
 	struct hfs_device* dev = vol->cbdata;
 	struct hfs_record_cache* cache = dev->cache;
+	int ret = 0;
 
 	if(fork)
 		*fork = dev->default_fork;
+
+	size_t pathlen = strlen(path);
 	if(hfs_record_cache_lookup(cache,path,record,key))
 		return 0;
 
-	size_t pathlen = strlen(path);
-	char* mpath = hfs_memdup(path, pathlen+1);
-	size_t found_pathlen = hfs_record_cache_lookup_parents(cache, mpath, record, key);
-	free(mpath);
+	char* pathcpy = hfs_memdup(path, pathlen+1);
+	if(!pathcpy)
+		return -ENOMEM;
+	size_t found_pathlen = hfs_record_cache_lookup_parents(cache, pathcpy, record, key);
 
-	if(!found_pathlen && hfslib_find_catalog_record_with_cnid(vol,HFS_CNID_ROOT_FOLDER,record,key,NULL)) return -7;
-
-	int ret;
-	hfs_unistr255_t upath;
-	char* splitpath;
-
-	size_t baselen = pathlen-dev->rsrc_len;
-	if(dev->rsrc_suff && pathlen > dev->rsrc_len+2 && !strcmp(path+baselen, dev->rsrc_suff)) {
-		splitpath = malloc(baselen + 6);
-		memcpy(splitpath, path, baselen);
-		memcpy(splitpath+baselen, "/rsrc", 6);
+	if(!found_pathlen && hfslib_find_catalog_record_with_cnid(vol,HFS_CNID_ROOT_FOLDER,record,key,NULL)) {
+		ret = -ENOENT;
+		goto end;
 	}
-	else splitpath = hfs_memdup(path,pathlen+1);
 
-	char* splitptr  = splitpath + found_pathlen + 1;
+	memcpy(pathcpy+found_pathlen, path+found_pathlen, pathlen+1-found_pathlen);
+
+	// the alternate fork from the one set in default_fork can be accessed either by setting rsrc_suff,
+	// in which case it takes precedence over conflicting paths, or by appending /rsrc to a filename,
+	// which is never ambiguous. unfortunately FUSE libs don't really allow the latter.
+	if(dev->rsrc_suff && dev->rsrc_len < pathlen &&
+	   !memcmp(path + pathlen - dev->rsrc_len, dev->rsrc_suff, dev->rsrc_len+1)) {
+		*fork = ~*fork;
+		pathcpy[pathlen - dev->rsrc_len] = '\0';
+	}
+
+	char* next_pelem = pathcpy + found_pathlen + 1;
 	char* pelem;
-	while(record->type == HFS_REC_FLDR && (pelem = strsep(&splitptr,"/")) && *pelem) {
-		if(hfs_pathname_from_unix(pelem,&upath) < 0) RET(3);
-		if(!hfslib_make_catalog_key(record->folder.cnid,upath.length,upath.unicode,key)) RET(2);
-		if((ret = hfslib_find_catalog_record_with_key(vol,key,record,NULL))) RET(ret);
+	while(record->type == HFS_REC_FLDR && (pelem = strsep(&next_pelem,"/")) && *pelem) {
+		hfs_unistr255_t upath;
+		if((ret = hfs_pathname_from_unix(pelem,&upath)))
+			goto end;
+
+		if(!hfslib_make_catalog_key(record->folder.cnid,upath.length,upath.unicode,key)) {
+			ret = -EINVAL;
+			goto end;
+		}
+
+		if(hfslib_find_catalog_record_with_key(vol,key,record,NULL)) {
+			ret = -ENOENT;
+			goto end;
+		}
+
+		// resolve directory hard links
 		if(record->type == HFS_REC_FILE &&
-		   record->file.user_info.file_creator == HFS_MACS_CREATOR && record->file.user_info.file_type == HFS_DIR_HARD_LINK_FILE_TYPE &&
-		   hfslib_get_directory_hardlink(vol, record->file.bsd.special.inode_num, record, NULL))
-			RET(7);
+		   record->file.user_info.file_creator == HFS_MACS_CREATOR &&
+		   record->file.user_info.file_type == HFS_DIR_HARD_LINK_FILE_TYPE &&
+		   hfslib_get_directory_hardlink(vol, record->file.bsd.special.inode_num, record, NULL)) {
+			ret = -ENOENT;
+			goto end;
+		}
 	}
-	if(splitptr) {
-		if(record->type != HFS_REC_FILE || strcmp(splitptr,"rsrc"))RET(5);
-		else if(fork)
-			*fork = (*fork == HFS_DATAFORK ? HFS_RSRCFORK : HFS_DATAFORK); //alternate fork lookup
+
+	// a file was found, but there are trailing path elements
+	// allowed in the case of filename/rsrc for alternate fork lookup
+	if(next_pelem && (record->type != HFS_REC_FILE || strcmp(next_pelem,"rsrc"))) {
+		ret = -ENOTDIR;
+		goto end;
 	}
-	free(splitpath);
+
+	// resolve regular hard links
 	if(record->type == HFS_REC_FILE &&
-	   record->file.user_info.file_creator == HFS_HFSPLUS_CREATOR && record->file.user_info.file_type == HFS_HARD_LINK_FILE_TYPE &&
-	   hfslib_get_hardlink(vol, record->file.bsd.special.inode_num, record, NULL))
-		return -6;
-	if(!splitptr) // don't cache rsrc lookups
+	   record->file.user_info.file_creator == HFS_HFSPLUS_CREATOR &&
+	   record->file.user_info.file_type == HFS_HARD_LINK_FILE_TYPE &&
+	   hfslib_get_hardlink(vol, record->file.bsd.special.inode_num, record, NULL)) {
+		ret = -ENOENT;
+		goto end;
+	}
+
+	if(!next_pelem) // don't cache alternate fork lookups
 		hfs_record_cache_add(cache,path,record,key);
-	return 0;
-#undef RET
+	else if(fork)
+		*fork = ~*fork;
+
+end:
+	free(pathcpy);
+	return ret;
 }
 
 

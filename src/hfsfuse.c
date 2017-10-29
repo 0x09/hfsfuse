@@ -54,8 +54,9 @@ static int hfsfuse_open(const char* path, struct fuse_file_info* info) {
 	hfs_volume* vol = fuse_get_context()->private_data;
 	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key; unsigned char fork;
 	int ret = hfs_lookup(vol,path,&rec,&key,&fork);
-	if(ret > 0) return -ENOENT;
-	if(ret) return -errno;
+	if(ret)
+		return ret;
+
 	struct hf_file* f = malloc(sizeof(*f));
 	f->cnid = rec.file.cnid;
 	f->fork = fork;
@@ -95,8 +96,9 @@ static int hfsfuse_getattr(const char* path, struct stat* st) {
 	hfs_volume* vol = fuse_get_context()->private_data;
 	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key; uint8_t fork;
 	int ret = hfs_lookup(vol,path,&rec,&key,&fork);
-	if(ret < 0) return ret;
-	else if(ret > 0) return -ENOENT;
+	if(ret)
+		return ret;
+
 	hfs_stat(vol, &rec,st,fork);
 	return 0;
 }
@@ -124,8 +126,9 @@ static int hfsfuse_opendir(const char* path, struct fuse_file_info* info) {
 	hfs_volume* vol = fuse_get_context()->private_data;
 	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key;
 	int ret = hfs_lookup(vol,path,&rec,&key,NULL);
-	if(ret > 0) return -ENOENT;
-	if(ret) return -errno;
+	if(ret)
+		return ret;
+
 	struct hf_dir* d = malloc(sizeof(*d));
 	d->cnid = rec.folder.cnid;
 	hfslib_get_directory_contents(vol,d->cnid,&d->keys,&d->paths,&d->npaths,NULL);
@@ -228,8 +231,9 @@ static int hfsfuse_getxtimes(const char* path, struct timespec* bkuptime, struct
 	hfs_volume* vol = fuse_get_context()->private_data;
 	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key;
 	int ret = hfs_lookup(vol,path,&rec,&key,NULL);
-	if(ret < 0) return ret;
-	else if(ret > 0) return -ENOENT;
+	if(ret)
+		return ret;
+
 	bkuptime->tv_sec = rec.file.date_backedup;
 	bkuptime->tv_nsec = 0;
 	crtime->tv_sec = rec.file.date_created;
@@ -255,8 +259,8 @@ static int hfsfuse_listxattr(const char* path, char* attr, size_t size) {
 	hfs_volume* vol = fuse_get_context()->private_data;
 	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key;
 	int ret = hfs_lookup(vol,path,&rec,&key,NULL);
-	if(ret < 0) return ret;
-	else if(ret > 0) return -ENOENT;
+	if(ret)
+		return ret;
 
 	declare_attr("hfsfuse.record.date_created", attr, size, ret);
 	if(rec.file.date_backedup)
@@ -284,8 +288,8 @@ static int hfsfuse_getxattr(const char* path, const char* attr, char* value, siz
 	hfs_volume* vol = fuse_get_context()->private_data;
 	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key;
 	int ret = hfs_lookup(vol,path,&rec,&key,NULL);
-	if(ret < 0) return ret;
-	else if(ret > 0) return -ENOENT;
+	if(ret)
+		return ret;
 
 	define_attr(attr, "com.apple.FinderInfo", size, 32, {
 		hfs_serialize_finderinfo(&rec, value);
