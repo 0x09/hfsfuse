@@ -30,6 +30,7 @@
 struct ringnode {
 	struct ringnode* next,* prev;
 	char* path;
+	size_t len;
 	hfs_catalog_keyed_record_t record;
 	hfs_catalog_key_t key;
 };
@@ -73,14 +74,14 @@ void hfs_record_cache_destroy(struct hfs_record_cache* buf) {
 	free(buf);
 }
 
-bool hfs_record_cache_lookup(struct hfs_record_cache* buf, const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key) {
+bool hfs_record_cache_lookup(struct hfs_record_cache* buf, const char* path, size_t len, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key) {
 	bool ret = false;
 	if(!buf || pthread_rwlock_rdlock(&buf->lock))
 		return ret;
 	struct ringnode* it = buf->head;
 	do {
 		if(!it->path) break;
-		if(!strcmp(it->path,path)) {
+		if(len == it->len && !memcmp(it->path,path,len)) {
 			*record = it->record;
 			*key = it->key;
 			ret = true;
@@ -92,21 +93,22 @@ bool hfs_record_cache_lookup(struct hfs_record_cache* buf, const char* path, hfs
 	return ret;
 }
 
-size_t hfs_record_cache_lookup_parents(struct hfs_record_cache* buf, char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key) {
+size_t hfs_record_cache_lookup_parents(struct hfs_record_cache* buf, char* path, size_t len, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key) {
 	char* c;
 	while((c = strrchr(path, '/'))) {
 		*c = '\0';
-		if(*path && hfs_record_cache_lookup(buf, path, record, key))
+		len = c - path;
+		if(*path && hfs_record_cache_lookup(buf, path, len, record, key))
 			break;
 	}
-	return strlen(path);
+	return len;
 }
 
-void hfs_record_cache_add(struct hfs_record_cache* buf, const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key) {
+void hfs_record_cache_add(struct hfs_record_cache* buf, const char* path, size_t len, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key) {
 	if(!buf || pthread_rwlock_wrlock(&buf->lock))
 		return;
 	struct ringnode* tail = buf->head->prev;
-	char* newpath = realloc(tail->path,strlen(path)+1);
+	char* newpath = realloc(tail->path,len);
 	if(!newpath) {
 		do {
 			free(tail->path);
@@ -115,8 +117,9 @@ void hfs_record_cache_add(struct hfs_record_cache* buf, const char* path, hfs_ca
 		} while(tail != buf->head->prev);
 		goto end;
 	}
-	strcpy(newpath, path);
+	memcpy(newpath, path,len);
 	tail->path = newpath;
+	tail->len = len;
 	tail->key = *key;
 	tail->record = *record;
 	buf->head = tail;
