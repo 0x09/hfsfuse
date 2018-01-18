@@ -34,6 +34,10 @@
 #include "version.h"
 #endif
 
+#ifdef __FreeBSD__
+#define ENODATA ENOATTR
+#endif
+
 static void* hfsfuse_init(struct fuse_conn_info* conn) {
 	return fuse_get_context()->private_data;
 }
