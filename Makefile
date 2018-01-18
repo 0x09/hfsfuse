@@ -53,7 +53,7 @@ endif
 
 export PREFIX CC CFLAGS APP_FLAGS LIBDIRS AR RANLIB INCLUDE
 
-.PHONY: all clean always_check config install uninstall install-lib uninstall-lib lib version
+.PHONY: all clean always_check config install uninstall install-lib uninstall-lib lib
 
 all: hfsfuse hfsdump
 
@@ -65,15 +65,15 @@ $(LIBS): always_check
 
 lib: $(LIBS)
 
-hfsfuse: src/hfsfuse.o $(LIBS)
-	$(CC) $(CFLAGS) $(APP_LIB) -o $@ $^ $(FUSE_LIB) -lpthread
+hfsfuse: src/version.h src/hfsfuse.o $(LIBS)
+	$(CC) $(CFLAGS) $(APP_LIB) -o $@ src/hfsfuse.o $(LIBS) $(FUSE_LIB) -lpthread
 
-hfsdump: src/hfsdump.o $(LIBS)
-	$(CC) $(CFLAGS) $(APP_LIB) -o $@ $^ -lpthread
+hfsdump: src/version.h src/hfsdump.o $(LIBS)
+	$(CC) $(CFLAGS) $(APP_LIB) -o $@ src/hfsdump.o $(LIBS) -lpthread
 
 clean:
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir clean; done
-	rm -f src/hfsfuse.o hfsfuse src/hfsdump.o hfsdump
+	rm -f src/version.h src/hfsfuse.o hfsfuse src/hfsdump.o hfsdump
 
 install-lib: $(LIBS)
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir install; done
@@ -87,7 +87,7 @@ install: hfsfuse hfsdump
 uninstall:
 	rm -f $(PREFIX)/bin/hfsfuse $(PREFIX)/bin/hfsdump
 
-version:
+src/version.h:
 	echo \#define HFSFUSE_VERSION_STRING $(VERSION) > src/version.h
 
 config:
