@@ -182,6 +182,7 @@ static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, 
 	}
 	return min(ret,0);
 }
+
 // FUSE expects readder to be implemented in one of two ways
 // This is the 'alternative' implementation that supports the offset param
 static int hfsfuse_readdir2(const char* path, void* buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info* info) {
@@ -195,9 +196,14 @@ static int hfsfuse_readdir2(const char* path, void* buf, fuse_fill_dir_t filler,
 			if(filler(buf, ".", &st, 1))
 				return 0;
 		}
-		hfslib_find_catalog_record_with_cnid(vol, key.parent_cnid, &rec, &key, NULL);
-		hfs_stat(vol, &rec, &st, 0);
-		if(filler(buf, "..", NULL, 2))
+
+		struct stat* stp = NULL;
+		if(d->cnid != HFS_CNID_ROOT_FOLDER) {
+			stp = &st;
+			hfslib_find_catalog_record_with_cnid(vol, key.parent_cnid, &rec, &key, NULL);
+			hfs_stat(vol, &rec, stp, 0);
+		}
+		if(filler(buf, "..", stp, 2))
 			return 0;
 	}
 	char pelem[512];
