@@ -17,6 +17,11 @@ ifeq ($(OS), Darwin)
 	APP_FLAGS += -DHAVE_BIRTHTIME
 	FUSE_FLAGS += -I/usr/local/include/osxfuse
 	FUSE_LIB = -losxfuse
+else ifeq ($(OS), Haiku)
+	CFLAGS += -D_BSD_SOURCE
+	APP_LIB += -lbsd
+	FUSE_FLAGS += -I/system/develop/headers/userlandfs -I/system/develop/headers/bsd
+	FUSE_LIB = -L/system/lib/ -luserlandfs_fuse
 else ifeq ($(OS), FreeBSD)
 	APP_FLAGS += -DHAVE_BIRTHTIME
 	APP_FLAGS += -I/usr/local/include

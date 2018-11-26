@@ -364,8 +364,10 @@ static struct fuse_operations hfsfuse_ops = {
 #ifdef __APPLE__
 	.getxtimes   = hfsfuse_getxtimes,
 #endif
+#ifndef __HAIKU__
 	.flag_nopath = 1,
 	.flag_nullpath_ok = 1
+#endif
 };
 
 enum {
@@ -458,6 +460,11 @@ void version() {
 	if(hfs_get_lib_features() & HFS_LIB_FEATURES_UTF8PROC)
 		fprintf(stderr, "    utf8proc v%s\n", hfs_lib_utf8proc_version());
 }
+
+#ifdef __HAIKU__
+#define fuse_opt_add_opt_escaped(a,b) fuse_opt_add_opt((a),(b))
+#define fuse_parse_cmdline(a,b,c,d) // libfuse help is currently skipped under Haiku
+#endif
 
 int hfsfuse_opt_proc(void* data, const char* arg, int key, struct fuse_args* args) {
 	struct hfsfuse_config* cfg = data;

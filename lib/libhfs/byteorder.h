@@ -32,6 +32,8 @@
 #define be64toh(x) OSSwapBigToHostInt64(x)
 #elif __linux__
 #include <endian.h>
+#elif __HAIKU__
+#include <endian.h>
 #else
 #include <sys/endian.h>
 #endif

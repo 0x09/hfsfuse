@@ -306,7 +306,7 @@ void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st,
 	st->st_ino   = key->file.cnid;
 	st->st_uid   = key->file.bsd.owner_id;
 	st->st_gid   = key->file.bsd.group_id;
-#ifndef __linux__
+#if !defined(__linux__) && !defined(__HAIKU__)
 	st->st_flags = (key->file.bsd.admin_flags << 16) | key->file.bsd.owner_flags;
 #endif
 	if(S_ISBLK(st->st_mode) || S_ISCHR(st->st_mode))
