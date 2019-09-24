@@ -239,9 +239,8 @@ int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* re
 	// the alternate fork from the one set in default_fork can be accessed either by setting rsrc_suff,
 	// in which case it takes precedence over conflicting paths, or by appending /rsrc to a filename,
 	// which is never ambiguous. unfortunately FUSE libs don't really allow the latter.
-	if(dev->rsrc_suff && dev->rsrc_len < pathlen &&
+	if(fork && dev->rsrc_suff && dev->rsrc_len < pathlen &&
 	   !memcmp(path + pathlen - dev->rsrc_len, dev->rsrc_suff, dev->rsrc_len+1)) {
-		*fork = ~*fork;
 		pathcpy[pathlen - dev->rsrc_len] = '\0';
 	}
 
