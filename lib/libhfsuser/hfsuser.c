@@ -129,7 +129,7 @@ static char* hfs_utf8proc_NFD(const uint8_t* u8) {
 		else len++;
 	}
 
-	if(result < 0 || !(len && (buf = malloc(sizeof(*buf)*len+1))))
+	if(!len || result < 0 || !(buf = malloc(sizeof(*buf)*len+1)))
 		return NULL;
 
 	for(utf8proc_int32_t* it = buf; *u8 && (result = utf8proc_iterate(u8, -1, &codepoint)) > 0; u8 += result)
