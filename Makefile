@@ -90,7 +90,7 @@ uninstall-lib: $(LIBS)
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir uninstall; done
 
 install: hfsfuse hfsdump
-	install $< $(PREFIX)/bin/
+	$(INSTALL) $< $(PREFIX)/bin/
 
 uninstall:
 	rm -f $(PREFIX)/bin/hfsfuse $(PREFIX)/bin/hfsdump
