@@ -47,7 +47,7 @@
  */
 
 #include "rcsid.h"
-__KERNEL_RCSID(0, "$NetBSD: libhfs.c,v 1.14 2015/06/21 13:40:25 maxv Exp $");
+__KERNEL_RCSID(0, "$NetBSD: libhfs.c,v 1.15 2018/12/30 22:40:00 sevan Exp $");
 
 #include "libhfs.h"
 #include "byteorder.h"
