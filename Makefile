@@ -50,15 +50,15 @@ ifneq ($(WITH_UTF8PROC), none)
 	endif
 endif
 
-GIT_HEAD_SHA=$(shell gt rev-parse --short HEAD 2> /dev/null)
+GIT_HEAD_SHA=$(shell git rev-parse --short HEAD 2> /dev/null)
 ifneq ($(GIT_HEAD_SHA), )
-	VERSION = \"0.$(shell git rev-list HEAD --count)-$(GIT_HEAD_SHA)\"
-	CFLAGS += -DHFSFUSE_VERSION_STRING=$(VERSION)
+	VERSION = 0.$(shell git rev-list HEAD --count)-$(GIT_HEAD_SHA)
+	CFLAGS += -DHFSFUSE_VERSION_STRING=\"$(VERSION)\"
 endif
 
 export PREFIX CC CFLAGS APP_FLAGS LIBDIRS AR RANLIB INCLUDE
 
-.PHONY: all clean always_check config install uninstall install-lib uninstall-lib lib
+.PHONY: all clean always_check config install uninstall install-lib uninstall-lib lib version
 
 all: hfsfuse hfsdump
 
@@ -70,15 +70,18 @@ $(LIBS): always_check
 
 lib: $(LIBS)
 
-hfsfuse: src/version.h src/hfsfuse.o $(LIBS)
+hfsfuse: src/hfsfuse.o $(LIBS)
 	$(CC) $(CFLAGS) $(APP_LIB) -o $@ src/hfsfuse.o $(LIBS) $(FUSE_LIB) -lpthread
 
-hfsdump: src/version.h src/hfsdump.o $(LIBS)
+hfsdump: src/hfsdump.o $(LIBS)
 	$(CC) $(CFLAGS) $(APP_LIB) -o $@ src/hfsdump.o $(LIBS) -lpthread
 
 clean:
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir clean; done
-	rm -f src/version.h src/hfsfuse.o hfsfuse src/hfsdump.o hfsdump
+	rm -f src/hfsfuse.o hfsfuse src/hfsdump.o hfsdump
+
+distclean: clean
+	rm -f config.mak src/version.h
 
 install-lib: $(LIBS)
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir install; done
@@ -94,6 +97,8 @@ uninstall:
 
 src/version.h:
 	echo \#define HFSFUSE_VERSION_STRING $(VERSION) > src/version.h
+
+version: src/version.h
 
 config:
 	echo CC=$(CC) > config.mak
