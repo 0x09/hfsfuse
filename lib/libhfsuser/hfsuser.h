@@ -39,8 +39,8 @@ enum hfs_lib_features {
 
 enum hfs_lib_features hfs_get_lib_features(void);
 
-const char* hfs_lib_ublio_version();
-const char* hfs_lib_utf8proc_version();
+const char* hfs_lib_ublio_version(void);
+const char* hfs_lib_utf8proc_version(void);
 
 struct hfs_volume_config {
 	size_t cache_size;

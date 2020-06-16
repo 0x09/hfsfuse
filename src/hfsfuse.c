@@ -160,6 +160,7 @@ static int hfsfuse_releasedir(const char* path, struct fuse_file_info* info) {
 	return 0;
 }
 
+#if 0
 static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info* info) {
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
@@ -182,6 +183,7 @@ static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, 
 	}
 	return min(ret,0);
 }
+#endif
 
 // FUSE expects readder to be implemented in one of two ways
 // This is the 'alternative' implementation that supports the offset param
@@ -237,6 +239,7 @@ static int hfsfuse_statfs(const char* path, struct statvfs* st) {
 	return 0;
 }
 
+#ifdef __APPLE__
 static int hfsfuse_getxtimes(const char* path, struct timespec* bkuptime, struct timespec* crtime) {
 	hfs_volume* vol = fuse_get_context()->private_data;
 	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key;
@@ -250,6 +253,7 @@ static int hfsfuse_getxtimes(const char* path, struct timespec* bkuptime, struct
 	crtime->tv_nsec = 0;
 	return 0;
 }
+#endif
 
 #ifdef __APPLE__
 #define attrname(name) name
@@ -338,9 +342,11 @@ static int hfsfuse_getxattr(const char* path, const char* attr, char* value, siz
 	return -ENODATA;
 }
 
+#ifdef __APPLE__
 static int hfsfuse_getxattr_darwin(const char* path, const char* attr, char* value, size_t size, u_int32_t unused) {
 	return hfsfuse_getxattr(path, attr, value, size);
 }
+#endif
 
 static struct fuse_operations hfsfuse_ops = {
 	.init        = hfsfuse_init,
@@ -378,7 +384,7 @@ enum {
 
 struct hfsfuse_config {
 	struct hfs_volume_config volume_config;
-	const char* device;
+	char* device;
 	int noallow_other;
 	int force;
 };
@@ -404,11 +410,11 @@ static struct fuse_opt hfsfuse_opts[] = {
 	FUSE_OPT_END
 };
 
-void usage(const char* self) {
+static void usage(const char* self) {
 	fprintf(stderr,"usage: %s [-hHv] [-o options] device mountpoint\n\n",self);
 }
 
-void help(const char* self, struct hfsfuse_config* cfg) {
+static void help(const char* self, struct hfsfuse_config* cfg) {
 	usage(self);
 	fprintf(
 		stderr,
@@ -443,7 +449,7 @@ void help(const char* self, struct hfsfuse_config* cfg) {
 	}
 }
 
-void version() {
+static void version() {
 	fprintf(
 		stderr,
 		"hfsfuse version " HFSFUSE_VERSION_STRING "\n"
@@ -466,7 +472,7 @@ void version() {
 #define fuse_parse_cmdline(a,b,c,d) // libfuse help is currently skipped under Haiku
 #endif
 
-int hfsfuse_opt_proc(void* data, const char* arg, int key, struct fuse_args* args) {
+static int hfsfuse_opt_proc(void* data, const char* arg, int key, struct fuse_args* args) {
 	struct hfsfuse_config* cfg = data;
 	switch(key) {
 		case HFSFUSE_OPT_KEY_HELP:
@@ -492,9 +498,10 @@ int hfsfuse_opt_proc(void* data, const char* arg, int key, struct fuse_args* arg
 				cfg->device = strdup(arg);
 				return 0;
 			}
+			// fallthrough
 		default: return 1;
 	}
-};
+}
 
 int main(int argc, char* argv[]) {
 	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);

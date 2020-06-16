@@ -134,7 +134,6 @@ static inline void dump_record(hfs_catalog_keyed_record_t rec) {
 		);
 	}
 	else {
-		hfs_file_record_t file = rec.file;
 		printf(
 			"user_info.file_type: %c%c%c%c\n"
 			"user_info.file_creator: %c%c%c%c\n"

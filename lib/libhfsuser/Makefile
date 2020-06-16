@@ -7,7 +7,7 @@ TARGET = libhfsuser.a
 all: $(TARGET)
 
 %.o: %.c
-	$(CC) -D_FILE_OFFSET_BITS=64 $(CFLAGS) $(APP_FLAGS) $(INCLUDE) -c -o $*.o $^
+	$(CC) $(LOCAL_CFLAGS) $(CFLAGS) $(APP_FLAGS) $(INCLUDE) -c -o $*.o $^
 
 $(TARGET): $(OBJS)
 	$(AR) rcs $@ $^

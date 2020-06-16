@@ -8,9 +8,14 @@ PREFIX ?= /usr/local
 CONFIG_CFLAGS ?= -O3 -std=gnu11
 WITH_UBLIO ?= local
 WITH_UTF8PROC ?= local
-CFLAGS := $(CONFIG_CFLAGS) -D_FILE_OFFSET_BITS=64 $(CFLAGS)
+CFLAGS := $(CONFIG_CFLAGS) $(CFLAGS)
 
-FUSE_FLAGS = -DFUSE_USE_VERSION=28
+# extra flags we don't want to forward to the "external" libs like libhfs/ublio/utf8proc
+LOCAL_CFLAGS=-Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -Wno-unused-parameter
+# older versions of gcc/clang need these as well
+LOCAL_CFLAGS+=-Wno-missing-field-initializers -Wno-missing-braces
+
+FUSE_FLAGS = -DFUSE_USE_VERSION=28 -D_FILE_OFFSET_BITS=64
 FUSE_LIB = -lfuse
 OS := $(shell uname)
 ifeq ($(OS), Darwin)
@@ -56,14 +61,17 @@ ifneq ($(GIT_HEAD_SHA), )
 	CFLAGS += -DHFSFUSE_VERSION_STRING=\"$(VERSION)\"
 endif
 
-export PREFIX CC CFLAGS APP_FLAGS LIBDIRS AR RANLIB INCLUDE
+export PREFIX CC CFLAGS LOCAL_CFLAGS APP_FLAGS LIBDIRS AR RANLIB INCLUDE
 
 .PHONY: all clean always_check config install uninstall install-lib uninstall-lib lib version
 
 all: hfsfuse hfsdump
 
 %.o: %.c
-	$(CC) $(CFLAGS) $(FUSE_FLAGS) $(INCLUDE) -c -o $*.o $^
+	$(CC) $(LOCAL_CFLAGS) $(INCLUDE) $(CFLAGS) -c -o $*.o $^
+
+src/hfsfuse.o: src/hfsfuse.c
+	$(CC) $(LOCAL_CFLAGS) $(FUSE_FLAGS) $(INCLUDE) $(CFLAGS) -c -o $*.o $^
 
 $(LIBS): always_check
 	$(MAKE) -C $(dir $@)

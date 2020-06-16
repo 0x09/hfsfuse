@@ -38,6 +38,12 @@
 
 #include "libhfs/unicode.h"
 
+#ifdef __HAIKU__
+#define HFS_ENOMEM 1
+#else
+#define HFS_ENOMEM ENOMEM
+#endif
+
 struct hfs_device {
 	int fd;
 	uint32_t blksize;
@@ -149,7 +155,7 @@ static char* hfs_utf8proc_NFD(const uint8_t* u8) {
 int hfs_pathname_from_unix(const char* u8, hfs_unistr255_t* u16) {
 	char* norm = (char*)hfs_utf8proc_NFD((const uint8_t*)u8);
 	if(!norm)
-		return -ENOMEM;
+		return -HFS_ENOMEM;
 	char* rep = norm;
 	while((rep = strchr(rep,':')))
 		*rep++ = '/';
@@ -226,7 +232,7 @@ int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* re
 
 	char* pathcpy = hfs_memdup(path, pathlen+1);
 	if(!pathcpy)
-		return -ENOMEM;
+		return -HFS_ENOMEM;
 	size_t found_pathlen = hfs_record_cache_lookup_parents(cache, pathcpy, pathlen, record, key);
 
 	if(!found_pathlen && hfslib_find_catalog_record_with_cnid(vol,HFS_CNID_ROOT_FOLDER,record,key,NULL)) {
@@ -392,7 +398,7 @@ void hfs_serialize_finderinfo(hfs_catalog_keyed_record_t* rec, char buf[32]) {
 int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 	struct hfs_device* dev = calloc(1,sizeof(*dev));
 	if(!dev)
-		return -(errno = ENOMEM);
+		return -(errno = HFS_ENOMEM);
 
 	struct hfs_volume_config cfg;
 	hfs_volume_config_defaults(&cfg);
