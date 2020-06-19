@@ -59,6 +59,9 @@ GIT_HEAD_SHA=$(shell git rev-parse --short HEAD 2> /dev/null)
 ifneq ($(GIT_HEAD_SHA), )
 	VERSION = 0.$(shell git rev-list HEAD --count)-$(GIT_HEAD_SHA)
 	CFLAGS += -DHFSFUSE_VERSION_STRING=\"$(VERSION)\"
+else ifeq ($(wildcard src/version.h), )
+    $(warning Warning: git repo nor prepackaged version.h found, hfsfuse will be built without version information)
+	CFLAGS += -DHFSFUSE_VERSION_STRING=\"omitted\"
 endif
 
 export PREFIX CC CFLAGS LOCAL_CFLAGS APP_FLAGS LIBDIRS AR RANLIB INCLUDE
@@ -103,10 +106,8 @@ install: hfsfuse hfsdump
 uninstall:
 	rm -f $(PREFIX)/bin/hfsfuse $(PREFIX)/bin/hfsdump
 
-src/version.h:
+version:
 	echo \#define HFSFUSE_VERSION_STRING $(VERSION) > src/version.h
-
-version: src/version.h
 
 config:
 	echo CC=$(CC) > config.mak
