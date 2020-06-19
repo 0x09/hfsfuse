@@ -8,7 +8,21 @@ PREFIX ?= /usr/local
 CONFIG_CFLAGS ?= -O3 -std=gnu11
 WITH_UBLIO ?= local
 WITH_UTF8PROC ?= local
-CFLAGS := $(CONFIG_CFLAGS) $(CFLAGS)
+CONFIG_CFLAGS := $(CONFIG_CFLAGS) $(CFLAGS)
+
+define CONFIG
+CC=$(CC)
+AR=$(AR)
+RANLIB=$(RANLIB)
+INSTALL=$(INSTALL)
+PREFIX=$(PREFIX)
+WITH_UBLIO=$(WITH_UBLIO)
+WITH_UTF8PROC=$(WITH_UTF8PROC)
+CONFIG_CFLAGS=$(CONFIG_CFLAGS)
+endef
+export CONFIG
+
+CFLAGS := $(CONFIG_CFLAGS)
 
 # extra flags we don't want to forward to the "external" libs like libhfs/ublio/utf8proc
 LOCAL_CFLAGS=-Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -Wno-unused-parameter
@@ -110,7 +124,4 @@ version:
 	echo \#define HFSFUSE_VERSION_STRING $(VERSION) > src/version.h
 
 config:
-	echo CC=$(CC) > config.mak
-	echo CONFIG_CFLAGS=$(CFLAGS) >> config.mak
-	echo WITH_UBLIO=$(WITH_UBLIO) >> config.mak
-	echo WITH_UTF8PROC=$(WITH_UTF8PROC) >> config.mak
+	echo "$$CONFIG" > config.mak
