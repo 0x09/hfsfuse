@@ -4,23 +4,10 @@ CC ?= cc
 AR ?= ar
 RANLIB ?= ranlib
 INSTALL ?= install
-PREFIX ?= /usr/local
 CONFIG_CFLAGS ?= -O3 -std=gnu11
 WITH_UBLIO ?= local
 WITH_UTF8PROC ?= local
 CONFIG_CFLAGS := $(CONFIG_CFLAGS) $(CFLAGS)
-
-define CONFIG
-CC=$(CC)
-AR=$(AR)
-RANLIB=$(RANLIB)
-INSTALL=$(INSTALL)
-PREFIX=$(PREFIX)
-WITH_UBLIO=$(WITH_UBLIO)
-WITH_UTF8PROC=$(WITH_UTF8PROC)
-CONFIG_CFLAGS=$(CONFIG_CFLAGS)
-endef
-export CONFIG
 
 CFLAGS := $(CONFIG_CFLAGS)
 
@@ -41,12 +28,27 @@ else ifeq ($(OS), Haiku)
 	APP_LIB += -lbsd
 	FUSE_FLAGS += -I/system/develop/headers/userlandfs -I/system/develop/headers/bsd
 	FUSE_LIB = -L/system/lib/ -luserlandfs_fuse
+	PREFIX ?= /boot/home/config/non-packaged
 else ifeq ($(OS), FreeBSD)
 	APP_FLAGS += -DHAVE_BIRTHTIME
 	APP_FLAGS += -I/usr/local/include
 	APP_LIB += -L/usr/local/lib
 	FUSE_FLAGS += -I/usr/local/include
 endif
+
+PREFIX ?= /usr/local
+
+define CONFIG
+CC=$(CC)
+AR=$(AR)
+RANLIB=$(RANLIB)
+INSTALL=$(INSTALL)
+PREFIX=$(PREFIX)
+WITH_UBLIO=$(WITH_UBLIO)
+WITH_UTF8PROC=$(WITH_UTF8PROC)
+CONFIG_CFLAGS=$(CONFIG_CFLAGS)
+endef
+export CONFIG
 
 LIBS = lib/libhfsuser/libhfsuser.a lib/libhfs/libhfs.a
 LIBDIRS = $(abspath $(dir $(LIBS)))
@@ -114,11 +116,21 @@ install-lib: $(LIBS)
 uninstall-lib: $(LIBS)
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir uninstall; done
 
+ifeq ($(OS), Haiku)
 install: hfsfuse hfsdump
-	$(INSTALL) $< $(PREFIX)/bin/
+	mkdir -p $(PREFIX)/add-ons/userlandfs/
+	$(INSTALL) -m 644 hfsfuse $(PREFIX)/add-ons/userlandfs/
+	$(INSTALL) hfsdump $(PREFIX)/bin/
+
+uninstall:
+	rm -f $(PREFIX)/add-ons/userlandfs/hfsfuse $(PREFIX)/bin/hfsdump
+else
+install: hfsfuse hfsdump
+	$(INSTALL) $^ $(PREFIX)/bin/
 
 uninstall:
 	rm -f $(PREFIX)/bin/hfsfuse $(PREFIX)/bin/hfsdump
+endif
 
 version:
 	echo \#define HFSFUSE_VERSION_STRING $(VERSION) > src/version.h
