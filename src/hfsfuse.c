@@ -38,10 +38,6 @@
 #define ENODATA ENOATTR
 #endif
 
-static void* hfsfuse_init(struct fuse_conn_info* conn) {
-	return fuse_get_context()->private_data;
-}
-
 static void hfsfuse_destroy(void* vol) {
 	hfslib_close_volume(vol, NULL);
 }
@@ -349,7 +345,6 @@ static int hfsfuse_getxattr_darwin(const char* path, const char* attr, char* val
 #endif
 
 static struct fuse_operations hfsfuse_ops = {
-	.init        = hfsfuse_init,
 	.destroy     = hfsfuse_destroy,
 	.open        = hfsfuse_open,
 	.opendir     = hfsfuse_opendir,
