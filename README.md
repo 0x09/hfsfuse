@@ -69,6 +69,10 @@ hfsfuse-specific options are shown below
         -o ublio_items=N       number of ublio cache entries, 0 for no caching (64)
         -o ublio_grace=N       reclaim cache entries only after N requests (32)
     
+Note for Haiku users: under Haiku, FUSE applications cannot be invoked directly. Instead, `make install` will install hfsfuse as a userlandfs add-on, which can be used with `mount` like so:
+
+    mount -t userlandfs -o "hfsfuse <opts> <device>" <mountpoint>
+
 ## hfsdump
 	hfsdump <device> <command> <node>
 	
