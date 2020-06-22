@@ -18,6 +18,7 @@ hfsfuse also includes a standalone tool, hfsdump, to inspect the contents of an 
 
 * Writing
 * User-defined extended attributes (undocumented)
+* HFS (non plus) volumes
 
 # Installation
 ## Configuring
