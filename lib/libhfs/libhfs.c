@@ -2397,7 +2397,7 @@ hfslib_compare_catalog_keys_cf (
 	}
 }
 
-int
+static int
 unichar_cmp (
 	const unichar_t* a,
 	const unichar_t* b,
