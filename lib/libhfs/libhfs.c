@@ -2397,6 +2397,24 @@ hfslib_compare_catalog_keys_cf (
 	}
 }
 
+static int
+unichar_cmp (
+	const unichar_t* a,
+	const unichar_t* b,
+	size_t num_chars)
+{
+	if (num_chars == 0)
+		return 0;
+	const unichar_t* stop = a + num_chars;
+	while (*a == *b) {
+		++a;
+		++b;
+		if (a == stop)
+			return 0;
+	}
+	return *a - *b;
+}
+
 /* binary compare (i.e., not case folding) */
 int
 hfslib_compare_catalog_keys_bc (
@@ -2411,18 +2429,8 @@ hfslib_compare_catalog_keys_bc (
 
 	if (a->parent_cnid == b->parent_cnid)
 	{
-		if (a->name.length == 0 && b->name.length == 0)
-			return 0;
-
-		if (a->name.length == 0)
-			return -1;
-		if (b->name.length == 0)
-			return 1;
-
-		/* FIXME: This does a byte-per-byte comparison, whereas the HFS spec
-		 * mandates a uint16_t chunk comparison. */
-		c = memcmp(a->name.unicode, b->name.unicode,
-			sizeof(unichar_t)*min(a->name.length, b->name.length));
+		c = unichar_cmp(a->name.unicode, b->name.unicode,
+			min(a->name.length, b->name.length));
 		if (c != 0)
 			return c;
 		/*
