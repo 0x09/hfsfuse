@@ -24,6 +24,7 @@
 
 #include "libhfsuser/hfsuser.h"
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <errno.h>
 #include <limits.h>
@@ -48,6 +49,7 @@ struct hf_file {
 	hfs_extent_descriptor_t* extents;
 	uint16_t nextents;
 	uint8_t fork;
+	bool is_empty;
 };
 
 static int hfsfuse_open(const char* path, struct fuse_file_info* info) {
@@ -60,6 +62,7 @@ static int hfsfuse_open(const char* path, struct fuse_file_info* info) {
 	struct hf_file* f = malloc(sizeof(*f));
 	f->cnid = rec.file.cnid;
 	f->fork = fork;
+	f->is_empty = (fork == HFS_RSRCFORK ? rec.file.rsrc_fork : rec.file.data_fork).logical_size == 0;
 	f->nextents = hfslib_get_file_extents(vol,f->cnid,fork,&f->extents,NULL);
 	info->fh = (uint64_t)f;
 	info->keep_cache = 1;
@@ -77,6 +80,8 @@ static int hfsfuse_read(const char* path, char* buf, size_t size, off_t offset, 
 	hfs_volume* vol = fuse_get_context()->private_data;
 	struct hf_file* f = (struct hf_file*)info->fh;
 	uint64_t bytes;
+	if(f->is_empty)  // empty files have no extents, which to hfslib_readd_with_extents() is an error
+		return 0;  // so skip it and just return 0 for EOF
 	int ret = hfslib_readd_with_extents(vol,buf,&bytes,size,offset,f->extents,f->nextents,NULL);
 	if(ret < 0)
 		return ret;
