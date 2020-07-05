@@ -365,8 +365,10 @@ static struct fuse_operations hfsfuse_ops = {
 #ifdef __APPLE__
 	.getxtimes   = hfsfuse_getxtimes,
 #endif
-#ifndef __HAIKU__
+#if FUSE_VERSION >= 29
 	.flag_nopath = 1,
+#endif
+#if FUSE_VERSION >= 28
 	.flag_nullpath_ok = 1
 #endif
 };
@@ -462,9 +464,8 @@ static void version() {
 		fprintf(stderr, "    utf8proc v%s\n", hfs_lib_utf8proc_version());
 }
 
-#ifdef __HAIKU__
+#if FUSE_VERSION < 28
 #define fuse_opt_add_opt_escaped(a,b) fuse_opt_add_opt((a),(b))
-#define fuse_parse_cmdline(a,b,c,d) // libfuse help is currently skipped under Haiku
 #endif
 
 static int hfsfuse_opt_proc(void* data, const char* arg, int key, struct fuse_args* args) {
@@ -474,7 +475,9 @@ static int hfsfuse_opt_proc(void* data, const char* arg, int key, struct fuse_ar
 		case HFSFUSE_OPT_KEY_FULLHELP: {
 			help(args->argv[0], cfg);
 			fuse_opt_add_arg(args, "-ho");
+#ifndef __HAIKU__ // this is declared in the userlandfs headers but isn't actually in the library
 			fuse_parse_cmdline(args, NULL, NULL, NULL);
+#endif
 			if(key == HFSFUSE_OPT_KEY_FULLHELP) {
 				// fuse_mount and fuse_new print their own set of options
 				fuse_mount(NULL, args);
