@@ -465,7 +465,24 @@ static void version() {
 }
 
 #if FUSE_VERSION < 28
-#define fuse_opt_add_opt_escaped(a,b) fuse_opt_add_opt((a),(b))
+static int hfsfuse_opt_add_opt_escaped(char** opts, const char* opt) {
+	char* escaped = malloc(strlen(opt)*2+1);
+	if(!escaped)
+		return -1;
+	char* eit = escaped;
+	for(const char* oit = opt; (oit = strpbrk(oit, ",\\")); opt = oit) {
+		memcpy(eit,opt,oit-opt);
+		eit += oit-opt;
+		*eit++ = '\\';
+		*eit++ = *oit++;
+	}
+	memcpy(eit,opt,strlen(opt)+1);
+	int ret = fuse_opt_add_opt(opts, escaped);
+	free(escaped);
+	return ret;
+}
+#else
+#define hfsfuse_opt_add_opt_escaped(opts,opt) fuse_opt_add_opt_escaped(opts,opt)
 #endif
 
 static int hfsfuse_opt_proc(void* data, const char* arg, int key, struct fuse_args* args) {
@@ -535,7 +552,7 @@ int main(int argc, char* argv[]) {
 		fuse_opt_add_opt(&opts, "allow_other");
 	fuse_opt_add_opt(&opts, "use_ino");
 	fuse_opt_add_opt(&opts, "subtype=hfs");
-	fuse_opt_add_opt_escaped(&opts, fsname);
+	hfsfuse_opt_add_opt_escaped(&opts, fsname);
 	fuse_opt_add_arg(&args, "-o");
 	fuse_opt_add_arg(&args, opts);
 	fuse_opt_add_arg(&args, "-s");
