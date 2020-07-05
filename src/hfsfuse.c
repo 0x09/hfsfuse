@@ -34,8 +34,8 @@
 #include "version.h"
 #endif
 
-#ifdef __FreeBSD__
-#define ENODATA ENOATTR
+#ifndef ENOATTR
+#define ENOATTR ENODATA
 #endif
 
 static void hfsfuse_destroy(void* vol) {
@@ -335,7 +335,7 @@ static int hfsfuse_getxattr(const char* path, const char* attr, char* value, siz
 		memcpy(value, timebuf, 24);
 	});
 
-	return -ENODATA;
+	return -ENOATTR;
 }
 
 #ifdef __APPLE__
