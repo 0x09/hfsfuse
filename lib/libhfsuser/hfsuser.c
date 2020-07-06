@@ -391,6 +391,20 @@ void hfs_serialize_finderinfo(hfs_catalog_keyed_record_t* rec, char buf[32]) {
 #include <linux/fs.h>
 #define DISKBLOCKSIZE BLKBSZGET
 #define DISKIDEALSIZE BLKIOOPT
+#elif defined(__NetBSD__)
+#include <sys/disk.h>
+#define DISKBLOCKSIZE DIOCGSECTORSIZE
+#elif defined(__OpenBSD__)
+#include <sys/disklabel.h>
+#include <sys/dkio.h>
+#define DISKINFO DIOCGDINFO
+typedef struct disklabel diskinfo_type;
+#define diskinfo_blocksize(d) (d).d_secsize
+#elif defined(__DragonFly__)
+#include <sys/diskslice.h>
+#define DISKINFO DIOCGPART
+typedef struct partinfo diskinfo_type;
+#define diskinfo_blocksize(d) (d).media_blksize
 #endif
 
 #define BAIL(e) do { errno = e; goto error; } while(0)
@@ -422,10 +436,17 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 			BAIL(errno);
 		if(S_ISCHR(st.st_mode) || S_ISBLK(st.st_mode)) {
 #ifdef DISKBLOCKSIZE
+#ifdef DISKIDEALSIZE
 			if(ioctl(dev->fd,DISKIDEALSIZE,&dev->blksize))
 				BAIL(errno);
+#endif
 			if(!dev->blksize && ioctl(dev->fd,DISKBLOCKSIZE,&dev->blksize))
 				BAIL(errno);
+#elif defined(DISKINFO)
+			diskinfo_type d;
+			if(ioctl(dev->fd,DISKINFO,&d))
+				BAIL(errno);
+			dev->blksize = diskinfo_blocksize(d);
 #endif
 		}
 		else if(S_ISREG(st.st_mode))
