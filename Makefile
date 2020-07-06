@@ -34,6 +34,10 @@ else ifeq ($(OS), FreeBSD)
 	APP_FLAGS += -I/usr/local/include
 	APP_LIB += -L/usr/local/lib
 	FUSE_FLAGS += -I/usr/local/include
+else ifeq ($(OS), DragonFly)
+	APP_FLAGS += -I/usr/local/include
+	APP_LIB += -L/usr/local/lib
+	FUSE_FLAGS += -I/usr/local/include
 endif
 
 PREFIX ?= /usr/local
