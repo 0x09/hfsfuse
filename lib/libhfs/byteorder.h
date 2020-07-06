@@ -25,17 +25,41 @@
 #ifndef HFSFUSE_ENDIAN_H
 #define HFSFUSE_ENDIAN_H
 
+#include <stdint.h>
+
 #ifdef __APPLE__
 #include <libkern/OSByteOrder.h>
 #define be16toh(x) OSSwapBigToHostInt16(x)
 #define be32toh(x) OSSwapBigToHostInt32(x)
 #define be64toh(x) OSSwapBigToHostInt64(x)
-#elif __linux__
+#elif defined(__linux__) || defined(__HAIKU__)
 #include <endian.h>
-#elif __HAIKU__
-#include <endian.h>
-#else
+#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)  || defined(__DragonFly__)
 #include <sys/endian.h>
-#endif
+#else
+#define big_endian() (!(union { int i; char c; }){1}.c)
+#define bytecast(t, ...) ((union { unsigned char b[sizeof(t)]; t val; }){{__VA_ARGS__}}.val)
 
+static inline uint16_t be16toh(uint16_t x) {
+	if(big_endian())
+		return x;
+	return bytecast(uint16_t, x>>8, x);
+}
+
+static inline uint32_t be32toh(uint32_t x) {
+	if(big_endian())
+		return x;
+	return bytecast(uint32_t, x>>24, x>>16, x>>8, x);
+}
+
+static inline uint64_t be64toh(uint64_t x) {
+	if(big_endian())
+		return x;
+	return bytecast(uint64_t, x>>56, x>>48, x>>40, x>>32, x>>24, x>>16, x>>8, x);
+}
+
+#undef big_endian
+#undef bytecast
+
+#endif
 #endif

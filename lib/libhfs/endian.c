@@ -28,7 +28,6 @@
  */
 
 #include <string.h>
-#include <stdint.h>
 #include "byteorder.h"
 
 uint16_t be16tohp(void** inout_ptr)
