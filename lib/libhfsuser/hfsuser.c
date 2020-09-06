@@ -245,10 +245,10 @@ int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* re
 	// the alternate fork from the one set in default_fork can be accessed either by setting rsrc_suff,
 	// in which case it takes precedence over conflicting paths, or by appending /rsrc to a filename,
 	// which is never ambiguous. unfortunately FUSE libs don't really allow the latter.
-	if(fork && dev->rsrc_suff && dev->rsrc_len < pathlen &&
-	   !memcmp(path + pathlen - dev->rsrc_len, dev->rsrc_suff, dev->rsrc_len+1)) {
+	bool alt_fork_lookup = dev->rsrc_suff && dev->rsrc_len+1 < pathlen &&
+	                       !memcmp(path + pathlen - dev->rsrc_len, dev->rsrc_suff, dev->rsrc_len+1);
+	if(alt_fork_lookup)
 		pathcpy[pathlen - dev->rsrc_len] = '\0';
-	}
 
 	char* next_pelem = pathcpy + found_pathlen + 1;
 	char* pelem;
@@ -278,8 +278,8 @@ int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* re
 	}
 
 	// a file was found, but there are trailing path elements
-	// allowed in the case of filename/rsrc for alternate fork lookup
-	if(next_pelem && (record->type != HFS_REC_FILE || strcmp(next_pelem,"rsrc"))) {
+	// only allowed in the case of filename/rsrc for alternate fork lookup
+	if(next_pelem && !(alt_fork_lookup = !strcmp(next_pelem,"rsrc"))) {
 		ret = -ENOTDIR;
 		goto end;
 	}
@@ -293,7 +293,7 @@ int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* re
 		goto end;
 	}
 
-	if(!next_pelem) // don't cache alternate fork lookups
+	if(!alt_fork_lookup) // don't cache alternate fork lookups
 		hfs_record_cache_add(cache,path,pathlen,record,key);
 	else if(fork)
 		*fork = ~*fork;
