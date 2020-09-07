@@ -30,6 +30,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <unistd.h>
+#include <string.h>
 #include <pthread.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -250,9 +251,13 @@ int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* re
 	if(alt_fork_lookup)
 		pathcpy[pathlen - dev->rsrc_len] = '\0';
 
-	char* next_pelem = pathcpy + found_pathlen + 1;
-	char* pelem;
-	while(record->type == HFS_REC_FLDR && (pelem = strsep(&next_pelem,"/")) && *pelem) {
+	// lookup normally ends when either the path is exhasuted or a file is found, however there are exactly two cases
+	// where a file is permitted as part of the path: hard links to other directories, or when accessing a file's
+	// resource fork via the special /rsrc suffix
+	for(char* state,* pelem = strtok_r(pathcpy+found_pathlen+1,"/",&state);
+	    pelem;
+		pelem = strtok_r(NULL,"/",&state)) {
+
 		hfs_unistr255_t upath;
 		if((ret = hfs_pathname_from_unix(pelem,&upath)))
 			goto end;
@@ -267,21 +272,26 @@ int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* re
 			goto end;
 		}
 
-		// resolve directory hard links
-		if(record->type == HFS_REC_FILE &&
-		   record->file.user_info.file_creator == HFS_MACS_CREATOR &&
-		   record->file.user_info.file_type == HFS_DIR_HARD_LINK_FILE_TYPE &&
-		   hfslib_get_directory_hardlink(vol, record->file.bsd.special.inode_num, record, NULL)) {
-			ret = -ENOENT;
-			goto end;
-		}
-	}
+		if(record->type == HFS_REC_FILE) {
+			if(record->file.user_info.file_creator == HFS_MACS_CREATOR &&
+			   record->file.user_info.file_type == HFS_DIR_HARD_LINK_FILE_TYPE) {
+				// resolve directory hard links and resume path traversal
+				if(hfslib_get_directory_hardlink(vol, record->file.bsd.special.inode_num, record, NULL)) {
+					ret = -ENOENT;
+					goto end;
+				}
+				continue;
+			}
 
-	// a file was found, but there are trailing path elements
-	// only allowed in the case of filename/rsrc for alternate fork lookup
-	if(next_pelem && !(alt_fork_lookup = !strcmp(next_pelem,"rsrc"))) {
-		ret = -ENOTDIR;
-		goto end;
+			if((pelem = strtok_r(NULL,"/",&state)) && !(alt_fork_lookup = !strcmp(pelem,"rsrc"))) {
+				// a file was found, but there are trailing path elements
+				// only allowed in the case of filename/rsrc for alternate fork lookup
+				ret = -ENOTDIR;
+				goto end;
+			}
+
+			break;
+		}
 	}
 
 	// resolve regular hard links
