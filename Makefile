@@ -64,6 +64,8 @@ ifneq ($(WITH_UBLIO), none)
 		APP_LIB += -lublio
 	else ifeq ($(WITH_UBLIO), local)
 		LIBS += lib/ublio/libublio.a
+	else
+$(error Invalid option "$(WITH_UBLIO)" for WITH_UBLIO. Use one of: none, system, local)
 	endif
 endif
 ifneq ($(WITH_UTF8PROC), none)
@@ -72,6 +74,8 @@ ifneq ($(WITH_UTF8PROC), none)
 		APP_LIB += -lutf8proc
 	else ifeq ($(WITH_UTF8PROC), local)
 		LIBS += lib/utf8proc/libutf8proc.a
+	else
+$(error Invalid option "$(WITH_UTF8PROC)" for WITH_UTF8PROC. Use one of: none, system, local)
 	endif
 endif
 
