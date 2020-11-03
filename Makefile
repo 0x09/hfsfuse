@@ -9,14 +9,14 @@ WITH_UBLIO ?= local
 WITH_UTF8PROC ?= local
 CONFIG_CFLAGS := $(CONFIG_CFLAGS) $(CFLAGS)
 
-CFLAGS := $(CONFIG_CFLAGS)
+CFLAGS := -D_FILE_OFFSET_BITS=64 $(CONFIG_CFLAGS)
 
 # extra flags we don't want to forward to the "external" libs like libhfs/ublio/utf8proc
 LOCAL_CFLAGS=-Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -Wno-unused-parameter
 # older versions of gcc/clang need these as well
 LOCAL_CFLAGS+=-Wno-missing-field-initializers -Wno-missing-braces
 
-FUSE_FLAGS = -DFUSE_USE_VERSION=28 -D_FILE_OFFSET_BITS=64
+FUSE_FLAGS = -DFUSE_USE_VERSION=28
 FUSE_LIB = -lfuse
 OS := $(shell uname)
 ifeq ($(OS), Darwin)
