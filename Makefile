@@ -21,8 +21,10 @@ FUSE_LIB = -lfuse
 OS := $(shell uname)
 ifeq ($(OS), Darwin)
 	APP_FLAGS += -DHAVE_BIRTHTIME
-	FUSE_FLAGS += -I/usr/local/include/osxfuse
-	FUSE_LIB = -losxfuse
+	ifeq ($(shell [ -e /usr/local/lib/libosxfuse.dylib ] && echo 1), 1)
+		FUSE_FLAGS += -I/usr/local/include/osxfuse
+		FUSE_LIB = -losxfuse
+	endif
 else ifeq ($(OS), Haiku)
 	CFLAGS += -D_BSD_SOURCE
 	APP_LIB += -lbsd
