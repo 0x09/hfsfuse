@@ -29,7 +29,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <inttypes.h>
-#include <fuse/fuse.h>
+#include <fuse.h>
 
 #ifndef HFSFUSE_VERSION_STRING
 #include "version.h"

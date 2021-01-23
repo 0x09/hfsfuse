@@ -28,7 +28,7 @@ ifeq ($(OS), Darwin)
 else ifeq ($(OS), Haiku)
 	CFLAGS += -D_BSD_SOURCE
 	APP_LIB += -lbsd
-	FUSE_FLAGS += -I/system/develop/headers/userlandfs -I/system/develop/headers/bsd
+	FUSE_FLAGS += -I/system/develop/headers/userlandfs/fuse -I/system/develop/headers/bsd
 	FUSE_LIB = -L/system/lib/ -luserlandfs_fuse
 	PREFIX ?= /boot/home/config/non-packaged
 else ifeq ($(OS), FreeBSD)
