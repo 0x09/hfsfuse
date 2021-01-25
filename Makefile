@@ -17,6 +17,7 @@ LOCAL_CFLAGS=-Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -Wno
 # older versions of gcc/clang need these as well
 LOCAL_CFLAGS+=-Wno-missing-field-initializers -Wno-missing-braces
 
+TARGETS = hfsfuse hfsdump
 FUSE_FLAGS = -DFUSE_USE_VERSION=28
 FUSE_LIB = -lfuse
 OS := $(shell uname)
@@ -41,6 +42,9 @@ else ifeq ($(OS), DragonFly)
 	APP_FLAGS += -I/usr/local/include
 	APP_LIB += -L/usr/local/lib
 	FUSE_FLAGS += -I/usr/local/include
+else ifeq ($(OS), NetBSD)
+$(info NetBSD detected, only hfsdump will be built by default)
+	TARGETS=hfsdump
 endif
 
 PREFIX ?= /usr/local
@@ -98,7 +102,7 @@ export PREFIX CC CFLAGS LOCAL_CFLAGS APP_FLAGS LIBDIRS AR RANLIB INCLUDE
 
 .PHONY: all clean always_check config install uninstall install-lib uninstall-lib lib version dist
 
-all: hfsfuse hfsdump
+all: $(TARGETS)
 
 %.o: %.c
 	$(CC) $(LOCAL_CFLAGS) $(INCLUDE) $(CFLAGS) -c -o $*.o $^
@@ -131,7 +135,7 @@ uninstall-lib: $(LIBS)
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir uninstall; done
 
 ifeq ($(OS), Haiku)
-install: hfsfuse hfsdump
+install: $(TARGETS)
 	mkdir -p $(PREFIX)/add-ons/userlandfs/
 	$(INSTALL) -m 644 hfsfuse $(PREFIX)/add-ons/userlandfs/
 	$(INSTALL) hfsdump $(PREFIX)/bin/
@@ -139,7 +143,7 @@ install: hfsfuse hfsdump
 uninstall:
 	rm -f $(PREFIX)/add-ons/userlandfs/hfsfuse $(PREFIX)/bin/hfsdump
 else
-install: hfsfuse hfsdump
+install:$(TARGETS)
 	$(INSTALL) $^ $(PREFIX)/bin/
 
 uninstall:
