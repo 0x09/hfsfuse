@@ -23,9 +23,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef UBLIO_H
-#define UBLIO_H
-
 #define UBLIO_API_VERSION(maj, min) 100 * (maj) + (min)
 #define UBLIO_CURRENT_API UBLIO_API_VERSION(0, 1)
 #ifndef UBLIO_USE_API
@@ -34,8 +31,6 @@
 
 typedef int32_t ub_items_t;
 typedef uint64_t ub_time_t;
-
-struct iovec;
 
 /*
  * Parameters needed to set up an ublio session.
@@ -101,5 +96,3 @@ ssize_t ublio_pread (ublio_filehandle_t ufh, void *buf, size_t count,
 ssize_t ublio_pwrite(ublio_filehandle_t ufh, void *buf, size_t count,
                      off_t off);
 int     ublio_fsync (ublio_filehandle_t ufh);
-
-#endif
