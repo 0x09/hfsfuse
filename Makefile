@@ -4,6 +4,7 @@ CC ?= cc
 AR ?= ar
 RANLIB ?= ranlib
 INSTALL ?= install
+TAR ?= tar
 CONFIG_CFLAGS ?= -O3 -std=gnu11
 WITH_UBLIO ?= local
 WITH_UTF8PROC ?= local
@@ -81,10 +82,13 @@ $(error Invalid option "$(WITH_UTF8PROC)" for WITH_UTF8PROC. Use one of: none, s
 	endif
 endif
 
+RELEASE_NAME=hfsfuse
 GIT_HEAD_SHA=$(shell git rev-parse --short HEAD 2> /dev/null)
 ifneq ($(GIT_HEAD_SHA), )
-	VERSION = 0.$(shell git rev-list HEAD --count)-$(GIT_HEAD_SHA)
-	CFLAGS += -DHFSFUSE_VERSION_STRING=\"$(VERSION)\"
+	VERSION = 0.$(shell git rev-list HEAD --count)
+	RELEASE_NAME := $(RELEASE_NAME)-$(VERSION)
+	VERSION_STRING = \"$(VERSION)-$(GIT_HEAD_SHA)\"
+	CFLAGS += -DHFSFUSE_VERSION_STRING=$(VERSION_STRING)
 else ifeq ($(wildcard src/version.h), )
     $(warning Warning: git repo nor prepackaged version.h found, hfsfuse will be built without version information)
 	CFLAGS += -DHFSFUSE_VERSION_STRING=\"omitted\"
@@ -92,7 +96,7 @@ endif
 
 export PREFIX CC CFLAGS LOCAL_CFLAGS APP_FLAGS LIBDIRS AR RANLIB INCLUDE
 
-.PHONY: all clean always_check config install uninstall install-lib uninstall-lib lib version
+.PHONY: all clean always_check config install uninstall install-lib uninstall-lib lib version dist
 
 all: hfsfuse hfsdump
 
@@ -143,7 +147,12 @@ uninstall:
 endif
 
 version:
-	echo \#define HFSFUSE_VERSION_STRING $(VERSION) > src/version.h
+	echo \#define HFSFUSE_VERSION_STRING $(VERSION_STRING) > src/version.h
 
 config:
 	echo "$$CONFIG" > config.mak
+
+dist: version
+	ln -s . $(RELEASE_NAME)
+	git ls-files | sed "s/^/$(RELEASE_NAME)\//" | COPYFILE_DISABLE=1 $(TAR) -czf "$(RELEASE_NAME).tar.gz" -T - -- "$(RELEASE_NAME)/src/version.h"
+	rm -f -- $(RELEASE_NAME)
