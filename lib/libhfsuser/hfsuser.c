@@ -22,9 +22,9 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "libhfsuser/hfsuser.h"
-#include "libhfsuser/cache.h"
-#include "libhfsuser/features.h"
+#include "hfsuser.h"
+#include "cache.h"
+#include "features.h"
 
 #include <stdbool.h>
 #include <errno.h>
@@ -38,7 +38,7 @@
 #include <syslog.h>
 #include <sys/ioctl.h>
 
-#include "libhfs/unicode.h"
+#include "unicode.h"
 
 #ifdef __HAIKU__
 #define HFS_ENOMEM 1

@@ -7,7 +7,7 @@ TARGET = libhfsuser.a
 all: $(TARGET)
 
 %.o: %.c
-	$(CC) $(LOCAL_CFLAGS) $(CFLAGS) $(APP_FLAGS) $(INCLUDE) -c -o $*.o $^
+	$(CC) $(LOCAL_CFLAGS) $(CFLAGS) $(INCLUDE) $(APP_FLAGS) -c -o $*.o $^
 
 $(TARGET): $(OBJS)
 	$(AR) rcs $@ $^

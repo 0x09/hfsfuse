@@ -27,7 +27,7 @@
 
 #include <sys/stat.h>
 
-#include "libhfs/libhfs.h"
+#include "libhfs.h"
 
 #define HFSTIMETOEPOCH(x) (x>2082844800?x-2082844800:0)
 

@@ -59,7 +59,7 @@ export CONFIG
 
 LIBS = lib/libhfsuser/libhfsuser.a lib/libhfs/libhfs.a
 LIBDIRS = $(abspath $(dir $(LIBS)))
-INCLUDE = -I $(abspath lib)
+INCLUDE = $(foreach lib,$(LIBDIRS),-I$(lib))
 
 ifneq ($(WITH_UBLIO), none)
 	APP_FLAGS += -DHAVE_UBLIO

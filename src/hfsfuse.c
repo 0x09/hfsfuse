@@ -22,7 +22,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "libhfsuser/hfsuser.h"
+#include "hfsuser.h"
 
 #include <stdbool.h>
 #include <stddef.h>
