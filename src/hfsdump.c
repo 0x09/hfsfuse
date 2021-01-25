@@ -30,7 +30,10 @@
 #include <inttypes.h>
 #include <string.h>
 
-#define HFSTIMETOTIMET(x) ((time_t[1]){HFSTIMETOEPOCH(x)})
+char* hfs_ctime_r(time_t clock, char* buf) {
+	char* t = ctime(&clock);
+	return t ? memcpy(buf,t,26) : NULL;
+}
 
 static inline void dump_volume_header(hfs_volume_header_t vh) {
 	char ctimebuf[4][26] = {0};
@@ -69,8 +72,8 @@ static inline void dump_volume_header(hfs_volume_header_t vh) {
 		(vh.attributes >> HFS_VOL_JOURNALED)&1, (vh.attributes >> HFS_VOL_SWLOCK)&1,
 		(char[5]){vh.last_mounting_version>>24,(vh.last_mounting_version>>16)&0xFF,(vh.last_mounting_version>>8)&0xFF,vh.last_mounting_version&0xFF,'\0'},
 		vh.journal_info_block,
-		ctime_r(HFSTIMETOTIMET(vh.date_created),ctimebuf[0]),ctime_r(HFSTIMETOTIMET(vh.date_modified),ctimebuf[1]),
-		ctime_r(HFSTIMETOTIMET(vh.date_backedup),ctimebuf[2]),ctime_r(HFSTIMETOTIMET(vh.date_checked),ctimebuf[3]),
+		hfs_ctime_r(HFSTIMETOEPOCH(vh.date_created),ctimebuf[0]),hfs_ctime_r(HFSTIMETOEPOCH(vh.date_modified),ctimebuf[1]),
+		hfs_ctime_r(HFSTIMETOEPOCH(vh.date_backedup),ctimebuf[2]),hfs_ctime_r(HFSTIMETOEPOCH(vh.date_checked),ctimebuf[3]),
 		vh.file_count,vh.folder_count,vh.block_size,vh.total_blocks,
 		vh.free_blocks,vh.next_alloc_block,vh.rsrc_clump_size,vh.data_clump_size,vh.next_cnid,vh.write_count,
 		vh.encodings,
@@ -101,11 +104,11 @@ static inline void dump_record(hfs_catalog_keyed_record_t rec) {
 		(rec.type == HFS_REC_FLDR ? "folder" : "file"),
 		file.flags,
 		file.cnid,
-		ctime_r(HFSTIMETOTIMET(file.date_created),ctimebuf[0]),
-		ctime_r(HFSTIMETOTIMET(file.date_content_mod),ctimebuf[1]),
-		ctime_r(HFSTIMETOTIMET(file.date_attrib_mod),ctimebuf[2]),
-		ctime_r(HFSTIMETOTIMET(file.date_accessed),ctimebuf[3]),
-		ctime_r(HFSTIMETOTIMET(file.date_backedup),ctimebuf[4]),
+		hfs_ctime_r(HFSTIMETOEPOCH(file.date_created),ctimebuf[0]),
+		hfs_ctime_r(HFSTIMETOEPOCH(file.date_content_mod),ctimebuf[1]),
+		hfs_ctime_r(HFSTIMETOEPOCH(file.date_attrib_mod),ctimebuf[2]),
+		hfs_ctime_r(HFSTIMETOEPOCH(file.date_accessed),ctimebuf[3]),
+		hfs_ctime_r(HFSTIMETOEPOCH(file.date_backedup),ctimebuf[4]),
 		file.text_encoding,
 		file.bsd.owner_id,
 		file.bsd.group_id,
