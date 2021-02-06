@@ -42,6 +42,9 @@ else ifeq ($(OS), DragonFly)
 	APP_FLAGS += -I/usr/local/include
 	APP_LIB += -L/usr/local/lib
 	FUSE_FLAGS += -I/usr/local/include
+else ifeq ($(OS), OpenBSD)
+	APP_FLAGS += -I/usr/local/include -I/usr/local/include/libutf8proc
+	APP_LIB += -L/usr/local/lib
 else ifeq ($(OS), NetBSD)
 $(info NetBSD detected, only hfsdump will be built by default)
 	TARGETS=hfsdump
