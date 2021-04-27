@@ -22,10 +22,13 @@ FUSE_FLAGS = -DFUSE_USE_VERSION=28
 FUSE_LIB = -lfuse
 OS := $(shell uname)
 ifeq ($(OS), Darwin)
-	APP_FLAGS += -DHAVE_BIRTHTIME
+	APP_FLAGS += -I/usr/local/include -DHAVE_BIRTHTIME
+	APP_LIB += -L/usr/local/lib
 	ifeq ($(shell [ -e /usr/local/lib/libosxfuse.dylib ] && echo 1), 1)
 		FUSE_FLAGS += -I/usr/local/include/osxfuse
 		FUSE_LIB = -losxfuse
+	else
+		FUSE_FLAGS += -I/usr/local/include
 	endif
 else ifeq ($(OS), Haiku)
 	CFLAGS += -D_BSD_SOURCE
