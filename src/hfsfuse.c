@@ -60,6 +60,9 @@ static int hfsfuse_open(const char* path, struct fuse_file_info* info) {
 		return ret;
 
 	struct hf_file* f = malloc(sizeof(*f));
+	if(!f)
+		return -ENOMEM;
+
 	f->cnid = rec.file.cnid;
 	f->fork = fork;
 	f->is_empty = (fork == HFS_RSRCFORK ? rec.file.rsrc_fork : rec.file.data_fork).logical_size == 0;
@@ -135,6 +138,9 @@ static int hfsfuse_opendir(const char* path, struct fuse_file_info* info) {
 		return ret;
 
 	struct hf_dir* d = malloc(sizeof(*d));
+	if(!d)
+		return -ENOMEM;
+
 	d->cnid = rec.folder.cnid;
 	hfslib_get_directory_contents(vol,d->cnid,&d->keys,&d->paths,&d->npaths,NULL);
 
