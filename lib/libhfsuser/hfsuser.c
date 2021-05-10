@@ -68,15 +68,15 @@ void hfs_volume_config_defaults(struct hfs_volume_config* cfg) {
 	};
 }
 
-ssize_t hfs_unistr_to_utf8(const hfs_unistr255_t* u16, char u8[512]) {
+ssize_t hfs_unistr_to_utf8(const hfs_unistr255_t* u16, char* u8) {
 	int err;
-	ssize_t len = utf16_to_utf8(u8,512-1,u16->unicode,u16->length,0,&err);
+	ssize_t len = utf16_to_utf8(u8,HFS_NAME_MAX,u16->unicode,u16->length,0,&err);
 	if(u8)
 		u8[len] = '\0';
 	return err ? -err : len;
 }
 
-ssize_t hfs_pathname_to_unix(const hfs_unistr255_t* u16, char u8[512]) {
+ssize_t hfs_pathname_to_unix(const hfs_unistr255_t* u16, char* u8) {
 	ssize_t ret = hfs_unistr_to_utf8(u16, u8);
 	if(ret > 0 && u8)
 		for(char* rep = u8; (rep = strchr(rep,'/')); rep++)
@@ -181,7 +181,7 @@ char* hfs_get_path(hfs_volume* vol, hfs_cnid_t cnid) {
 		if(!(cnid = hfslib_find_parent_thread(vol, cnid, &parent_thread, NULL)))
 			goto end;
 		elements[nelems] = parent_thread.name;
-		buflen += elements[nelems].length * 2 + 1;
+		buflen += elements[nelems].length * 3 + 1;
 		nelems++;
 	}
 

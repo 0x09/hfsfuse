@@ -134,7 +134,7 @@ utf16_to_utf8(char *dst, size_t dst_len,
 	      const uint16_t *src, size_t src_len,
 	      int flags, int *errp)
 {
-	uint8_t spos, dpos;
+	size_t spos, dpos;
 	int error;
 
 #define CHECK_LENGTH(l)	(dpos > dst_len-(l) ? dst=NULL : NULL)

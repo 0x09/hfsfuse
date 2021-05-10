@@ -31,6 +31,9 @@
 
 #define HFSTIMETOEPOCH(x) (x>2082844800?x-2082844800:0)
 
+// maximum bytes an HFS+ path element can occupy in UTF-8
+#define HFS_NAME_MAX 765
+
 enum hfs_lib_features {
 	HFS_LIB_FEATURES_NONE = 0,
 	HFS_LIB_FEATURES_UBLIO = 1 << 0,
@@ -55,8 +58,8 @@ struct hfs_volume_config {
 
 void hfs_volume_config_defaults(struct hfs_volume_config*);
 
-ssize_t hfs_unistr_to_utf8(const hfs_unistr255_t* u16, char u8[]);
-ssize_t hfs_pathname_to_unix(const hfs_unistr255_t* u16, char u8[]);
+ssize_t hfs_unistr_to_utf8(const hfs_unistr255_t* u16, char* u8);
+ssize_t hfs_pathname_to_unix(const hfs_unistr255_t* u16, char* u8);
 int hfs_pathname_from_unix(const char* u8, hfs_unistr255_t* u16);
 
 char* hfs_get_path(hfs_volume* vol, hfs_cnid_t cnid);

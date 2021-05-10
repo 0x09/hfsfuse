@@ -173,7 +173,7 @@ static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, 
 	filler(buf, "..", NULL, 0);
 	hfs_volume* vol = fuse_get_context()->private_data;
 	struct hf_dir* d = (struct hf_dir*)info->fh;
-	char pelem[512];
+	char pelem[HFS_NAME_MAX+1];
 	int ret = 0;
 	for(size_t i = 0; i < d->npaths; i++) {
 		int err;
@@ -215,7 +215,7 @@ static int hfsfuse_readdir2(const char* path, void* buf, fuse_fill_dir_t filler,
 		if(filler(buf, "..", stp, 2))
 			return 0;
 	}
-	char pelem[512];
+	char pelem[HFS_NAME_MAX+1];
 	int ret = 0;
 	for(off_t i = max(0,offset-2); i < d->npaths; i++) {
 		int err;
@@ -242,7 +242,7 @@ static int hfsfuse_statfs(const char* path, struct statvfs* st) {
 	st->f_ffree = UINT_MAX - st->f_files;
 	st->f_favail = st->f_ffree;
 	st->f_flag = ST_RDONLY;
-	st->f_namemax = 255;
+	st->f_namemax = HFS_NAME_MAX;
 	return 0;
 }
 

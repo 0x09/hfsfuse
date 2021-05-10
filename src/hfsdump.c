@@ -181,7 +181,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	if(argc < 4) {
-		char name[512];
+		char name[HFS_NAME_MAX+1];
 		hfs_unistr_to_utf8(&vol.name, name);
 		printf("Volume name: %s\nJournaled? %d\nReadonly? %d\nOffset: %" PRIu64 "\n",name,vol.journaled, vol.readonly, vol.offset);
 		dump_volume_header(vol.vh);
@@ -219,7 +219,7 @@ int main(int argc, char* argv[]) {
 			uint32_t count;
 			hfslib_get_directory_contents(&vol,rec.folder.cnid,&keys,&names,&count,NULL);
 			for(size_t i = 0; i < count; i++) {
-				char name[512];
+				char name[HFS_NAME_MAX+1];
 				hfs_pathname_to_unix(names+i,name);
 				puts(name);
 			}
