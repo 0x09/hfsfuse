@@ -564,7 +564,9 @@ int hfs_read(hfs_volume* vol, void* outbytes, uint64_t length, uint64_t offset, 
 #endif
 	ret = hfs_read_pread(dev, outbytes, length, offset);
 
+#ifdef HAVE_UBLIO
 end:
+#endif
 	if(ret)
 		hfslib_error("read of %" PRIu64 " bytes at offset %" PRIu64 " failed (block size %" PRIu32 "): %s",
 		             NULL, 0, length, offset, dev->blksize, strerror(-ret));
