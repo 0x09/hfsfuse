@@ -1403,6 +1403,8 @@ hfslib_reada_node(void* in_bytes,
 	out_node_descriptor->reserved = be16tohp(&ptr);
 
 	numrecords = out_node_descriptor->num_recs;
+	if (numrecords == 0)
+		HFS_LIBERR("node contains no records");
 
 	/*
 	 *	To go any further, we will need to know the size of this node, as well
