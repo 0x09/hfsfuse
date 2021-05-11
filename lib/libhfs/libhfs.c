@@ -585,6 +585,7 @@ hfslib_find_catalog_record_with_key(
 	extents = NULL;
 	recs = NULL;
 	recsizes = NULL;
+	nd.num_recs = 0;
 
 	/* The key takes up over half a kb of ram, which is a lot for the BSD
 	 * kernel stack. So allocate it in the heap instead to play it safe. */
@@ -601,7 +602,6 @@ hfslib_find_catalog_record_with_key(
 	if (numextents == 0)
 		HFS_LIBERR("could not locate fork extents");
 
-	nd.num_recs = 0;
 	curnode = in_vol->chr.root_node;
 
 #ifdef DLO_DEBUG
@@ -725,6 +725,7 @@ hfslib_find_extent_record_with_key(hfs_volume* in_vol,
 	extents = NULL;
 	recs = NULL;
 	recsizes = NULL;
+	nd.num_recs = 0;
 
 	buffer = hfslib_malloc(in_vol->ehr.node_size, cbargs);
 	if (buffer == NULL)
@@ -735,7 +736,6 @@ hfslib_find_extent_record_with_key(hfs_volume* in_vol,
 	if (numextents == 0)
 		HFS_LIBERR("could not locate fork extents");
 
-	nd.num_recs = 0;
 	curnode = in_vol->ehr.root_node;
 
 	do {
@@ -969,6 +969,7 @@ hfslib_get_directory_contents(
 		*out_children = NULL;
 	if (out_childnames != NULL)
 		*out_childnames = NULL;
+	nd.num_recs = 0;
 
 	buffer = hfslib_malloc(in_vol->chr.node_size, cbargs);
 	if (buffer == NULL)
@@ -979,7 +980,6 @@ hfslib_get_directory_contents(
 	if (numextents == 0)
 		HFS_LIBERR("could not locate fork extents");
 
-	nd.num_recs = 0;
 	curnode = in_vol->chr.root_node;
 
 	while (1)
