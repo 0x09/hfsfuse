@@ -52,6 +52,8 @@ __KERNEL_RCSID(0, "$NetBSD: libhfs.c,v 1.15 2018/12/30 22:40:00 sevan Exp $");
 #include "libhfs.h"
 #include "byteorder.h"
 
+#include <inttypes.h>
+
 const char* hfslib_get_rcsid() { return hfs_rcsid; }
 
 /* global private file/folder keys */
@@ -1484,6 +1486,9 @@ hfslib_reada_node(void* in_bytes,
 	if (out_record_ptrs_array == NULL)
 		return ((uint8_t*)ptr - (uint8_t*)in_bytes);
 
+	if (nodesize < (numrecords+1) * sizeof(uint16_t))
+		HFS_LIBERR("nodesize %" PRIu16 " too small for %" PRIu16 " records", nodesize, numrecords);
+
 	rec_offsets = hfslib_malloc(numrecords * sizeof(uint16_t), cbargs);
 	*out_record_ptr_sizes_array =
 		hfslib_malloc(numrecords * sizeof(uint16_t), cbargs);
@@ -1495,7 +1500,7 @@ hfslib_reada_node(void* in_bytes,
 		HFS_LIBERR("could not allocate node records");
 
 	last_bytes_read = hfslib_reada_node_offsets((uint8_t*)in_bytes + nodesize -
-			numrecords * sizeof(uint16_t), rec_offsets);
+			numrecords * sizeof(uint16_t), rec_offsets, numrecords);
 	if (last_bytes_read == 0)
 		HFS_LIBERR("could not read node record offsets");
 
@@ -1504,9 +1509,15 @@ hfslib_reada_node(void* in_bytes,
 	free_space_offset = be16toh(*(uint16_t*)((uint8_t*)in_bytes + nodesize -
 			(numrecords+1) * sizeof(uint16_t)));
 
+	if (free_space_offset <= rec_offsets[0])
+		HFS_LIBERR("corrupt record offsets %" PRIu16 "-%" PRIu16, free_space_offset, rec_offsets[0]);
+
 	(*out_record_ptr_sizes_array)[numrecords-1] =
 		free_space_offset - rec_offsets[0];
 	for (i = 1; i < numrecords; i++) {
+		if (rec_offsets[i-1] <= rec_offsets[i])
+			HFS_LIBERR("corrupt record offsets %" PRIu16 "-%" PRIu16, rec_offsets[i-1], rec_offsets[i]);
+
 		(*out_record_ptr_sizes_array)[numrecords-i-1] = 
 			rec_offsets[i-1] - rec_offsets[i];
 	}
@@ -1554,6 +1565,9 @@ hfslib_reada_node(void* in_bytes,
 				(*out_record_ptr_sizes_array)[i]--;
 		}
 
+		if ((ptr - in_bytes) + (*out_record_ptr_sizes_array)[i] > nodesize)
+			HFS_LIBERR("record offset outside of node bounds %" PRIu16, (*out_record_ptr_sizes_array)[i]);
+
 		memcpy((*out_record_ptrs_array)[i], ptr,
 				(*out_record_ptr_sizes_array)[i]);
 		ptr = (uint8_t*)ptr + (*out_record_ptr_sizes_array)[i];
@@ -1584,11 +1598,12 @@ exit:
  *	in reverse order. Does not read the free space offset.
  */
 size_t
-hfslib_reada_node_offsets(void* in_bytes, uint16_t* out_offset_array)
+hfslib_reada_node_offsets(void* in_bytes, uint16_t* out_offset_array, uint16_t numrecords)
 {
 	void*		ptr;
+	int i = 0;
 
-	if (in_bytes == NULL || out_offset_array == NULL)
+	if (in_bytes == NULL || out_offset_array == NULL || numrecords == 0)
 		return 0;
 
 	ptr = in_bytes;
@@ -1596,14 +1611,13 @@ hfslib_reada_node_offsets(void* in_bytes, uint16_t* out_offset_array)
 	/*
 	 * The offset for record 0 (which is the very last offset in the node) is
 	 * always equal to 14, the size of the node descriptor. So, once we hit
-	 * offset=14, we know this is the last offset. In this way, we don't need
-	 * to know the number of records beforehand.
+	 * offset=14, we know this is the last offset.
 	 */
 	out_offset_array--;
 	do {
 		out_offset_array++;
 		*out_offset_array = be16tohp(&ptr);
-	} while (*out_offset_array != (uint16_t)14);
+	} while (*out_offset_array != (uint16_t)14 && ++i < numrecords);
 
 	return ((uint8_t*)ptr - (uint8_t*)in_bytes);
 }
