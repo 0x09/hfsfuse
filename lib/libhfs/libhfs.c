@@ -871,7 +871,7 @@ hfslib_get_file_extents(hfs_volume* in_vol,
 
 	while (1) {
 		for (n = 0; n < 8; n++) {
-			if (nextextentrec[n].block_count == 0)
+			if (numblocks + nextextentrec[n].block_count <= numblocks)
 				break;
 			numblocks += nextextentrec[n].block_count;
 		}
@@ -2197,6 +2197,9 @@ hfslib_readd_with_extents(
 
 		ext_length = in_extents[i].block_count * in_vol->vh.block_size;
 
+		if (last_offset + ext_length < last_offset)
+			break;
+
 		if (in_offset < last_offset+ext_length
 			&& in_offset+in_length >= last_offset)
 		{
@@ -2204,6 +2207,7 @@ hfslib_readd_with_extents(
 
 			isect_start = max(in_offset, last_offset);
 			isect_end = min(in_offset+in_length, last_offset+ext_length);
+
 			error = hfslib_readd(in_vol, out_bytes, isect_end-isect_start,
 				isect_start - last_offset + (uint64_t)in_extents[i].start_block
 					* in_vol->vh.block_size, cbargs);
