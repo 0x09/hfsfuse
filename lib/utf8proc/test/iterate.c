@@ -8,16 +8,22 @@ static  int     error;
 #define CHECKVALID(pos, val, len) buf[pos] = val; testbytes(buf,len,len,__LINE__)
 #define CHECKINVALID(pos, val, len) buf[pos] = val; testbytes(buf,len,UTF8PROC_ERROR_INVALIDUTF8,__LINE__)
 
-static void testbytes(unsigned char *buf, int len, utf8proc_ssize_t retval, int line)
+static void testbytes(utf8proc_uint8_t *buf, utf8proc_ssize_t len, utf8proc_ssize_t retval, int line)
 {
     utf8proc_int32_t out[16];
     utf8proc_ssize_t ret;
 
+    /* Make a copy to ensure that memory is left uninitialized after "len"
+     * bytes. This way, Valgrind can detect overreads.
+     */
+    utf8proc_uint8_t tmp[16];
+    memcpy(tmp, buf, (unsigned long int)len);
+
     tests++;
-    if ((ret = utf8proc_iterate(buf, len, out)) != retval) {
+    if ((ret = utf8proc_iterate(tmp, len, out)) != retval) {
         fprintf(stderr, "Failed (%d):", line);
-        for (int i = 0; i < len ; i++) {
-            fprintf(stderr, " 0x%02x", buf[i]);
+        for (utf8proc_ssize_t i = 0; i < len ; i++) {
+            fprintf(stderr, " 0x%02x", tmp[i]);
         }
         fprintf(stderr, " -> %zd\n", ret);
         error++;
@@ -26,8 +32,10 @@ static void testbytes(unsigned char *buf, int len, utf8proc_ssize_t retval, int 
 
 int main(int argc, char **argv)
 {
-    uint32_t byt;
-    unsigned char buf[16];
+    utf8proc_int32_t byt;
+    utf8proc_uint8_t buf[16];
+
+    (void) argc; (void) argv; /* unused */
 
     tests = error = 0;
 
@@ -48,7 +56,7 @@ int main(int argc, char **argv)
         CHECKVALID(3, 0xbe, 4);
         CHECKVALID(3, 0xbf, 4);
     }
-    
+
     // Continuation byte not after lead
     for (byt = 0x80; byt < 0xc0; byt++) {
         CHECKINVALID(0, byt, 1);

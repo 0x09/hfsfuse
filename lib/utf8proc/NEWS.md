@@ -1,5 +1,146 @@
 # utf8proc release history #
 
+## Version 2.6.1 ##
+
+2020-12-15
+
+ - Bugfix in `utf8proc_grapheme_break_stateful` for `NULL` state argument, which
+   also broke `utf8proc_grapheme_break`.
+
+## Version 2.6 ##
+
+2020-11-23
+
+ - New `utf8proc_islower` and `utf8proc_isupper` functions ([#196]).
+
+ - Bugfix for manual calls to `grapheme_break_extended` for initial characters ([#205]).
+
+ - Various build and portability improvements.
+
+## Version 2.5 ##
+
+2019-03-27
+
+- Unicode 13 support ([#179]).
+
+- No longer report zero width for category Sk ([#167]).
+
+- `cmake` support improvements ([#173]).
+
+## Version 2.4 ##
+
+2019-05-10
+
+- Unicode 12.1 support ([#156]).
+
+- New `-DUTF8PROC_INSTALL=No` option for `cmake` builds to disable installation ([#152]).
+
+- Better `make` support for HP-UX ([#154]).
+
+- Fixed incorrect `UTF8PROC_VERSION_MINOR` version number in header and bumped shared-library version.
+
+## Version 2.3 ##
+
+2019-03-30
+
+- Unicode 12 support ([#148]).
+
+- New function `utf8proc_unicode_version` to return the supported Unicode version ([#151]).
+
+- Simpler character-width computation that no longer uses GNU Unifont metrics: East-Asian wide
+  characters have width 2, and all other printable characters have width 1 ([#150]).
+
+- Fix `CHARBOUND` option for `utf8proc_map` to preserve U+FFFE and U+FFFF non-characters ([#149]).
+
+- Various build-system improvements ([#141], [#142], [#147]).
+
+## Version 2.2 ##
+
+2018-07-24
+
+- Unicode 11 support ([#132] and [#140]).
+
+- `utf8proc_NFKC_Casefold` convenience function for `NFKC_Casefold`
+  normalization ([#133]).
+
+- `UTF8PROC_STRIPNA` option to strip unassigned codepoints ([#133]).
+
+- Support building static libraries on Windows (callers need to
+  `#define UTF8PROC_STATIC`) ([#123]).
+
+- `cmake` fix to avoid defining `UTF8PROC_EXPORTS` globally ([#121]).
+
+- `toupper` of ß (U+00df) now yields ẞ (U+1E9E) ([#134]), similar to musl;
+  case-folding still yields the standard "ss" mapping.
+
+- `utf8proc_charwidth` now returns `1` for U+00AD (soft hyphen) and
+  for unassigned/PUA codepoints ([#135]).
+
+## Version 2.1.1 ##
+
+2018-04-27
+
+- Fixed composition bug ([#128]).
+
+- Minor build fixes ([#94], [#99], [#113], [#125]).
+
+## Version 2.1 ##
+
+2016-12-26:
+
+- New functions `utf8proc_map_custom` and `utf8proc_decompose_custom`
+  to allow user-supplied transformations of codepoints, in conjunction
+  with other transformations ([#89]).
+
+- New function `utf8proc_normalize_utf32` to apply normalizations
+  directly to UTF-32 data (not just UTF-8) ([#88]).
+
+- Fixed stack overflow that could occur due to incorrect definition
+  of `UINT16_MAX` with some compilers ([#84]).
+
+- Fixed conflict with `stdbool.h` in Visual Studio ([#90]).
+
+- Updated font metrics to use Unifont 9.0.04.
+
+## Version 2.0.2 ##
+
+2016-07-27:
+
+- Move `-Wmissing-prototypes` warning flag from `Makefile` to `.travis.yml`
+  since MSVC does not understand this flag and it is occasionally useful to
+  build using MSVC through the `Makefile` ([#79]).
+
+- Use a different variable name for a nested loop in `bench/bench.c`, and
+  declare it in a C89 way rather than inside the `for` to avoid "error:
+  'for' loop initial declarations are only allowed in C99 mode" ([#80]).
+
+## Version 2.0.1 ##
+
+2016-07-13:
+
+- Bug fix in `utf8proc_grapheme_break_stateful` ([#77]).
+
+- Tests now use versioned Unicode files, so they will no longer
+  break when a new version of Unicode is released ([#78]).
+
+## Version 2.0 ##
+
+2016-07-13:
+
+- Updated for Unicode 9.0 ([#70]).
+
+- New `utf8proc_grapheme_break_stateful` to handle the complicated
+  grapheme-breaking rules in Unicode 9.  The old `utf8proc_grapheme_break`
+  is still provided, but may incorrectly identify grapheme breaks
+  in some Unicode-9 sequences.
+
+- Smaller Unicode tables ([#62], [#68]).  This required changes
+  in the `utf8proc_property_t` structure, which breaks backward
+  compatibility if you access this `struct` directly.  The
+  functions in the API remain backward-compatible, however.
+
+- Buffer overrun fix ([#66]).
+
 ## Version 1.3.1 ##
 
 2015-11-02:
@@ -214,21 +355,62 @@ Release of version 1.0.1
 
 2006-06-02: initial release of version 0.1
 
-[#6]: https://github.com/JuliaLang/utf8proc/issues/6
-[#13]: https://github.com/JuliaLang/utf8proc/issues/13
-[#17]: https://github.com/JuliaLang/utf8proc/issues/17
-[#20]: https://github.com/JuliaLang/utf8proc/issues/20
-[#22]: https://github.com/JuliaLang/utf8proc/issues/22
-[#24]: https://github.com/JuliaLang/utf8proc/issues/24
-[#27]: https://github.com/JuliaLang/utf8proc/issues/27
-[#28]: https://github.com/JuliaLang/utf8proc/issues/28
-[#29]: https://github.com/JuliaLang/utf8proc/issues/29
-[#32]: https://github.com/JuliaLang/utf8proc/issues/32
-[#35]: https://github.com/JuliaLang/utf8proc/issues/35
-[#40]: https://github.com/JuliaLang/utf8proc/issues/40
-[#43]: https://github.com/JuliaLang/utf8proc/issues/43
-[#45]: https://github.com/JuliaLang/utf8proc/issues/45
-[#47]: https://github.com/JuliaLang/utf8proc/issues/47
-[#51]: https://github.com/JuliaLang/utf8proc/issues/51
-[#55]: https://github.com/JuliaLang/utf8proc/issues/55
-[#58]: https://github.com/JuliaLang/utf8proc/issues/58
+<!--- generated by NEWS-update.jl: -->
+
+[#6]: https://github.com/JuliaStrings/utf8proc/issues/6
+[#13]: https://github.com/JuliaStrings/utf8proc/issues/13
+[#17]: https://github.com/JuliaStrings/utf8proc/issues/17
+[#20]: https://github.com/JuliaStrings/utf8proc/issues/20
+[#22]: https://github.com/JuliaStrings/utf8proc/issues/22
+[#24]: https://github.com/JuliaStrings/utf8proc/issues/24
+[#27]: https://github.com/JuliaStrings/utf8proc/issues/27
+[#28]: https://github.com/JuliaStrings/utf8proc/issues/28
+[#29]: https://github.com/JuliaStrings/utf8proc/issues/29
+[#32]: https://github.com/JuliaStrings/utf8proc/issues/32
+[#35]: https://github.com/JuliaStrings/utf8proc/issues/35
+[#40]: https://github.com/JuliaStrings/utf8proc/issues/40
+[#43]: https://github.com/JuliaStrings/utf8proc/issues/43
+[#45]: https://github.com/JuliaStrings/utf8proc/issues/45
+[#47]: https://github.com/JuliaStrings/utf8proc/issues/47
+[#51]: https://github.com/JuliaStrings/utf8proc/issues/51
+[#55]: https://github.com/JuliaStrings/utf8proc/issues/55
+[#58]: https://github.com/JuliaStrings/utf8proc/issues/58
+[#62]: https://github.com/JuliaStrings/utf8proc/issues/62
+[#66]: https://github.com/JuliaStrings/utf8proc/issues/66
+[#68]: https://github.com/JuliaStrings/utf8proc/issues/68
+[#70]: https://github.com/JuliaStrings/utf8proc/issues/70
+[#77]: https://github.com/JuliaStrings/utf8proc/issues/77
+[#78]: https://github.com/JuliaStrings/utf8proc/issues/78
+[#79]: https://github.com/JuliaStrings/utf8proc/issues/79
+[#80]: https://github.com/JuliaStrings/utf8proc/issues/80
+[#84]: https://github.com/JuliaStrings/utf8proc/issues/84
+[#88]: https://github.com/JuliaStrings/utf8proc/issues/88
+[#89]: https://github.com/JuliaStrings/utf8proc/issues/89
+[#90]: https://github.com/JuliaStrings/utf8proc/issues/90
+[#94]: https://github.com/JuliaStrings/utf8proc/issues/94
+[#99]: https://github.com/JuliaStrings/utf8proc/issues/99
+[#113]: https://github.com/JuliaStrings/utf8proc/issues/113
+[#121]: https://github.com/JuliaStrings/utf8proc/issues/121
+[#123]: https://github.com/JuliaStrings/utf8proc/issues/123
+[#125]: https://github.com/JuliaStrings/utf8proc/issues/125
+[#128]: https://github.com/JuliaStrings/utf8proc/issues/128
+[#132]: https://github.com/JuliaStrings/utf8proc/issues/132
+[#133]: https://github.com/JuliaStrings/utf8proc/issues/133
+[#134]: https://github.com/JuliaStrings/utf8proc/issues/134
+[#135]: https://github.com/JuliaStrings/utf8proc/issues/135
+[#140]: https://github.com/JuliaStrings/utf8proc/issues/140
+[#141]: https://github.com/JuliaStrings/utf8proc/issues/141
+[#142]: https://github.com/JuliaStrings/utf8proc/issues/142
+[#147]: https://github.com/JuliaStrings/utf8proc/issues/147
+[#148]: https://github.com/JuliaStrings/utf8proc/issues/148
+[#149]: https://github.com/JuliaStrings/utf8proc/issues/149
+[#150]: https://github.com/JuliaStrings/utf8proc/issues/150
+[#151]: https://github.com/JuliaStrings/utf8proc/issues/151
+[#152]: https://github.com/JuliaStrings/utf8proc/issues/152
+[#154]: https://github.com/JuliaStrings/utf8proc/issues/154
+[#156]: https://github.com/JuliaStrings/utf8proc/issues/156
+[#167]: https://github.com/JuliaStrings/utf8proc/issues/167
+[#173]: https://github.com/JuliaStrings/utf8proc/issues/173
+[#179]: https://github.com/JuliaStrings/utf8proc/issues/179
+[#196]: https://github.com/JuliaStrings/utf8proc/issues/196
+[#205]: https://github.com/JuliaStrings/utf8proc/issues/205
