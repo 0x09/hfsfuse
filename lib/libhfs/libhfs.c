@@ -1663,14 +1663,16 @@ hfslib_read_header_node(void** in_recs,
 	for (i = 0; i < 16; i++)
 		out_hr->reserved2[i] = be32tohp(&ptr);
 
-	if (out_userdata != NULL) {
-		memcpy(out_userdata, in_recs[1], in_rec_sizes[1]);
+	if (in_num_recs > 1) {
+		if (out_userdata != NULL)
+			memcpy(out_userdata, in_recs[1], in_rec_sizes[1]);
 		ptr = (uint8_t*)ptr + in_rec_sizes[1]; /* size of user data record */
-	}
 
-	if (out_map != NULL) {
-		memcpy(out_map, in_recs[2], in_rec_sizes[2]);
-		ptr = (uint8_t*)ptr + in_rec_sizes[2]; /* size of map record */
+		if (in_num_recs > 2) {
+			if (out_map != NULL)
+				memcpy(out_map, in_recs[2], in_rec_sizes[2]);
+			ptr = (uint8_t*)ptr + in_rec_sizes[2]; /* size of map record */
+		}
 	}
 
 	return ((uint8_t*)ptr - (uint8_t*)in_recs[0]);
