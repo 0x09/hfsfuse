@@ -7,6 +7,7 @@
 
 #ifdef HAVE_UBLIO
 #include <stdint.h>
+#include <sys/types.h>
 #include <sys/uio.h>
 #include "ublio.h"
 #endif
