@@ -76,6 +76,7 @@ $(eval $(call cccheck,HAVE_BEXXTOH_ENDIAN_H,({ be16toh(0); be32toh(0); be64toh(0
 $(eval $(call cccheck,HAVE_BEXXTOH_SYS_ENDIAN_H,({ be16toh(0); be32toh(0); be64toh(0); }),sys/endian.h))
 $(eval $(call cccheck,HAVE_OSBYTEORDER_H,({ OSSwapBigToHostInt16(0); OSSwapBigToHostInt32(0); OSSwapBigToHostInt64(0); }),libkern/OSByteOrder.h))
 $(eval $(call cccheck,HAVE_STAT_FLAGS,({ (struct stat){0}.st_flags; }),sys/stat.h))
+$(eval $(call cccheck,HAVE_STAT_BLKSIZE,({ (struct stat){0}.st_blksize; }),sys/stat.h))
 
 ifneq ($(call parsecexpr),1)
     VERBOSE=true

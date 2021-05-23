@@ -339,12 +339,16 @@ void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st,
 		hfs_fork_t* f = fork == HFS_DATAFORK ? &key->file.data_fork : &key->file.rsrc_fork;
 		st->st_size    = f->logical_size;
 		st->st_blocks  = f->total_blocks;
+#if HAVE_STAT_BLKSIZE
 		st->st_blksize = f->clump_size;
+#endif
 	}
 	else {
 		st->st_nlink = key->folder.valence + 2;
 		st->st_size    = vol->vh.block_size;
+#if HAVE_STAT_BLKSIZE
 		st->st_blksize = vol->vh.block_size;
+#endif
 	}
 }
 
@@ -460,8 +464,11 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 			dev->blksize = diskinfo_blocksize(d);
 #endif
 		}
-		else if(S_ISREG(st.st_mode))
+		else if(S_ISREG(st.st_mode)) {
+#if HAVE_STAT_BLKSIZE
 			dev->blksize = st.st_blksize;
+#endif
+		}
 		else BAIL(EINVAL);
 	}
 
