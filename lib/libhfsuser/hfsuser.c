@@ -543,12 +543,25 @@ static inline int hfs_read_ublio(struct hfs_device* dev, void* outbytes, uint64_
 }
 #endif
 
+#if HAVE_PREAD
+#define hfs_pread(d,buf,nbyte,offset) pread(d,buf,nbyte,offset)
+#else
+static inline ssize_t hfs_pread(int d, void* buf, size_t nbyte, off_t offset) {
+	static pthread_mutex_t pread_mutex = PTHREAD_MUTEX_INITIALIZER;
+	pthread_mutex_lock(&pread_mutex);
+	lseek(d,offset,SEEK_SET);
+	int ret = read(d,buf,nbyte);
+	pthread_mutex_unlock(&pread_mutex);
+	return ret;
+}
+#endif
+
 static inline int hfs_read_pread(struct hfs_device* dev, void* outbytes, uint64_t length, uint64_t offset) {
 	char* outbuf = outbytes;
 	ssize_t ret = 0;
 	uint64_t rem = length % dev->blksize;
 	length -= rem;
-	while(length && (ret = pread(dev->fd,outbuf,length,offset)) > 0) {
+	while(length && (ret = hfs_pread(dev->fd,outbuf,length,offset)) > 0) {
 		if((ret = min((ssize_t)length,ret)) <= 0)
 			break;
 		outbuf += ret;
@@ -559,7 +572,7 @@ static inline int hfs_read_pread(struct hfs_device* dev, void* outbytes, uint64_
 		return -errno;
 	if(rem) {
 		char buf[dev->blksize];
-		ret = pread(dev->fd,buf,dev->blksize,offset);
+		ret = hfs_pread(dev->fd,buf,dev->blksize,offset);
 		if((ret = min((ssize_t)rem,ret)) > 0)
 			memcpy(outbuf,buf,ret);
 	}

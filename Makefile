@@ -81,6 +81,7 @@ $(eval $(call cccheck,HAVE_STAT_FLAGS,({ (struct stat){0}.st_flags; }),sys/stat.
 $(eval $(call cccheck,HAVE_STAT_BLKSIZE,({ (struct stat){0}.st_blksize; }),sys/stat.h))
 $(eval $(call cccheck,HAVE_STAT_BLOCKS,({ (struct stat){0}.st_blocks; }),sys/stat.h))
 $(eval $(call cccheck,HAVE_VSYSLOG,({ vsyslog(0,(const char*){0},(va_list){0}); }),syslog.h stdarg.h))
+$(eval $(call cccheck,HAVE_PREAD,({ pread(0,(void*){0},0,0); }),unistd.h))
 
 ifneq ($(call parsecexpr),1)
     VERBOSE=true
