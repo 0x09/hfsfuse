@@ -586,5 +586,20 @@ void* hfs_realloc(void* data, size_t size, hfs_callback_args* cbargs) { return s
 void  hfs_free(void* data, hfs_callback_args* cbargs) { free(data); }
 
 void  hfs_vprintf(const char* fmt, const char* file, int line, va_list args) { vfprintf(stderr,fmt,args); putc('\n',stderr); }
-void  hfs_vsyslog(const char* fmt, const char* file, int line, va_list args) { vsyslog(LOG_ERR,fmt,args); }
+void hfs_vsyslog(const char* fmt, const char* file, int line, va_list args) {
+#if HAVE_VSYSLOG
+	vsyslog(LOG_ERR,fmt,args);
+#else
+	va_list argscpy;
+	va_copy(argscpy,args);
+	int len = vsnprintf(NULL,0,fmt,argscpy);
+	va_end(argscpy);
 
+	char* output;
+	if(len < 0 || !(output = malloc((size_t)len+1)))
+		return;
+	vsnprintf(output,len+1,fmt,args);
+	syslog(LOG_ERR,"%s",output);
+	free(output);
+#endif
+}
