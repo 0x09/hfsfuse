@@ -36,7 +36,6 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <syslog.h>
-#include <sys/ioctl.h>
 
 #include "unicode.h"
 
@@ -395,27 +394,35 @@ void hfs_serialize_finderinfo(hfs_catalog_keyed_record_t* rec, char buf[32]) {
 }
 
 #ifdef __APPLE__
+#include <sys/ioctl.h>
 #include <sys/disk.h>
 #define DISKBLOCKSIZE DKIOCGETPHYSICALBLOCKSIZE
 #define DISKIDEALSIZE DKIOCGETMAXBYTECOUNTREAD
 #elif defined(__FreeBSD__)
+#if _BSD_SOURCE
+#include <sys/ioctl.h>
 #include <sys/disk.h>
 #define DISKBLOCKSIZE DIOCGSECTORSIZE
 #define DISKIDEALSIZE DIOCGSTRIPESIZE
+#endif
 #elif defined(__linux__)
+#include <sys/ioctl.h>
 #include <linux/fs.h>
 #define DISKBLOCKSIZE BLKBSZGET
 #define DISKIDEALSIZE BLKIOOPT
 #elif defined(__NetBSD__)
+#include <sys/ioctl.h>
 #include <sys/disk.h>
 #define DISKBLOCKSIZE DIOCGSECTORSIZE
 #elif defined(__OpenBSD__)
+#include <sys/ioctl.h>
 #include <sys/disklabel.h>
 #include <sys/dkio.h>
 #define DISKINFO DIOCGDINFO
 typedef struct disklabel diskinfo_type;
 #define diskinfo_blocksize(d) (d).d_secsize
 #elif defined(__DragonFly__)
+#include <sys/ioctl.h>
 #include <sys/diskslice.h>
 #define DISKINFO DIOCGPART
 typedef struct partinfo diskinfo_type;
