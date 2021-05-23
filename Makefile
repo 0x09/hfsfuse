@@ -52,6 +52,8 @@ else ifeq ($(OS), OpenBSD)
 else ifeq ($(OS), NetBSD)
 $(info NetBSD detected, only hfsdump will be built by default)
 	TARGETS=hfsdump
+else ifeq ($(OS), SunOS)
+	FUSE_FLAGS += -I/usr/include/fuse
 endif
 
 PREFIX ?= /usr/local
