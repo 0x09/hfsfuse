@@ -75,6 +75,5 @@ void*hfs_malloc(size_t,hfs_callback_args*);
 void*hfs_realloc(void*,size_t,hfs_callback_args*);
 void hfs_free(void*,hfs_callback_args*);
 void hfs_vprintf(const char*,const char*,int,va_list);
-void hfs_vsyslog(const char*,const char*,int,va_list);
 
 #endif
