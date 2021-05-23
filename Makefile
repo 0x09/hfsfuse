@@ -1,4 +1,6 @@
+ifeq ($(filter config, $(MAKECMDGOALS)),)
 -include config.mak
+endif
 
 CC ?= cc
 AR ?= ar
@@ -22,7 +24,7 @@ FUSE_FLAGS = -DFUSE_USE_VERSION=28
 FUSE_LIB = -lfuse
 OS := $(shell uname)
 ifeq ($(OS), Darwin)
-	APP_FLAGS += -I/usr/local/include -DHAVE_BIRTHTIME
+	APP_FLAGS += -I/usr/local/include
 	APP_LIB += -L/usr/local/lib
 	ifeq ($(shell [ -e /usr/local/lib/libosxfuse.dylib ] && echo 1), 1)
 		FUSE_FLAGS += -I/usr/local/include/osxfuse
@@ -37,7 +39,6 @@ else ifeq ($(OS), Haiku)
 	FUSE_LIB = -L/system/lib/ -luserlandfs_fuse
 	PREFIX ?= /boot/home/config/non-packaged
 else ifeq ($(OS), FreeBSD)
-	APP_FLAGS += -DHAVE_BIRTHTIME
 	APP_FLAGS += -I/usr/local/include
 	APP_LIB += -L/usr/local/lib
 	FUSE_FLAGS += -I/usr/local/include
@@ -55,17 +56,37 @@ endif
 
 PREFIX ?= /usr/local
 
-define CONFIG
-CC=$(CC)
-AR=$(AR)
-RANLIB=$(RANLIB)
-INSTALL=$(INSTALL)
-PREFIX=$(PREFIX)
-WITH_UBLIO=$(WITH_UBLIO)
-WITH_UTF8PROC=$(WITH_UTF8PROC)
-CONFIG_CFLAGS=$(CONFIG_CFLAGS)
+CEXPR_TEST_CFLAGS = -Werror-implicit-function-declaration -Wno-unused-value -Wno-missing-braces\
+ -Wno-missing-field-initializers -Wno-format-security -Wno-format-nonliteral
+
+ccshellcmd = printf "%s" "int main(void){$(1);}" | $(CC) $(CFLAGS) -xc -fsyntax-only $(CEXPR_TEST_CFLAGS) $(foreach inc,$(2),-include $(inc)) -
+parsecexpr = $(shell ! $(call ccshellcmd, $(1), $(2)) > $(if $(VERBOSE),/dev/stdout,/dev/null) 2> $(if $(VERBOSE),/dev/stderr,/dev/null); echo $$?)
+
+define cccheck
+ifndef $(1)
+    $$(if $$(VERBOSE),$$(info Checking $(1) with `$(call ccshellcmd, $(2), $(3))`))
+    $(1) := $$(call parsecexpr, $(2), $(3))
+    $$(info $(1): $$(if $$(filter $$($(1)),1),yes,no))
+endif
+FEATURES+=$(1)
 endef
-export CONFIG
+
+$(eval $(call cccheck,HAVE_BIRTHTIME,({ (struct stat){0}.st_birthtime; }),sys/stat.h))
+$(eval $(call cccheck,HAVE_BEXXTOH_ENDIAN_H,({ be16toh(0); be32toh(0); be64toh(0); }),endian.h))
+$(eval $(call cccheck,HAVE_BEXXTOH_SYS_ENDIAN_H,({ be16toh(0); be32toh(0); be64toh(0); }),sys/endian.h))
+$(eval $(call cccheck,HAVE_OSBYTEORDER_H,({ OSSwapBigToHostInt16(0); OSSwapBigToHostInt32(0); OSSwapBigToHostInt64(0); }),libkern/OSByteOrder.h))
+$(eval $(call cccheck,HAVE_STAT_FLAGS,({ (struct stat){0}.st_flags; }),sys/stat.h))
+
+ifneq ($(call parsecexpr),1)
+    VERBOSE=true
+    $(info Unable to use C compiler "$(CC)" for platform-dependent feature detection. Specify these directly to make or by running `make config` and editing $\
+    	   config.mak, otherwise fallbacks will be used. Command:)
+    $(info $(call ccshellcmd))
+    _:=$(call parsecexpr)
+endif
+
+$(foreach cfg,CC AR RANLIB INSTALL PREFIX WITH_UBLIO WITH_UTF8PROC CONFIG_CFLAGS $(FEATURES),$(eval CONFIG:=$(CONFIG)$(cfg)=$$($(cfg))\n))
+$(foreach feature,$(FEATURES),$(if $(filter $($(feature)),1),$(eval CFLAGS+=-D$(feature))))
 
 LIBS = lib/libhfsuser/libhfsuser.a lib/libhfs/libhfs.a
 LIBDIRS = $(abspath $(dir $(LIBS)))
@@ -104,7 +125,7 @@ else ifeq ($(wildcard src/version.h), )
 	CFLAGS += -DHFSFUSE_VERSION_STRING=\"omitted\"
 endif
 
-export PREFIX CC CFLAGS LOCAL_CFLAGS APP_FLAGS LIBDIRS AR RANLIB INCLUDE
+export CONFIG PREFIX CC CFLAGS LOCAL_CFLAGS APP_FLAGS LIBDIRS AR RANLIB INCLUDE
 
 .PHONY: all clean always_check config install uninstall install-lib uninstall-lib lib version dist
 
@@ -160,7 +181,7 @@ version:
 	echo \#define HFSFUSE_VERSION_STRING $(VERSION_STRING) > src/version.h
 
 config:
-	echo "$$CONFIG" > config.mak
+	@echo "$$CONFIG" > config.mak
 
 dist: version
 	ln -s . $(RELEASE_NAME)

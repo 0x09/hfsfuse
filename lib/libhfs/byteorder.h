@@ -27,15 +27,15 @@
 
 #include <stdint.h>
 
-#ifdef __APPLE__
+#if HAVE_BEXXTOH_ENDIAN_H // linux, haiku, POSIX 202x
+#include <endian.h>
+#elif HAVE_BEXXTOH_SYS_ENDIAN_H // *BSD
+#include <sys/endian.h>
+#elif HAVE_OSBYTEORDER_H // macOS
 #include <libkern/OSByteOrder.h>
 #define be16toh(x) OSSwapBigToHostInt16(x)
 #define be32toh(x) OSSwapBigToHostInt32(x)
 #define be64toh(x) OSSwapBigToHostInt64(x)
-#elif defined(__linux__) || defined(__HAIKU__)
-#include <endian.h>
-#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)  || defined(__DragonFly__)
-#include <sys/endian.h>
 #else
 #define big_endian() (!(union { int i; char c; }){1}.c)
 #define bytecast(t, ...) ((union { unsigned char b[sizeof(t)]; t val; }){{__VA_ARGS__}}.val)
