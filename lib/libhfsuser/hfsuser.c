@@ -337,7 +337,9 @@ void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st,
 	if(key->type == HFS_REC_FILE) {
 		hfs_fork_t* f = fork == HFS_DATAFORK ? &key->file.data_fork : &key->file.rsrc_fork;
 		st->st_size    = f->logical_size;
+#if HAVE_STAT_BLOCKS
 		st->st_blocks  = f->total_blocks;
+#endif
 #if HAVE_STAT_BLKSIZE
 		st->st_blksize = f->clump_size;
 #endif
