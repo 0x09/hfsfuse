@@ -36,7 +36,11 @@
 #endif
 
 #ifndef ENOATTR
+#ifdef ENODATA
 #define ENOATTR ENODATA
+#else
+#define ENOATTR 1
+#endif
 #endif
 
 static void hfsfuse_destroy(void* vol) {
