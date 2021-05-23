@@ -8,8 +8,6 @@ RANLIB ?= ranlib
 INSTALL ?= install
 TAR ?= tar
 CONFIG_CFLAGS ?= -O3 -std=gnu11
-WITH_UBLIO ?= local
-WITH_UTF8PROC ?= local
 CONFIG_CFLAGS := $(CONFIG_CFLAGS) $(CFLAGS)
 
 CFLAGS := -D_FILE_OFFSET_BITS=64 $(CONFIG_CFLAGS)
@@ -54,9 +52,25 @@ $(info NetBSD detected, only hfsdump will be built by default)
 	TARGETS=hfsdump
 else ifeq ($(OS), SunOS)
 	FUSE_FLAGS += -I/usr/include/fuse
+else ifeq (MSYS, $(findstring MSYS, $(OS)))
+$(info MSYS2 detected, only hfsdump will be built by default)
+	WITH_UBLIO ?= none
+	ifneq (none, $(WITH_UBLIO))
+$(warn building with ublio is not supported under MSYS2)
+	endif
+	TARGETS = hfsdump
+else ifeq (MINGW, $(findstring MINGW, $(OS)))
+$(info MinGW detected, only hfsdump will be built by default)
+	WITH_UBLIO ?= none
+	ifneq ($(WITH_UBLIO), none)
+$(warn building with ublio is not supported under MinGW)
+	endif
+	TARGETS = hfsdump
 endif
 
 PREFIX ?= /usr/local
+WITH_UBLIO ?= local
+WITH_UTF8PROC ?= local
 
 CEXPR_TEST_CFLAGS = -Werror-implicit-function-declaration -Wno-unused-value -Wno-missing-braces\
  -Wno-missing-field-initializers -Wno-format-security -Wno-format-nonliteral
@@ -113,6 +127,7 @@ ifneq ($(WITH_UTF8PROC), none)
 	ifeq ($(WITH_UTF8PROC), system)
 		APP_LIB += -lutf8proc
 	else ifeq ($(WITH_UTF8PROC), local)
+		CFLAGS+=-DUTF8PROC_EXPORTS
 		LIBS += lib/utf8proc/libutf8proc.a
 	else
 $(error Invalid option "$(WITH_UTF8PROC)" for WITH_UTF8PROC. Use one of: none, system, local)
