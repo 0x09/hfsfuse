@@ -1,5 +1,7 @@
 name: Build
 on: push
+env:
+  LOCAL_CFLAGS: -Werror
 jobs:
   build-ubuntu:
     runs-on: ubuntu-latest
