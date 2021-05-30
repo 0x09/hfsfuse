@@ -76,7 +76,7 @@ WITH_UTF8PROC ?= local
 CEXPR_TEST_CFLAGS = -Werror-implicit-function-declaration -Wno-unused-value -Wno-missing-braces\
  -Wno-missing-field-initializers -Wno-format-security -Wno-format-nonliteral
 
-ccshellcmd = printf "%s" "int main(void){$(1);}" | $(CC) $(CFLAGS) -xc -fsyntax-only $(CEXPR_TEST_CFLAGS) $(foreach inc,$(2),-include $(inc)) -
+ccshellcmd = printf "%s" "int main(void){$(1);}" | $(CC) $(LOCAL_CFLAGS) $(CFLAGS) -xc -fsyntax-only $(CEXPR_TEST_CFLAGS) $(foreach inc,$(2),-include $(inc)) -
 parsecexpr = $(shell ! $(call ccshellcmd, $(1), $(2)) > $(if $(VERBOSE),/dev/stdout,/dev/null) 2> $(if $(VERBOSE),/dev/stderr,/dev/null); echo $$?)
 
 define cccheck
