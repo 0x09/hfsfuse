@@ -76,7 +76,7 @@ WITH_UTF8PROC ?= local
 CEXPR_TEST_CFLAGS = -Werror-implicit-function-declaration -Wno-unused-value -Wno-missing-braces\
  -Wno-missing-field-initializers -Wno-format-security -Wno-format-nonliteral
 
-ccshellcmd = printf "%s" "int main(void){$(1);}" | $(CC) $(LOCAL_CFLAGS) $(CFLAGS) -xc -fsyntax-only $(CEXPR_TEST_CFLAGS) $(foreach inc,$(2),-include $(inc)) -
+ccshellcmd = printf "%s\n" "int main(void){$(1);}" | $(CC) $(LOCAL_CFLAGS) $(CFLAGS) -xc -fsyntax-only $(CEXPR_TEST_CFLAGS) $(foreach inc,$(2),-include $(inc)) -
 parsecexpr = $(shell ! $(call ccshellcmd, $(1), $(2)) > $(if $(VERBOSE),/dev/stdout,/dev/null) 2> $(if $(VERBOSE),/dev/stderr,/dev/null); echo $$?)
 
 define cccheck
@@ -88,15 +88,15 @@ endif
 FEATURES+=$(1)
 endef
 
-$(eval $(call cccheck,HAVE_BIRTHTIME,({ (struct stat){0}.st_birthtime; }),sys/stat.h))
-$(eval $(call cccheck,HAVE_BEXXTOH_ENDIAN_H,({ be16toh(0); be32toh(0); be64toh(0); }),endian.h))
-$(eval $(call cccheck,HAVE_BEXXTOH_SYS_ENDIAN_H,({ be16toh(0); be32toh(0); be64toh(0); }),sys/endian.h))
-$(eval $(call cccheck,HAVE_OSBYTEORDER_H,({ OSSwapBigToHostInt16(0); OSSwapBigToHostInt32(0); OSSwapBigToHostInt64(0); }),libkern/OSByteOrder.h))
-$(eval $(call cccheck,HAVE_STAT_FLAGS,({ (struct stat){0}.st_flags; }),sys/stat.h))
-$(eval $(call cccheck,HAVE_STAT_BLKSIZE,({ (struct stat){0}.st_blksize; }),sys/stat.h))
-$(eval $(call cccheck,HAVE_STAT_BLOCKS,({ (struct stat){0}.st_blocks; }),sys/stat.h))
-$(eval $(call cccheck,HAVE_VSYSLOG,({ vsyslog(0,(const char*){0},(va_list){0}); }),syslog.h stdarg.h))
-$(eval $(call cccheck,HAVE_PREAD,({ pread(0,(void*){0},0,0); }),unistd.h))
+$(eval $(call cccheck,HAVE_BIRTHTIME,{ (struct stat){0}.st_birthtime; },sys/stat.h))
+$(eval $(call cccheck,HAVE_BEXXTOH_ENDIAN_H,{ be16toh(0); be32toh(0); be64toh(0); },endian.h))
+$(eval $(call cccheck,HAVE_BEXXTOH_SYS_ENDIAN_H,{ be16toh(0); be32toh(0); be64toh(0); },sys/endian.h))
+$(eval $(call cccheck,HAVE_OSBYTEORDER_H,{ OSSwapBigToHostInt16(0); OSSwapBigToHostInt32(0); OSSwapBigToHostInt64(0); },libkern/OSByteOrder.h))
+$(eval $(call cccheck,HAVE_STAT_FLAGS,{ (struct stat){0}.st_flags; },sys/stat.h))
+$(eval $(call cccheck,HAVE_STAT_BLKSIZE,{ (struct stat){0}.st_blksize; },sys/stat.h))
+$(eval $(call cccheck,HAVE_STAT_BLOCKS,{ (struct stat){0}.st_blocks; },sys/stat.h))
+$(eval $(call cccheck,HAVE_VSYSLOG,{ vsyslog(0,(const char*){0},(va_list){0}); },syslog.h stdarg.h))
+$(eval $(call cccheck,HAVE_PREAD,{ pread(0,(void*){0},0,0); },unistd.h))
 
 ifneq ($(call parsecexpr),1)
     VERBOSE=true
