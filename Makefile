@@ -154,10 +154,10 @@ export CONFIG PREFIX CC CFLAGS LOCAL_CFLAGS APP_FLAGS LIBDIRS AR RANLIB INCLUDE
 all: $(TARGETS)
 
 %.o: %.c
-	$(CC) $(LOCAL_CFLAGS) $(INCLUDE) $(CFLAGS) -c -o $*.o $^
+	$(CC) $(INCLUDE) $(CFLAGS) $(LOCAL_CFLAGS) -c -o $*.o $^
 
 src/hfsfuse.o: src/hfsfuse.c
-	$(CC) $(LOCAL_CFLAGS) $(FUSE_FLAGS) $(INCLUDE) $(CFLAGS) -c -o $*.o $^
+	$(CC) $(FUSE_FLAGS) $(INCLUDE) $(CFLAGS) $(LOCAL_CFLAGS) -c -o $*.o $^
 
 $(LIBS): always_check
 	$(MAKE) -C $(dir $@)
