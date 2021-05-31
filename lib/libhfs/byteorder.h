@@ -37,6 +37,10 @@
 #define be32toh(x) OSSwapBigToHostInt32(x)
 #define be64toh(x) OSSwapBigToHostInt64(x)
 #else
+#undef be16toh
+#undef be32toh
+#undef be64toh
+
 #define big_endian() (!(union { int i; char c; }){1}.c)
 #define bytecast(t, ...) ((union { unsigned char b[sizeof(t)]; t val; }){{__VA_ARGS__}}.val)
 
