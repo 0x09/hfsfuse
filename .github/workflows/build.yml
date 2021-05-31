@@ -1,7 +1,8 @@
 name: Build
 on: push
 env:
-  LOCAL_CFLAGS: -Werror
+  LOCAL_CFLAGS:  -Werror
+  LIBHFS_CFLAGS: -Werror
 jobs:
   build-ubuntu:
     runs-on: ubuntu-latest
@@ -53,7 +54,8 @@ jobs:
         run: make all clean
       - name: Build with conformance flags
         env:
-          LOCAL_CFLAGS: -Werror -std=c11 -D_POSIX_C_SOURCE=200809L
+          LOCAL_CFLAGS:  -std=c11 -D_POSIX_C_SOURCE=200809L -Werror
+          LIBHFS_CFLAGS: -std=c11 -D_POSIX_C_SOURCE=200809L -Werror
         run: make all clean
       - name: Build with system utf8proc
         run: make all clean WITH_UTF8PROC=system

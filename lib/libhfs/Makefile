@@ -7,7 +7,7 @@ TARGET = libhfs.a
 all: $(TARGET)
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c -o $*.o $^
+	$(CC) $(CFLAGS) $(LIBHFS_CFLAGS) -c -o $*.o $^
 
 $(TARGET): $(OBJS)
 	$(AR) rcs $@ $^
