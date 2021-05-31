@@ -62,4 +62,4 @@ jobs:
       - name: Build without optional dependencies
         run: make all clean WITH_UBLIO=none WITH_UTF8PROC=none
       - name: Build with compatibility fallbacks
-        run: make all clean WITH_UBLIO=none HAVE_BEXXTOH_ENDIAN_H=0 HAVE_VSYSLOG=0 HAVE_PREAD=0
+        run: make all clean HAVE_BEXXTOH_ENDIAN_H=0 HAVE_VSYSLOG=0 HAVE_PREAD=0
