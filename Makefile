@@ -174,10 +174,10 @@ $(LIBS): always_check
 lib: $(LIBS)
 
 hfsfuse: src/hfsfuse.o $(LIBS)
-	$(CC) $(CFLAGS) $(APP_LIB) -o $@ src/hfsfuse.o $(LIBS) $(FUSE_LIB) -lpthread
+	$(CC) $(CFLAGS) -o $@ src/hfsfuse.o $(LIBS) $(APP_LIB) $(FUSE_LIB) -lpthread
 
 hfsdump: src/hfsdump.o $(LIBS)
-	$(CC) $(CFLAGS) $(APP_LIB) -o $@ src/hfsdump.o $(LIBS) -lpthread
+	$(CC) $(CFLAGS) -o $@ src/hfsdump.o $(LIBS) $(APP_LIB) -lpthread
 
 clean:
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir clean; done
