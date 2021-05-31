@@ -21,7 +21,7 @@ LOCAL_CFLAGS+=-Wno-missing-field-initializers -Wno-missing-braces
 TARGETS = hfsfuse hfsdump
 FUSE_FLAGS = -DFUSE_USE_VERSION=28
 FUSE_LIB = -lfuse
-OS := $(shell uname)
+OS ?= $(shell uname)
 ifeq ($(OS), Darwin)
 	APP_FLAGS += -I/usr/local/include
 	APP_LIB += -L/usr/local/lib
@@ -115,7 +115,7 @@ $(eval $(call cccheck,HAVE_STAT_BLOCKS,{ (struct stat){0}.st_blocks; },sys/stat.
 $(eval $(call cccheck,HAVE_VSYSLOG,{ vsyslog(0,(const char*){0},(va_list){0}); },syslog.h stdarg.h))
 $(eval $(call cccheck,HAVE_PREAD,{ pread(0,(void*){0},0,0); },unistd.h))
 
-$(foreach cfg,CC AR RANLIB INSTALL PREFIX WITH_UBLIO WITH_UTF8PROC CONFIG_CFLAGS $(FEATURES),$(eval CONFIG:=$(CONFIG)$(cfg)=$$($(cfg))\n))
+$(foreach cfg,OS CC AR RANLIB INSTALL TAR PREFIX WITH_UBLIO WITH_UTF8PROC CONFIG_CFLAGS $(FEATURES),$(eval CONFIG:=$(CONFIG)$(cfg)=$$($(cfg))\n))
 $(foreach feature,$(FEATURES),$(if $(filter $($(feature)),1),$(eval CFLAGS+=-D$(feature))))
 
 LIBS = lib/libhfsuser/libhfsuser.a lib/libhfs/libhfs.a
