@@ -1,4 +1,4 @@
-/* $NetBSD: unicode.c,v 1.3 2015/06/21 14:09:47 maxv Exp $ */
+/* $NetBSD: unicode.c,v 1.2.56.1 2017/12/03 11:38:41 jdolecek Exp $ */
 
 /*-
  * Copyright (c) 2007 The NetBSD Foundation, Inc.
@@ -30,7 +30,7 @@
  */
 
 #include "rcsid.h"
-__KERNEL_RCSID(0, "$NetBSD: unicode.c,v 1.3 2015/06/21 14:09:47 maxv Exp $");
+__KERNEL_RCSID(0, "$NetBSD: unicode.c,v 1.2.56.1 2017/12/03 11:38:41 jdolecek Exp $");
 
 #include <stddef.h>
 

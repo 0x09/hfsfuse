@@ -1,4 +1,4 @@
-/*	$NetBSD: libhfs.h,v 1.8 2019/01/05 10:25:11 maya Exp $	*/
+/*	$NetBSD: libhfs.h,v 1.7.18.1 2019/06/10 22:09:00 christos Exp $	*/
 
 /*-
  * Copyright (c) 2005, 2007 The NetBSD Foundation, Inc.

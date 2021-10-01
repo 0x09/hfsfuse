@@ -1,4 +1,4 @@
-/*	$NetBSD: libhfs.c,v 1.15 2018/12/30 22:40:00 sevan Exp $	*/
+/*	$NetBSD: libhfs.c,v 1.14.18.1 2019/06/10 22:09:00 christos Exp $	*/
 
 /*-
  * Copyright (c) 2005, 2007 The NetBSD Foundation, Inc.
@@ -47,7 +47,7 @@
  */
 
 #include "rcsid.h"
-__KERNEL_RCSID(0, "$NetBSD: libhfs.c,v 1.15 2018/12/30 22:40:00 sevan Exp $");
+__KERNEL_RCSID(0, "$NetBSD: libhfs.c,v 1.14.18.1 2019/06/10 22:09:00 christos Exp $");
 
 #include "libhfs.h"
 #include "byteorder.h"
