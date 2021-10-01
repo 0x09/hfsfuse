@@ -1,10 +1,10 @@
-[FUSE](https://github.com/libfuse/libfuse) driver for HFS+, based on NetBSD's kernel driver with modifications.
+[FUSE](https://github.com/libfuse/libfuse) driver for HFS+ filesystems, based on NetBSD's kernel driver with modifications.
 
-Created for use on FreeBSD which lacks a native driver, but also functions as an alternative to the kernel drivers on Linux and macOS.
-
-This driver is read-only and cannot write to or damage the target filesystem in any way.
+hfsfuse embeds and extends [NetBSD's HFS+ kernel driver](http://cvsweb.netbsd.org/bsdweb.cgi/src/sys/fs/hfs/) into a portable library for use with FUSE and other userspace tools. hfsfuse was created for use on FreeBSD and other Unix-like systems that lack a native HFS+ driver, but can also be used on Linux and macOS as an alternative to their kernel drivers.
 
 hfsfuse also includes a standalone tool, hfsdump, to inspect the contents of an HFS+ volume without FUSE.
+
+This driver is read-only and cannot write to or alter the target filesystem.
 
 **Supported**
 
@@ -16,30 +16,46 @@ hfsfuse also includes a standalone tool, hfsdump, to inspect the contents of an 
 
 **Not supported**
 
+* HFS without the "+", aka "Mac OS Standard" volumes. For these, try [hfsutils](https://www.mars.org/home/rob/proj/hfs/).
 * Writing
-* User-defined extended attributes (undocumented)
-* HFS (non plus) volumes
+* User-defined extended attributes
 
 # Installation
-## Configuring
-hfsfuse can use [utf8proc](http://julialang.org/utf8proc/) and [ublio](https://www.freshports.org/devel/libublio/), either bundled or system versions, but it doesn't require them (however, utf8proc is required for working with most non-ASCII pathnames).  
-To configure, run `make config` with WITH_DEP=(none/local/system). For example, to build without ublio, and with the system's utf8proc, use
+With the FUSE headers and library for your platform installed, running `make install` (gmake on *BSD) from the project root will build and install hfsfuse and hfsdump and should be sufficient for most use cases. See below for more details or skip to [usage](#Use).
 
-    make config WITH_UBILIO=none WITH_UTF8PROC=system
-	
-The default behavior is equivalent to `make config WITH_UBLIO=local WITH_UTF8PROC=local`
+## Dependencies
+hfsfuse aims to be widely portable across Unix-like systems. Build requirements include GNU Make, a C11 compiler with a GCC-compatible frontend, and a POSIX-compatible shell and utilities.
+
+hfsfuse's supporting libraries and standalone hfsdump tool require only a POSIX-2008 compatible libc, and can also be built natively on Windows with either Mingw-w64 or msys2.
+
+The FUSE driver requires a version 2 compatible FUSE library, and is known to work with the following implementations:
+
+* [libfuse](https://libfuse.github.io) on Linux and *BSD
+* [macFUSE](https://osxfuse.github.io)
+* Haiku's userland_fs
+
+hfsfuse optionally uses these additional libraries to enable certain functionality:
+
+* [utf8proc](http://julialang.org/utf8proc/) for working with non-ASCII pathnames
+* [ublio](https://www.freshports.org/devel/libublio/) for read caching, which may improve performance
+
+These are both bundled with hfsfuse and built by default. hfsfuse can be configured to use already-installed versions of these if available, or may be built without them entirely if the respective functionality is not needed (see [Configuring](#Configuring)).
+
+## Configuring
+hfsfuse is configured by passing options directly to `make`, and separate configure and build steps are not needed. For repeated builds using the same options, or to more easily view and edit config values, `make config` can optionally be used to generate a config.mak file which will be used by future invocations.
+
+To configure hfsfuse's optional utf8proc and ublio dependencies, use WITH_*DEP*=(none/local/system). The default behavior with no arguments is to use the bundled versions of these and is the same as using
+
+    make WITH_UBILIO=local WITH_UTF8PROC=local
+
+To ease portability, the Makefile will attempt to detect certain features of the host libc in an autoconf-like way, and creates a series of defines for these labeled HAVE_*FEATURENAME*. To override and skip checks for a given feature, these may be provided directly to `make` or overridden in config.mak.
 
 ## Building
-    make
-    make install
+The default `make` and `make install` targets build and install hfsfuse and hfsdump. hfsdump can also be built standalone with `make hfsdump`, in which case FUSE is not needed.
 
-Makefile dialect is GNU, so substitute `gmake` on FreeBSD.
+hfsfuse's supporting libraries can be built and installed independently using `make lib` and `make install-lib`. Applications can use these to read from HFS+ volumes by including [hfsuser.h](lib/libhfsuser/hfsuser.h) and linking with libhfsuser, libhfs, and ublio/utf8proc if configured.
 
-hfsfuse's support libraries can be also built standalone using `make lib` and `make install-lib` and used to read from HFS+ volumes without FUSE by including hfsuser.h and linking with libhfsuser, libhfs, and ublio/utf8proc if configured.
-
-hfsdump is also built by default, but can be built standalone with `make hfsdump`, in which case the FUSE library is not needed.
-
-Some version information is generated from the git repository. For out of tree builds, run `make version` within the repository first or provide your own version.h.
+Some version information is generated from the git repository. For distributions outside of revision control of tree builds, run `make version` within the repository first or provide your own version.h.
 
 # Use
 ## hfsfuse
@@ -54,7 +70,7 @@ hfsfuse-specific options are shown below
         -o opt,[opt...]        mount options
         -h   --help            this help
         -H   --fullhelp        list all FUSE options
-        -V   --version
+        -v   --version
     
     HFS options:
         --force                force mount volumes with dirty journal
@@ -78,14 +94,15 @@ Note for Haiku users: under Haiku, FUSE applications cannot be invoked directly.
 	hfsdump <device> <command> <node>
 	
 `command` may be either `stat` or `read`: `stat` prints the record structure, while `read` copies the node's contents to standard out (or lists if node is a directory).  
-`node` is either an inode/CNID to lookup, or a full path from the root of the volume being inspected.  
+`node` is either an integer inode/CNID to lookup, or a full path from the root of the volume being inspected.  
 If the command and node are ommitted, hfsdump prints the volume header and exits.  
 `/rsrc` may be appended to the path of a read operation to dump the resource fork instead.
 
 ## Extended attributes and resource forks
 hfsfuse exposes some nonstandard HFS+ attributes as extended attributes. These include:
-* hfsfuse.record.date_created: The date created as an ISO-8601 timestamp. Identical to `st_birthtime` on macOS.
-* hfsfuse.record.date_backedup: The backup time of a file as an ISO-8601 timestamp.
+
+* hfsfuse.record.date\_created: The date created as an ISO-8601 timestamp. Identical to `st_birthtime` on macOS or FreeBSD.
+* hfsfuse.record.date\_backedup: The backup time of a file as an ISO-8601 timestamp.
 * com.apple.FinderInfo: The Finder info as binary data, presented the same as with the macOS native driver.
 * com.apple.ResourceFork: The resource fork as binary data.
 
