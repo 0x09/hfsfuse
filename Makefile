@@ -1,3 +1,5 @@
+OS = $(shell uname)
+
 ifeq ($(filter config, $(MAKECMDGOALS)),)
 -include config.mak
 endif
@@ -21,7 +23,7 @@ LOCAL_CFLAGS+=-Wno-missing-field-initializers -Wno-missing-braces
 TARGETS = hfsfuse hfsdump
 FUSE_FLAGS = -DFUSE_USE_VERSION=28
 FUSE_LIB = -lfuse
-OS ?= $(shell uname)
+
 ifeq ($(OS), Darwin)
 	APP_FLAGS += -I/usr/local/include
 	APP_LIB += -L/usr/local/lib
