@@ -549,9 +549,8 @@ extern hfs_callbacks	hfs_gcb;	/* global callbacks */
 
 /*
  * global case folding table
- * (lazily initialized; see comments at bottom of hfs_open_volume())
  */
-extern unichar_t* hfs_gcft;
+extern const unichar_t hfs_gcft[2816];
 
 #if 0
 #pragma mark -
