@@ -72,6 +72,10 @@ $(warn building with ublio is not supported under MinGW)
 endif
 
 PREFIX ?= /usr/local
+prefix ?= $(PREFIX)
+bindir = $(prefix)/bin
+libdir = $(prefix)/lib
+includedir = $(prefix)/include
 WITH_UBLIO ?= local
 WITH_UTF8PROC ?= local
 
@@ -158,7 +162,7 @@ else ifeq ($(wildcard src/version.h), )
 	CFLAGS += -DHFSFUSE_VERSION_STRING=\"omitted\"
 endif
 
-export CONFIG PREFIX CC CFLAGS LOCAL_CFLAGS APP_FLAGS LIBDIRS AR RANLIB INCLUDE
+export CONFIG PREFIX prefix bindir libdir includedir DESTDIR CC CFLAGS LOCAL_CFLAGS APP_FLAGS LIBDIRS AR RANLIB INSTALL INCLUDE
 
 .PHONY: all clean always_check config install uninstall install-lib uninstall-lib lib version dist
 
@@ -196,18 +200,19 @@ uninstall-lib: $(LIBS)
 
 ifeq ($(OS), Haiku)
 install: $(TARGETS)
-	mkdir -p $(PREFIX)/add-ons/userlandfs/
-	$(INSTALL) -m 644 hfsfuse $(PREFIX)/add-ons/userlandfs/
-	$(INSTALL) hfsdump $(PREFIX)/bin/
+	mkdir -pm755 $(prefix)/add-ons/userlandfs/
+	$(INSTALL) -m644 hfsfuse $(DESTDIR)$(prefix)/add-ons/userlandfs/
+	$(INSTALL) -m755 hfsdump $(DESTDIR)$(bindir)
 
 uninstall:
-	rm -f $(PREFIX)/add-ons/userlandfs/hfsfuse $(PREFIX)/bin/hfsdump
+	rm -f $(DESTDIR)$(prefix)/add-ons/userlandfs/hfsfuse $(DESTDIR)$(bindir)/hfsdump
 else
 install:$(TARGETS)
-	$(INSTALL) $^ $(PREFIX)/bin/
+	mkdir -pm755 $(DESTDIR)$(bindir)
+	$(INSTALL) -m755 $^ $(DESTDIR)$(bindir)
 
 uninstall:
-	rm -f $(PREFIX)/bin/hfsfuse $(PREFIX)/bin/hfsdump
+	rm -f $(DESTDIR)$(bindir)/hfsfuse $(DESTDIR)$(bindir)/hfsdump
 endif
 
 version:

@@ -20,8 +20,9 @@ clean:
 	rm -f $(OBJ) $(OUT)
 
 install: $(OUT)
-	$(INSTALL) ublio.h $(PREFIX)/include/
-	$(INSTALL) libublio.a $(PREFIX)/lib/
+	mkdir -pm755 $(DESTDIR)$(includedir) $(DESTDIR)$(libdir)
+	$(INSTALL) -m644 ublio.h $(DESTDIR)$(includedir)
+	$(INSTALL) -m644 libublio.a $(DESTDIR)$(libdir)
 
 uninstall:
-	rm -f $(PREFIX)/include/ublio.h
+	rm -f $(DESTDIR)$(includedir)/ublio.h $(DESTDIR)$(libdir)/libublio.a

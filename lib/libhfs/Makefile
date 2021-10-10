@@ -14,12 +14,12 @@ $(TARGET): $(OBJS)
 	$(RANLIB) $@
 
 install: $(TARGET)
-	$(INSTALL) libhfs.h $(PREFIX)/include/
-	$(INSTALL) $(TARGET) $(PREFIX)/lib/
+	mkdir -pm755 $(DESTDIR)$(includedir) $(DESTDIR)$(libdir)
+	$(INSTALL) -m644 libhfs.h $(DESTDIR)$(includedir)
+	$(INSTALL) -m644 $(TARGET) $(DESTDIR)$(libdir)
 
 uninstall:
-	rm -f $(PREFIX)/include/libhfs.h
-	rm -f $(PREFIX)/lib/$(TARGET)
+	rm -f $(DESTDIR)$(includedir)/libhfs.h $(DESTDIR)$(libdir)/$(TARGET)
 
 clean:
 	rm -f $(OBJS) $(TARGET)
