@@ -78,6 +78,7 @@ hfs_callbacks	hfs_gcb;	/* global callbacks */
  
 #ifdef DLO_DEBUG
 #include <stdio.h>
+#include <ctype.h>
 void
 dlo_print_key(hfs_catalog_key_t *key)
 {
