@@ -37,6 +37,8 @@ jobs:
       - name: Build
         run: make
         shell: bash
+        env:
+          CC: gcc
   conformance-checks:
     runs-on: ubuntu-latest
     strategy:
