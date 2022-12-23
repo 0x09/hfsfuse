@@ -480,7 +480,7 @@ static void version() {
 		fprintf(stderr, "    utf8proc v%s\n", hfs_lib_utf8proc_version());
 }
 
-#if FUSE_VERSION < 28
+#if FUSE_VERSION < 28 || defined(__HAIKU__)
 static int hfsfuse_opt_add_opt_escaped(char** opts, const char* opt) {
 	char* escaped = malloc(strlen(opt)*2+1);
 	if(!escaped)
