@@ -113,6 +113,8 @@ static int hfsfuse_getattr(const char* path, struct stat* st) {
 		return ret;
 
 	hfs_stat(vol, &rec,st,fork);
+	if (st->st_ino == HFS_CNID_ROOT_FOLDER)
+		st->st_mode = 0777 | S_IFDIR;
 	return 0;
 }
 
@@ -124,6 +126,8 @@ static int hfsfuse_fgetattr(const char* path, struct stat* st, struct fuse_file_
 	if(ret < 0) return ret;
 	else if(ret > 0) return -ENOENT;
 	hfs_stat(vol,&rec,st,f->fork);
+	if (st->st_ino == HFS_CNID_ROOT_FOLDER)
+		st->st_mode = 0777 | S_IFDIR;
 	return 0;
 }
 
