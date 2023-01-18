@@ -40,6 +40,43 @@ jobs:
         shell: bash
         env:
           CC: gcc
+  build-freebsd:
+    runs-on: macos-12
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build in default configuration
+        uses: cross-platform-actions/action@v0.9.0
+        with:
+          operating_system: freebsd
+          architecture: x86-64
+          version: '13.1'
+          run: |
+            sudo pkg update
+            sudo pkg install -y gmake fusefs-libs
+            gmake
+      - name: Build with ports tree configuration
+        uses: cross-platform-actions/action@v0.9.0
+        with:
+          operating_system: freebsd
+          architecture: x86-64
+          version: '13.1'
+          run: |
+            sudo pkg install -y gmake fusefs-libs libublio utf8proc
+            gmake clean
+            gmake WITH_UBLIO=system WITH_UTF8PROC=system config all
+  build-openbsd:
+    runs-on: macos-12
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        uses: cross-platform-actions/action@v0.9.0
+        with:
+          operating_system: openbsd
+          architecture: x86-64
+          version: '7.2'
+          run: |
+            sudo pkg_add gmake
+            gmake
   conformance-checks:
     runs-on: ubuntu-latest
     strategy:
