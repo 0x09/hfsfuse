@@ -3,6 +3,7 @@ on:
   push:
     branches-ignore:
       - netbsd-libhfs
+  pull_request:
 env:
   LOCAL_CFLAGS:  -Werror
   LIBHFS_CFLAGS: -Werror
