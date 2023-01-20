@@ -316,10 +316,22 @@ end:
 #define HFSTIMETOSPEC(x) ((struct timespec){ .tv_sec = HFSTIMETOEPOCH(x) })
 
 void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st, uint8_t fork) {
-	st->st_mode  = key->file.bsd.file_mode;
 	st->st_ino   = key->file.cnid;
-	st->st_uid   = key->file.bsd.owner_id;
-	st->st_gid   = key->file.bsd.group_id;
+
+	if ((key->file.bsd.file_mode & S_IFMT) == 0) {
+		if(key->type == HFS_REC_FILE) {
+			st->st_mode = 0755 | S_IFREG;
+		} else {
+			st->st_mode = 0777 | S_IFDIR;
+		}
+		st->st_uid   = 0;
+		st->st_gid   = 0;
+	} else {
+		st->st_mode  = key->file.bsd.file_mode;
+		st->st_uid   = key->file.bsd.owner_id;
+		st->st_gid   = key->file.bsd.group_id;
+	}
+
 #if HAVE_STAT_FLAGS
 	st->st_flags = (key->file.bsd.admin_flags << 16) | key->file.bsd.owner_flags;
 #endif
