@@ -32,6 +32,7 @@ The FUSE driver requires a version 2 compatible FUSE library, and is known to wo
 
 * [libfuse](https://libfuse.github.io) on Linux and *BSD
 * [macFUSE](https://osxfuse.github.io)
+* [FUSE-T](https://www.fuse-t.org)
 * Haiku's userland_fs
 
 hfsfuse optionally uses these additional libraries to enable certain functionality:
