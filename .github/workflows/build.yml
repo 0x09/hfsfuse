@@ -77,6 +77,20 @@ jobs:
           run: |
             sudo pkg_add gmake
             gmake
+  build-netbsd:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        uses: cross-platform-actions/action@v0.19.0
+        with:
+          operating_system: netbsd
+          architecture: x86-64
+          version: '9.3'
+          run: |
+            sudo pkgin update
+            sudo pkgin -y install gmake fuse
+            gmake
   conformance-checks:
     runs-on: ubuntu-latest
     strategy:
