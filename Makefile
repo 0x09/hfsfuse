@@ -30,8 +30,14 @@ ifeq ($(OS), Darwin)
 	ifeq ($(shell [ -e /usr/local/lib/libosxfuse.dylib ] && echo 1), 1)
 		FUSE_FLAGS += -I/usr/local/include/osxfuse
 		FUSE_LIB = -losxfuse
-	else
+	else ifeq ($(shell [ -e /usr/local/lib/libfuse.dylib ] && echo 1), 1)
 		FUSE_FLAGS += -I/usr/local/include
+	else ifeq ($(shell [ -e /usr/local/lib/libfuse-t.dylib ] && echo 1), 1)
+		FUSE_FLAGS += -I/usr/local/include/fuse
+		FUSE_LIB = -lfuse-t
+	else
+$(info no FUSE install detected, only hfsdump will be built)
+		TARGETS = hfsdump
 	endif
 else ifeq ($(OS), Haiku)
 	CFLAGS += -D_BSD_SOURCE
