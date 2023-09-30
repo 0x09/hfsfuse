@@ -316,7 +316,7 @@ end:
 #define HFSTIMETOSPEC(x) ((struct timespec){ .tv_sec = HFSTIMETOEPOCH(x) })
 
 void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st, uint8_t fork) {
-	st->st_ino   = key->file.cnid;
+	st->st_ino = key->file.cnid;
 
 	if ((key->file.bsd.file_mode & S_IFMT) == 0) {
 		if(key->type == HFS_REC_FILE) {
@@ -324,32 +324,32 @@ void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st,
 		} else {
 			st->st_mode = 0777 | S_IFDIR;
 		}
-		st->st_uid   = 0;
-		st->st_gid   = 0;
+		st->st_uid = 0;
+		st->st_gid = 0;
 	} else {
-		st->st_mode  = key->file.bsd.file_mode;
-		st->st_uid   = key->file.bsd.owner_id;
-		st->st_gid   = key->file.bsd.group_id;
+		st->st_mode = key->file.bsd.file_mode;
+		st->st_uid = key->file.bsd.owner_id;
+		st->st_gid = key->file.bsd.group_id;
 	}
 
 #if HAVE_STAT_FLAGS
 	st->st_flags = (key->file.bsd.admin_flags << 16) | key->file.bsd.owner_flags;
 #endif
 	if(S_ISBLK(st->st_mode) || S_ISCHR(st->st_mode))
-		st->st_rdev  = key->file.bsd.special.raw_device;
+		st->st_rdev = key->file.bsd.special.raw_device;
 	else st->st_nlink = key->file.bsd.special.link_count;
 
-	st->st_atime     = HFSTIMETOEPOCH(key->file.date_accessed);
-	st->st_mtime     = HFSTIMETOEPOCH(key->file.date_content_mod);
-	st->st_ctime     = HFSTIMETOEPOCH(key->file.date_attrib_mod);
+	st->st_atime = HFSTIMETOEPOCH(key->file.date_accessed);
+	st->st_mtime = HFSTIMETOEPOCH(key->file.date_content_mod);
+	st->st_ctime = HFSTIMETOEPOCH(key->file.date_attrib_mod);
 #if HAVE_BIRTHTIME
 	st->st_birthtime = HFSTIMETOEPOCH(key->file.date_created);
 #endif
 	if(key->type == HFS_REC_FILE) {
 		hfs_fork_t* f = fork == HFS_DATAFORK ? &key->file.data_fork : &key->file.rsrc_fork;
-		st->st_size    = f->logical_size;
+		st->st_size = f->logical_size;
 #if HAVE_STAT_BLOCKS
-		st->st_blocks  = f->total_blocks;
+		st->st_blocks = f->total_blocks;
 #endif
 #if HAVE_STAT_BLKSIZE
 		st->st_blksize = f->clump_size;
@@ -357,7 +357,7 @@ void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st,
 	}
 	else {
 		st->st_nlink = key->folder.valence + 2;
-		st->st_size    = vol->vh.block_size;
+		st->st_size = vol->vh.block_size;
 #if HAVE_STAT_BLKSIZE
 		st->st_blksize = vol->vh.block_size;
 #endif
