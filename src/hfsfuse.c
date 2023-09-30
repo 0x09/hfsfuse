@@ -414,10 +414,10 @@ static struct fuse_opt hfsfuse_opts[] = {
 	HFSFUSE_OPTION("--force",force),
 	HFSFUSE_OPTION("noallow_other",noallow_other),
 	HFS_OPTION("cache_size=%zu",cache_size),
-	HFS_OPTION("blksize=%" PRIu32,blksize),
+	HFS_OPTION("blksize=%" SCNu32,blksize),
 	HFS_OPTION("noublio", noublio),
-	HFS_OPTION("ublio_items=%u",  ublio_items),
-	HFS_OPTION("ublio_grace=%llu",ublio_grace),
+	HFS_OPTION("ublio_items=%" SCNd32, ublio_items),
+	HFS_OPTION("ublio_grace=%" SCNu64,ublio_grace),
 	HFS_OPTION("rsrc_ext=%s",rsrc_suff),
 	HFS_OPTION("rsrc_only",rsrc_only),
 	FUSE_OPT_END
