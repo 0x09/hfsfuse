@@ -365,8 +365,18 @@ void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st,
 		st->st_gid = dev->default_gid;
 	} else {
 		st->st_mode = key->file.bsd.file_mode;
-		st->st_uid = key->file.bsd.owner_id;
-		st->st_gid = key->file.bsd.group_id;
+
+		if(key->file.bsd.owner_id > UID_MAX) {
+			hfslib_error("hfs_stat: owner_id %" PRIu32 " too large for CNID %" PRIu32 ", using default",NULL,0,key->file.bsd.owner_id,key->file.cnid);
+			st->st_uid = dev->default_uid;
+		}
+		else st->st_uid = key->file.bsd.owner_id;
+
+		if(key->file.bsd.group_id > GID_MAX) {
+			hfslib_error("hfs_stat: group_id %" PRIu32 " too large for CNID %" PRIu32 ", using default",NULL,0,key->file.bsd.group_id,key->file.cnid);
+			st->st_gid = dev->default_gid;
+		}
+		else st->st_gid = key->file.bsd.group_id;
 	}
 
 #if HAVE_STAT_FLAGS
