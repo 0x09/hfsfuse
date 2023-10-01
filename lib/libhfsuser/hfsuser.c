@@ -349,13 +349,37 @@ end:
 
 #define HFSTIMETOSPEC(x) ((struct timespec){ .tv_sec = HFSTIMETOEPOCH(x) })
 
+// POSIX 08 specifies values for all file modes below 07777 but leaves the following to the implementation
+// so for these we translate to the system's modes from the definitions given in TN1150
+#define HFS_S_IFMT 0170000
+
+#ifndef S_IFLNK
+#define S_IFLNK 0
+#endif
+#ifndef S_IFSOCK
+#define S_IFSOCK 0
+#endif
+#ifndef S_IFWHT // BSD specific
+#define S_IFWHT 0
+#endif
+
+#define HFS_IFMODES\
+	X(S_IFIFO, 0010000)\
+	X(S_IFCHR, 0020000)\
+	X(S_IFDIR, 0040000)\
+	X(S_IFBLK, 0060000)\
+	X(S_IFREG, 0100000)\
+	X(S_IFLNK, 0120000)\
+	X(S_IFSOCK,0140000)\
+	X(S_IFWHT, 0160000)
+
 void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st, uint8_t fork) {
 	st->st_ino = key->file.cnid;
 
 	struct hfs_device* dev = vol->cbdata;
 
 	// per TN1150, in this case the mode, user, and group are treated as uninitialized and should use defaults
-	if ((key->file.bsd.file_mode & S_IFMT) == 0) {
+	if(!(key->file.bsd.file_mode & HFS_S_IFMT)) {
 		if(key->type == HFS_REC_FILE) {
 			st->st_mode = dev->default_file_mode | S_IFREG;
 		} else {
@@ -364,7 +388,11 @@ void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st,
 		st->st_uid = dev->default_uid;
 		st->st_gid = dev->default_gid;
 	} else {
-		st->st_mode = key->file.bsd.file_mode;
+		st->st_mode  = key->file.bsd.file_mode & 0xFFF;
+
+		#define X(mode,mask) if(key->file.bsd.file_mode & mask) st->st_mode |= mode;
+		HFS_IFMODES
+		#undef X
 
 		if(key->file.bsd.owner_id > UID_MAX) {
 			hfslib_error("hfs_stat: owner_id %" PRIu32 " too large for CNID %" PRIu32 ", using default",NULL,0,key->file.bsd.owner_id,key->file.cnid);
