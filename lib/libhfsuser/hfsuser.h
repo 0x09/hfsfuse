@@ -54,6 +54,9 @@ struct hfs_volume_config {
 	int noublio;
 	int32_t ublio_items;
 	uint64_t ublio_grace;
+
+	uint16_t default_file_mode, default_dir_mode;
+	uint32_t default_uid, default_gid;
 };
 
 void hfs_volume_config_defaults(struct hfs_volume_config*);

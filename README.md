@@ -82,6 +82,11 @@ hfsfuse-specific options are shown below
                                you should only set this if you are sure it is being misdetected
         -o rsrc_ext=suffix     special suffix for filenames which can be used to access their resource fork
                                or alternatively their data fork if mounted in rsrc_only mode
+
+        -o default_file_mode=N octal filesystem permissions for Mac OS Classic files (755)
+        -o default_dir_mode=N  octal filesystem permissions for Mac OS Classic directories (777)
+        -o default_uid=N       unix user ID for Mac OS Classic files (0)
+        -o default_gid=N       unix group ID for Mac OS Classic files (0)
     
         -o noublio             disable ublio read layer
         -o ublio_items=N       number of ublio cache entries, 0 for no caching (64)
@@ -118,6 +123,13 @@ On Linux you may encounter the following error when inspecting xattrs: `user.com
 This occurs when the resource fork is larger than the maximum allowed extended attribute size of 64kb. In this case you can still access the resource fork as described above by setting the `rsrc_ext` option or mounting in `rsrc_only` mode.
 
 Other, user-created extended attributes are not currently supported as their on-disk structure is not fully specified.
+
+## Mac OS Classic file permissions
+HFS+ filesystems created on Mac OS Classic do not contain the typical set of Unix ownership and permission information for files and folders.
+For these hfsfuse provides the options default_file_mode, default_dir_mode, default_uid, and default_gid to specify fallback values if needed.
+
+These defaults only apply to filesystem entries that are missing this information, they don't affect files or folders with existing permissions.
+They are applied before the FUSE uid, gid, and umask options or any fuse-idmap conversions and will still be subject to them.
 
 # Other
 ## DMG mounting

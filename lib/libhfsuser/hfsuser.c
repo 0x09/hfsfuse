@@ -44,6 +44,35 @@
 #define HFS_ENOMEM ENOMEM
 #endif
 
+#ifdef __MINGW32__
+// mignw doesn't provide these types but defines the corresponding fields in struct stat as follows
+typedef short uid_t;
+typedef short gid_t;
+#endif
+
+// uid_t, gid_t are only specified as any integer type and UID_MAX is only defined on some platforms, so to find out their range we just check everything
+#define generic_int_max(t) _Generic((t),\
+	char: CHAR_MAX,\
+	signed char: SCHAR_MAX,\
+	short: SHRT_MAX,\
+	int: INT_MAX,\
+	long: LONG_MAX,\
+	long long: LLONG_MAX,\
+	unsigned char: UCHAR_MAX,\
+	unsigned short: USHRT_MAX,\
+	unsigned int: UINT_MAX,\
+	unsigned long: ULONG_MAX,\
+	unsigned long long: ULLONG_MAX \
+)
+
+#ifndef UID_MAX
+#define UID_MAX generic_int_max((uid_t){0})
+#endif
+
+#ifndef GID_MAX
+#define GID_MAX generic_int_max((gid_t){0})
+#endif
+
 struct hfs_device {
 	int fd;
 	uint32_t blksize;
@@ -51,6 +80,9 @@ struct hfs_device {
 	char* rsrc_suff;
 	size_t rsrc_len;
 	uint8_t default_fork;
+	uint16_t default_file_mode, default_dir_mode;
+	uid_t default_uid;
+	gid_t default_gid;
 #ifdef HAVE_UBLIO
 	bool use_ublio;
 	ublio_filehandle_t ubfh;
@@ -63,6 +95,8 @@ void hfs_volume_config_defaults(struct hfs_volume_config* cfg) {
 		.cache_size = 1024,
 		.ublio_items = 64,
 		.ublio_grace = 32,
+		.default_file_mode = 0755,
+		.default_dir_mode = 0777
 	};
 }
 
@@ -318,14 +352,17 @@ end:
 void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st, uint8_t fork) {
 	st->st_ino = key->file.cnid;
 
+	struct hfs_device* dev = vol->cbdata;
+
+	// per TN1150, in this case the mode, user, and group are treated as uninitialized and should use defaults
 	if ((key->file.bsd.file_mode & S_IFMT) == 0) {
 		if(key->type == HFS_REC_FILE) {
-			st->st_mode = 0755 | S_IFREG;
+			st->st_mode = dev->default_file_mode | S_IFREG;
 		} else {
-			st->st_mode = 0777 | S_IFDIR;
+			st->st_mode = dev->default_dir_mode | S_IFDIR;
 		}
-		st->st_uid = 0;
-		st->st_gid = 0;
+		st->st_uid = dev->default_uid;
+		st->st_gid = dev->default_gid;
 	} else {
 		st->st_mode = key->file.bsd.file_mode;
 		st->st_uid = key->file.bsd.owner_id;
@@ -497,6 +534,16 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 
 	if(cfg.cache_size && !(dev->cache = hfs_record_cache_create(cfg.cache_size)))
 		BAIL(ENOMEM);
+
+	dev->default_file_mode = cfg.default_file_mode & 0777;
+	dev->default_dir_mode = cfg.default_dir_mode & 0777;
+
+	if(cfg.default_uid > UID_MAX)
+		BAIL(ERANGE);
+	dev->default_uid = cfg.default_uid;
+	if(cfg.default_gid > GID_MAX)
+		BAIL(ERANGE);
+	dev->default_gid = cfg.default_gid;
 
 #ifdef HAVE_UBLIO
 	dev->use_ublio = !cfg.noublio;

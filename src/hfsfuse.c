@@ -420,6 +420,10 @@ static struct fuse_opt hfsfuse_opts[] = {
 	HFS_OPTION("ublio_grace=%" SCNu64,ublio_grace),
 	HFS_OPTION("rsrc_ext=%s",rsrc_suff),
 	HFS_OPTION("rsrc_only",rsrc_only),
+	HFS_OPTION("default_file_mode=%" SCNo16,default_file_mode),
+	HFS_OPTION("default_dir_mode=%"SCNo16,default_dir_mode),
+	HFS_OPTION("default_uid=%" SCNu32,default_uid),
+	HFS_OPTION("default_gid=%" SCNu32,default_gid),
 	FUSE_OPT_END
 };
 
@@ -446,8 +450,17 @@ static void help(const char* self, struct hfsfuse_config* cfg) {
 		"                           you should only set this if you are sure it is being misdetected\n"
 		"    -o rsrc_ext=suffix     special suffix for filenames which can be used to access their resource fork\n"
 		"                           or alternatively their data fork if mounted in rsrc_only mode\n"
+		"\n"
+		"    -o default_file_mode=N octal filesystem permissions for Mac OS Classic files (%" PRIo16 ")\n"
+		"    -o default_dir_mode=N  octal filesystem permissions for Mac OS Classic directories (%" PRIo16 ")\n"
+		"    -o default_uid=N       unix user ID for Mac OS Classic files (%" PRIu32 ")\n"
+		"    -o default_gid=N       unix group ID for Mac OS Classic files (%" PRIu32 ")\n"
 		"\n",
-		cfg->volume_config.cache_size
+		cfg->volume_config.cache_size,
+		cfg->volume_config.default_file_mode,
+		cfg->volume_config.default_dir_mode,
+		cfg->volume_config.default_uid,
+		cfg->volume_config.default_gid
 	);
 	if(hfs_get_lib_features() & HFS_LIB_FEATURES_UBLIO) {
 		fprintf(
