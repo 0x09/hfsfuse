@@ -517,9 +517,11 @@ typedef struct partinfo diskinfo_type;
 #define diskinfo_blocksize(d) (d).media_blksize
 #endif
 
-#define BAIL(e) do { errno = e; goto error; } while(0)
+#define BAIL(e) do { err = e; goto error; } while(0)
 
 int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
+	int err = 0;
+
 	struct hfs_device* dev = calloc(1,sizeof(*dev));
 	if(!(vol->cbdata = dev))
 		BAIL(HFS_ENOMEM);
@@ -608,7 +610,7 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 
 error:
 	hfs_close(vol,NULL);
-	return -errno;
+	return -(errno = err);
 }
 
 void hfs_close(hfs_volume* vol, hfs_callback_args* cbargs) {
