@@ -521,22 +521,23 @@ typedef struct partinfo diskinfo_type;
 
 int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 	struct hfs_device* dev = calloc(1,sizeof(*dev));
-	if(!dev)
-		return -(errno = HFS_ENOMEM);
+	if(!(vol->cbdata = dev))
+		BAIL(HFS_ENOMEM);
 
 	struct hfs_volume_config cfg;
 	hfs_volume_config_defaults(&cfg);
 	if(cbargs && cbargs->openvol)
 		cfg = *(struct hfs_volume_config*)cbargs->openvol;
 
+	if((dev->fd = open(name,O_RDONLY)) < 0)
+		BAIL(errno);
+
 	dev->default_fork = cfg.rsrc_only ? HFS_RSRCFORK : HFS_DATAFORK;
 	if(cfg.rsrc_suff) {
 		dev->rsrc_len = strlen(cfg.rsrc_suff);
-		dev->rsrc_suff = hfs_memdup(cfg.rsrc_suff,dev->rsrc_len+1);
+		if(!(dev->rsrc_suff = hfs_memdup(cfg.rsrc_suff,dev->rsrc_len+1)))
+			BAIL(errno);
 	}
-
-	if((dev->fd = open(name,O_RDONLY)) < 0)
-		BAIL(errno);
 
 	if(cfg.blksize)
 		dev->blksize = cfg.blksize;
@@ -594,38 +595,39 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 		};
 		if(!(dev->ubfh = ublio_open(&p)))
 			BAIL(errno);
-		if((errno = pthread_mutex_init(&dev->ubmtx,NULL)))
-			BAIL(errno);
+		int ubmtx_err = pthread_mutex_init(&dev->ubmtx,NULL);
+		if(ubmtx_err) {
+			ublio_close(dev->ubfh);
+			dev->ubfh = NULL;
+			BAIL(ubmtx_err);
+		}
 	}
 #endif
 
-	vol->cbdata = dev;
 	return 0;
 
 error:
-	if(dev->fd >= 0)
-		close(dev->fd);
-	hfs_record_cache_destroy(dev->cache);
-#ifdef HAVE_UBLIO
-	if(dev->ubfh)
-		ublio_close(dev->ubfh);
-#endif
-	free(dev);
+	hfs_close(vol,NULL);
 	return -errno;
 }
 
 void hfs_close(hfs_volume* vol, hfs_callback_args* cbargs) {
 	struct hfs_device* dev = vol->cbdata;
+	if(!dev)
+		return;
+
 	hfs_record_cache_destroy(dev->cache);
 	free(dev->rsrc_suff);
 #ifdef HAVE_UBLIO
-	if(dev->use_ublio) {
+	if(dev->ubfh) {
 		ublio_close(dev->ubfh);
 		pthread_mutex_destroy(&dev->ubmtx);
 	}
 #endif
-	close(dev->fd);
+	if(dev->fd >= 0)
+		close(dev->fd);
 	free(dev);
+	vol->cbdata = NULL;
 }
 
 #ifdef HAVE_UBLIO
