@@ -475,7 +475,7 @@ static void help(const char* self, struct hfsfuse_config* cfg) {
 	}
 }
 
-static void version() {
+static void version(void) {
 	fprintf(
 		stderr,
 		"hfsfuse version " HFSFUSE_VERSION_STRING "\n"
