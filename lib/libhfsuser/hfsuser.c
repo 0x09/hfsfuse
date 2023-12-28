@@ -390,7 +390,7 @@ void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st,
 	} else {
 		st->st_mode  = key->file.bsd.file_mode & 0xFFF;
 
-		#define X(mode,mask) if(key->file.bsd.file_mode & mask) st->st_mode |= mode;
+		#define X(mode,mask) if((key->file.bsd.file_mode & mask) == mask) st->st_mode |= mode;
 		HFS_IFMODES
 		#undef X
 
