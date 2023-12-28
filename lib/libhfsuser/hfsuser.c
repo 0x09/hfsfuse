@@ -108,6 +108,12 @@ ssize_t hfs_unistr_to_utf8(const hfs_unistr255_t* u16, char* u8) {
 	return err ? -err : len;
 }
 
+ssize_t hfs_utf8_to_unistr(const char* u8, hfs_unistr255_t* u16) {
+	int err;
+	u16->length = utf8_to_utf16(u16->unicode, 255, u8, strlen(u8), 0, &err);
+	return err ? -err : u16->length;
+}
+
 ssize_t hfs_pathname_to_unix(const hfs_unistr255_t* u16, char* u8) {
 	ssize_t ret = hfs_unistr_to_utf8(u16, u8);
 	if(ret > 0 && u8)
@@ -193,10 +199,9 @@ int hfs_pathname_from_unix(const char* u8, hfs_unistr255_t* u16) {
 	char* rep = norm;
 	while((rep = strchr(rep,':')))
 		*rep++ = '/';
-	int err;
-	u16->length = utf8_to_utf16(u16->unicode,255,norm,strlen(norm),0,&err);
+	ssize_t err = hfs_utf8_to_unistr(norm,u16);
 	free(norm);
-	return err ? -EINVAL : 0;
+	return err < 0 ? -EINVAL : 0;
 }
 
 // libhfs has `hfslib_path_elements_to_cnid` but we want to be able to use our hfs_pathname_to_unix on the individual elements

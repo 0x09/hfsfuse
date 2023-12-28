@@ -62,6 +62,7 @@ struct hfs_volume_config {
 void hfs_volume_config_defaults(struct hfs_volume_config*);
 
 ssize_t hfs_unistr_to_utf8(const hfs_unistr255_t* u16, char* u8);
+ssize_t hfs_utf8_to_unistr(const char* u8, hfs_unistr255_t* u16);
 ssize_t hfs_pathname_to_unix(const hfs_unistr255_t* u16, char* u8);
 int hfs_pathname_from_unix(const char* u8, hfs_unistr255_t* u16);
 
