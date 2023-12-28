@@ -433,10 +433,12 @@ void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st,
 	else {
 		st->st_nlink = key->folder.valence + 2;
 		st->st_size = vol->vh.block_size;
+	}
+
 #if HAVE_STAT_BLKSIZE
+	if(!st->st_blksize)
 		st->st_blksize = vol->vh.block_size;
 #endif
-	}
 }
 
 static inline char* swapcopy(char* buf, char* src, size_t size) {
