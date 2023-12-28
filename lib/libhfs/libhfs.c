@@ -1591,11 +1591,9 @@ hfslib_reada_node_offsets(void* in_bytes, uint16_t* out_offset_array, uint16_t n
 	 * always equal to 14, the size of the node descriptor. So, once we hit
 	 * offset=14, we know this is the last offset.
 	 */
-	out_offset_array--;
 	do {
-		out_offset_array++;
 		*out_offset_array = be16tohp(&ptr);
-	} while (*out_offset_array != (uint16_t)14 && ++i < numrecords);
+	} while (*out_offset_array++ != (uint16_t)14 && ++i < numrecords);
 
 	return ((uint8_t*)ptr - (uint8_t*)in_bytes);
 }
