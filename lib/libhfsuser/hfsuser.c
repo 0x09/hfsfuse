@@ -427,9 +427,16 @@ void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st,
 #endif
 	if(key->type == HFS_REC_FILE) {
 		hfs_fork_t* f = fork == HFS_DATAFORK ? &key->file.data_fork : &key->file.rsrc_fork;
-		st->st_size = f->logical_size;
+		if(generic_int_max(st->st_size) < f->logical_size)
+			hfslib_error("hfs_stat: logical_size %" PRIu64 " too large for CNID %" PRIu32,NULL,0,f->logical_size,key->file.cnid);
+		else
+			st->st_size = f->logical_size;
 #if HAVE_STAT_BLOCKS
-		st->st_blocks = f->total_blocks * (uint64_t)(vol->vh.block_size/512);
+		uint64_t nblocks = f->total_blocks * (uint64_t)(vol->vh.block_size/512);
+		if(generic_int_max(st->st_blocks) < nblocks)
+			hfslib_error("hfs_stat: total_blocks %" PRIu64 " too large for CNID %" PRIu32,NULL,0,nblocks,key->file.cnid);
+		else
+			st->st_blocks = nblocks;
 #endif
 	}
 	else {
