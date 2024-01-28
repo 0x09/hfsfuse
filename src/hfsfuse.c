@@ -292,7 +292,7 @@ static int hfsfuse_listxattr(const char* path, char* attr, size_t size) {
 	if(rec.file.date_backedup)
 		declare_attr("hfsfuse.record.date_backedup", attr, size, ret);
 
-	if(rec.file.rsrc_fork.logical_size)
+	if(rec.type == HFS_REC_FILE && rec.file.rsrc_fork.logical_size && rec.file.rsrc_fork.logical_size <= INT_MAX)
 		declare_attr("com.apple.ResourceFork", attr, size, ret);
 	if(memcmp(&rec.file,(char[32]){0},32))
 		declare_attr("com.apple.FinderInfo", attr, size, ret);
@@ -320,18 +320,20 @@ static int hfsfuse_getxattr(const char* path, const char* attr, char* value, siz
 	define_attr(attr, "com.apple.FinderInfo", size, 32, {
 		hfs_serialize_finderinfo(&rec, value);
 	});
-	ret = rec.file.rsrc_fork.logical_size;
-	define_attr(attr, "com.apple.ResourceFork", size, ret, {
-		hfs_extent_descriptor_t* extents = NULL;
-		uint64_t bytes;
-		if(size > (size_t)ret)
-			size = ret;
-		uint16_t nextents = hfslib_get_file_extents(vol,rec.file.cnid,HFS_RSRCFORK,&extents,NULL);
-		if((ret = hfslib_readd_with_extents(vol,value,&bytes,size,0,extents,nextents,NULL)) >= 0)
-			ret = bytes;
-		else ret = -EIO;
-		free(extents);
-	});
+	if(rec.type == HFS_REC_FILE && rec.file.rsrc_fork.logical_size && rec.file.rsrc_fork.logical_size <= INT_MAX) {
+		ret = rec.file.rsrc_fork.logical_size;
+		define_attr(attr, "com.apple.ResourceFork", size, ret, {
+			hfs_extent_descriptor_t* extents = NULL;
+			uint64_t bytes;
+			if(size > (size_t)ret)
+				size = ret;
+			uint16_t nextents = hfslib_get_file_extents(vol,rec.file.cnid,HFS_RSRCFORK,&extents,NULL);
+			if((ret = hfslib_readd_with_extents(vol,value,&bytes,size,0,extents,nextents,NULL)) >= 0)
+				ret = bytes;
+			else ret = -EIO;
+			free(extents);
+		});
+	}
 
 	define_attr(attr, "hfsfuse.record.date_created", size, 24, {
 		// some strftime implementations require room for the null terminator
