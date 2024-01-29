@@ -294,7 +294,10 @@ static int hfsfuse_listxattr(const char* path, char* attr, size_t size) {
 
 	if(rec.type == HFS_REC_FILE && rec.file.rsrc_fork.logical_size && rec.file.rsrc_fork.logical_size <= INT_MAX)
 		declare_attr("com.apple.ResourceFork", attr, size, ret);
-	if(memcmp(&rec.file,(char[32]){0},32))
+
+	char finderinfo[32];
+	hfs_serialize_finderinfo(&rec,finderinfo);
+	if(memcmp(finderinfo,(char[32]){0},32))
 		declare_attr("com.apple.FinderInfo", attr, size, ret);
 
 	return ret;
