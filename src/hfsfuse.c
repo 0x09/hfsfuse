@@ -243,8 +243,8 @@ static int hfsfuse_statfs(const char* path, struct statvfs* st) {
 	st->f_blocks = vol->vh.total_blocks;
 	st->f_bfree = vol->vh.free_blocks;
 	st->f_bavail = st->f_bfree;
-	st->f_files = vol->vh.file_count + vol->vh.folder_count;
-	st->f_ffree = UINT_MAX - st->f_files;
+	st->f_files = UINT32_MAX - HFS_CNID_USER;
+	st->f_ffree = st->f_files - vol->vh.file_count - vol->vh.folder_count;
 	st->f_favail = st->f_ffree;
 	st->f_flag = ST_RDONLY;
 	st->f_namemax = HFS_NAME_MAX;
