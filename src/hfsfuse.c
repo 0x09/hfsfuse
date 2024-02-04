@@ -316,7 +316,8 @@ static int hfsfuse_listxattr(const char* path, char* attr, size_t size) {
 	}\
 } while(0)
 
-static int hfsfuse_getxattr(const char* path, const char* attr, char* value, size_t size) {
+// apple supports an offset argument to getxattr, but this is only used for resource fork attributes
+static int hfsfuse_getxattr_offset(const char* path, const char* attr, char* value, size_t size, uint32_t offset) {
 	hfs_volume* vol = fuse_get_context()->private_data;
 	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key;
 	int ret = hfs_lookup(vol,path,&rec,&key,NULL);
@@ -331,10 +332,12 @@ static int hfsfuse_getxattr(const char* path, const char* attr, char* value, siz
 		define_attr(attr, "com.apple.ResourceFork", size, ret, {
 			hfs_extent_descriptor_t* extents = NULL;
 			uint64_t bytes;
-			if(size > (size_t)ret)
-				size = ret;
+			if(offset >= (uint32_t)ret)
+				return 0;
+			if(size > ret - offset)
+				size = ret - offset;
 			uint16_t nextents = hfslib_get_file_extents(vol,rec.file.cnid,HFS_RSRCFORK,&extents,NULL);
-			if((ret = hfslib_readd_with_extents(vol,value,&bytes,size,0,extents,nextents,NULL)) >= 0)
+			if((ret = hfslib_readd_with_extents(vol,value,&bytes,size,offset,extents,nextents,NULL)) >= 0)
 				ret = bytes;
 			else ret = -EIO;
 			free(extents);
@@ -362,9 +365,9 @@ static int hfsfuse_getxattr(const char* path, const char* attr, char* value, siz
 	return -ENOATTR;
 }
 
-#ifdef __APPLE__
-static int hfsfuse_getxattr_darwin(const char* path, const char* attr, char* value, size_t size, u_int32_t unused) {
-	return hfsfuse_getxattr(path, attr, value, size);
+#ifndef __APPLE__
+static int hfsfuse_getxattr(const char* path, const char* attr, char* value, size_t size) {
+	return hfsfuse_getxattr_offset(path, attr, value, size, 0);
 }
 #endif
 
@@ -382,7 +385,7 @@ static struct fuse_operations hfsfuse_ops = {
 	.fgetattr    = hfsfuse_fgetattr,
 	.listxattr   = hfsfuse_listxattr,
 #ifdef __APPLE__
-	.getxattr    = hfsfuse_getxattr_darwin,
+	.getxattr    = hfsfuse_getxattr_offset,
 #else
 	.getxattr    = hfsfuse_getxattr,
 #endif
