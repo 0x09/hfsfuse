@@ -40,8 +40,8 @@ $(info no FUSE install detected, only hfsdump will be built)
 		TARGETS = hfsdump
 	endif
 else ifeq ($(OS), Haiku)
-	CFLAGS += -D_BSD_SOURCE
-	APP_LIB += -lbsd
+	CFLAGS += -D_BSD_SOURCE -DB_USE_POSITIVE_POSIX_ERRORS
+	APP_LIB += -lbsd -lposix_error_mapper
 	FUSE_FLAGS += -I/system/develop/headers/userlandfs/fuse -I/system/develop/headers/bsd
 	FUSE_LIB = -L/system/lib/ -luserlandfs_fuse
 	PREFIX ?= /boot/home/config/non-packaged

@@ -38,12 +38,6 @@
 
 #include "unicode.h"
 
-#ifdef __HAIKU__
-#define HFS_ENOMEM 1
-#else
-#define HFS_ENOMEM ENOMEM
-#endif
-
 #ifdef __MINGW32__
 // mignw doesn't provide these types but defines the corresponding fields in struct stat as follows
 typedef short uid_t;
@@ -195,7 +189,7 @@ static char* hfs_utf8proc_NFD(const uint8_t* u8) {
 int hfs_pathname_from_unix(const char* u8, hfs_unistr255_t* u16) {
 	char* norm = (char*)hfs_utf8proc_NFD((const uint8_t*)u8);
 	if(!norm)
-		return -HFS_ENOMEM;
+		return -ENOMEM;
 	char* rep = norm;
 	while((rep = strchr(rep,':')))
 		*rep++ = '/';
@@ -271,7 +265,7 @@ int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* re
 
 	char* pathcpy = hfs_memdup(path, pathlen+1);
 	if(!pathcpy)
-		return -HFS_ENOMEM;
+		return -ENOMEM;
 	size_t found_pathlen = hfs_record_cache_lookup_parents(cache, pathcpy, pathlen, record, key);
 
 	if(!found_pathlen && hfslib_find_catalog_record_with_cnid(vol,HFS_CNID_ROOT_FOLDER,record,key,NULL)) {
@@ -534,7 +528,7 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 
 	struct hfs_device* dev = calloc(1,sizeof(*dev));
 	if(!(vol->cbdata = dev))
-		BAIL(HFS_ENOMEM);
+		BAIL(ENOMEM);
 
 	struct hfs_volume_config cfg;
 	hfs_volume_config_defaults(&cfg);
