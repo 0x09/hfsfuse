@@ -158,6 +158,11 @@ enum {
 	HFS_HFSLUS_CREATOR     = 0x6866732B   /* 'hfs+' */
 };
 
+enum {
+	HFS_ATTR_INLINE_DATA  = 0x10, /* reserved */
+	HFS_ATTR_FORK_DATA    = 0x20,
+	HFS_ATTR_EXTENTS      = 0x30
+}; /* attributes file data types */
 
 #if 0
 #pragma mark -
@@ -331,6 +336,41 @@ typedef struct {
 } hfs_extent_key_t;
 
 typedef struct {
+	uint16_t   key_len;
+	uint8_t	   unknown[2];
+	hfs_cnid_t cnid;
+	uint32_t   start_block; /* for extent records */
+	hfs_unistr255_t	name;
+} hfs_attribute_key_t;
+
+typedef struct {
+	uint32_t record_type;
+	uint32_t reserved;
+	uint32_t reserved2;
+	uint32_t length;
+} hfs_attr_inline_t;
+
+typedef struct {
+	uint32_t record_type;
+	uint32_t reserved;
+	hfs_fork_t fork;
+} hfs_attr_fork_t;
+
+typedef struct {
+	uint32_t record_type;
+	uint32_t reserved;
+	hfs_extent_record_t extents;
+} hfs_attr_extents_t;
+
+typedef union {
+	uint32_t type;
+	hfs_attr_inline_t inline_record;
+	hfs_attr_fork_t fork_record;
+	hfs_attr_extents_t extents_record;
+	uint32_t child_node;
+} hfs_attribute_record_t;
+
+typedef struct {
 	uint32_t	owner_id;
 	uint32_t	group_id;
 	uint8_t		admin_flags;
@@ -455,6 +495,7 @@ typedef struct {
 	hfs_volume_header_t	vh;		/* volume header */
 	hfs_header_record_t	chr;	/* catalog file header node record*/
 	hfs_header_record_t	ehr;	/* extent overflow file header node record*/
+	hfs_header_record_t	ahr;	/* attributes file header node record*/
 	uint8_t	catkeysizefieldsize;	/* size of catalog file key_len field in
 									 * bytes (1 or 2); always 2 for HFS+ */
 	uint8_t	extkeysizefieldsize;	/* size of extent file key_len field in
@@ -578,6 +619,10 @@ int hfslib_find_catalog_record_with_key(hfs_volume*, hfs_catalog_key_t*,
 	hfs_catalog_keyed_record_t*, hfs_callback_args*);
 int hfslib_find_extent_record_with_key(hfs_volume*, hfs_extent_key_t*,
 	hfs_extent_record_t*, hfs_callback_args*);
+int hfslib_find_attribute_record_with_key(hfs_volume*, hfs_attribute_key_t*,
+	hfs_attribute_record_t*, void**, hfs_callback_args*);
+int hfslib_find_attribute_records_for_cnid(hfs_volume*, hfs_cnid_t,
+	hfs_attribute_key_t**, uint32_t*, hfs_callback_args*);
 int hfslib_get_directory_contents(hfs_volume*, hfs_cnid_t,
 	hfs_catalog_keyed_record_t**, hfs_unistr255_t**, uint32_t*,
 	hfs_callback_args*);
@@ -601,6 +646,9 @@ size_t hfslib_read_catalog_keyed_record(void*, hfs_catalog_keyed_record_t*,
 	int16_t*, hfs_catalog_key_t*, hfs_volume*);
 size_t hfslib_read_extent_record(void*, hfs_extent_record_t*, hfs_node_kind,
 	hfs_extent_key_t*, hfs_volume*);
+size_t hfslib_read_attribute_record(void*, size_t, hfs_node_kind,
+	hfs_attribute_record_t*, hfs_attribute_key_t*, void**, hfs_volume*);
+
 void hfslib_free_recs(void***, uint16_t**, uint16_t*, hfs_callback_args*);
 
 size_t hfslib_read_fork_descriptor(void*, hfs_fork_t*);
@@ -618,14 +666,21 @@ uint16_t hfslib_make_catalog_key(hfs_cnid_t, uint16_t, unichar_t*,
 	hfs_catalog_key_t*);
 uint16_t hfslib_make_extent_key(hfs_cnid_t, uint8_t, uint32_t,
 	hfs_extent_key_t*);
+uint16_t hfslib_make_attribute_key(hfs_cnid_t, uint32_t, uint16_t, unichar_t*,
+	hfs_attribute_key_t*);
 uint16_t hfslib_get_file_extents(hfs_volume*, hfs_cnid_t, uint8_t,
 	hfs_extent_descriptor_t**, hfs_callback_args*);
+int hfslib_get_attribute_extents(hfs_volume*, hfs_attribute_key_t*,
+	hfs_attribute_record_t*, uint16_t*, hfs_extent_descriptor_t**,
+	hfs_callback_args*);
 int hfslib_readd_with_extents(hfs_volume*, void*, uint64_t*, uint64_t,
 	uint64_t, hfs_extent_descriptor_t*, uint16_t, hfs_callback_args*);
 
 int hfslib_compare_catalog_keys_cf(const void*, const void*);
 int hfslib_compare_catalog_keys_bc(const void*, const void*);
 int hfslib_compare_extent_keys(const void*, const void*);
+int hfslib_compare_attribute_keys(const hfs_attribute_key_t*,
+	const hfs_attribute_key_t*);
 
 
 /* callback wrappers */

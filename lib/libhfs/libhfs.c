@@ -301,6 +301,23 @@ hfslib_open_volume(
 	out_vol->extkeysizefieldsize
 	    = (out_vol->ehr.attributes & HFS_BIG_KEYS_MASK) ?
 	    sizeof(uint16_t):sizeof(uint8_t);
+
+	/*
+	 * Read the attributes header if the attributes file exists.
+	 */
+	if (out_vol->vh.attributes_file.extents[0].block_count > 0) {
+		if (hfslib_readd(out_vol, buffer, 512,
+		    out_vol->vh.attributes_file.extents[0].start_block *
+		    (uint64_t)out_vol->vh.block_size, cbargs) != 0)
+			HFS_LIBERR("could not read attribute header node");
+
+		node_recs[0] = (char *)buffer+14;
+		node_rec_sizes[0] = 120;
+		if (hfslib_read_header_node(node_recs, node_rec_sizes, 1,
+		    &out_vol->ahr, NULL, NULL) == 0)
+			HFS_LIBERR("could not parse attribute header node");
+	}
+
 	/*
 	 * Read the journal info block and journal header (if volume journaled).
 	 */
@@ -892,6 +909,440 @@ exit:
 }
 
 /*
+ * out_extents may be NULL.
+ *
+ * extension attributes behave similarly to overflow extents, only embedded into
+ * the attributes file itself and incorporated into its key structure.
+ */
+int
+hfslib_get_attribute_extents(hfs_volume* in_vol, hfs_attribute_key_t* in_key,
+	hfs_attribute_record_t* in_record, uint16_t* out_numextents,
+	hfs_extent_descriptor_t** out_extents, hfs_callback_args* cbargs)
+{
+	hfs_extent_descriptor_t* resized_extents;
+	hfs_extent_descriptor_t* next_extents;
+	hfs_attribute_record_t record;
+	hfs_attribute_key_t	key;
+	uint16_t numextents, n;
+
+	if (out_extents != NULL)
+		*out_extents = NULL;
+	if (out_numextents != NULL)
+		*out_numextents = 0;
+
+	if (in_vol == NULL || in_key == NULL || in_record == NULL ||
+		in_record->type != HFS_ATTR_FORK_DATA || in_key->start_block > 0)
+		return 1;
+
+	key = *in_key;
+	next_extents = in_record->fork_record.fork.extents;
+	numextents = 0;
+
+	while (1) {
+		for (n = 0; n < 8 && next_extents[n].block_count > 0; n++) {
+			if (key.start_block + next_extents[n].block_count < key.start_block)
+				goto error;
+			key.start_block += next_extents[n].block_count;
+		}
+
+		if (out_extents != NULL) {
+			resized_extents = hfslib_realloc(*out_extents, (numextents + n) *
+				sizeof(hfs_extent_descriptor_t), cbargs);
+			if (resized_extents == NULL)
+				goto error;
+			*out_extents = resized_extents;
+
+			memcpy(*out_extents + numextents, next_extents, n *
+				sizeof(hfs_extent_descriptor_t));
+		}
+		numextents += n;
+
+		if (key.start_block >= in_record->fork_record.fork.total_blocks)
+			break;
+
+		/*
+		 * more blocks are needed but this extent record wasn't full, which
+		 * shouldn't happen.
+		 */
+		if (n < 8)
+			goto error;
+
+		/*
+		 * FIXME: no need to do a full tree search here as all attr extent keys
+		 * should be contiguous.
+		 */
+		if (hfslib_find_attribute_record_with_key(in_vol, &key, &record, NULL,
+			cbargs) != 0)
+			goto error;
+
+		if (record.type != HFS_ATTR_EXTENTS)
+			goto error;
+
+		next_extents = record.extents_record.extents;
+	}
+
+	if (out_numextents)
+		*out_numextents = numextents;
+
+	return 0;
+
+error:
+	if (out_extents != NULL) {
+		hfslib_free(*out_extents, cbargs);
+		*out_extents = NULL;
+	}
+	return 1;
+}
+
+/*
+ * look up a single extended attribute matching in_key
+ *
+ * on return, out_inline_data will point to a buffer containing any inline
+ * data for this attribute, or NULL if there is none. this buffer is allocated
+ * with hfslib_malloc and must be freed by the caller.
+ * this argument may be NULL if inline data is not needed.
+ */
+int
+hfslib_find_attribute_record_with_key(hfs_volume* in_vol,
+	hfs_attribute_key_t* in_key, hfs_attribute_record_t* out_record,
+	void** out_inline_data, hfs_callback_args* cbargs)
+{
+	hfs_node_descriptor_t nd;
+	hfs_extent_descriptor_t* extents;
+	hfs_attribute_record_t record;
+	hfs_attribute_key_t* curkey;
+	void** recs;
+	void* node;
+	void* inlinedata;
+	uint64_t bytesread;
+	uint32_t curnode;
+	uint16_t* recsizes;
+	uint16_t level, numextents, recnum;
+	int result, cmp;
+
+	if (out_record)
+		out_record->type = 0;
+	if (out_inline_data)
+		*out_inline_data = NULL;
+
+	if (in_key == NULL || out_record == NULL || in_vol == NULL)
+		return 1;
+
+	result = 1;
+	extents = NULL;
+	recs = NULL;
+	recsizes = NULL;
+	curnode = 0;
+	node = NULL;
+	nd.num_recs = 0;
+
+	/* Not all volumes have an attributes file */
+	if (in_vol->vh.attributes_file.extents[0].block_count == 0 ||
+		in_vol->ahr.leaf_recs == 0 ||
+		in_vol->ahr.tree_depth == 0)
+		return 1;
+
+	curkey = hfslib_malloc(sizeof(hfs_attribute_key_t), cbargs);
+	if (curkey == NULL)
+		HFS_LIBERR("could not allocate attributes search key");
+
+	node = hfslib_malloc(in_vol->ahr.node_size, cbargs);
+	if (node == NULL)
+		HFS_LIBERR("could not allocate attributes file node buffer");
+
+	curnode = in_vol->ahr.root_node;
+
+	numextents = hfslib_get_file_extents(in_vol, HFS_CNID_ATTRIBUTES,
+		HFS_DATAFORK, &extents, NULL);
+	if (numextents == 0)
+		HFS_LIBERR("could not locate attributes file extents");
+
+	for (level = 0; level < in_vol->ahr.tree_depth && curnode != 0; level++) {
+		if (hfslib_readd_with_extents(in_vol, node,
+			&bytesread,in_vol->ahr.node_size, curnode * in_vol->ahr.node_size,
+			extents, numextents, cbargs) != 0)
+			HFS_LIBERR("could not read attribute node #%" PRIu32, curnode);
+
+		if (hfslib_reada_node(node, &nd, &recs, &recsizes, HFS_ATTRIBUTES_FILE,
+			in_vol, cbargs) == 0)
+			HFS_LIBERR("could not parse attribute node #%" PRIu32, curnode);
+
+		if ((level < in_vol->ahr.tree_depth - 1 && nd.kind != HFS_INDEXNODE) ||
+			(level == in_vol->ahr.tree_depth - 1 && nd.kind != HFS_LEAFNODE))
+			HFS_LIBERR("attribute node kind unexpected at depth %" PRIu16 " #%"
+				PRIu32, level, curnode);
+
+		for (recnum = 0, curnode = 0; recnum < nd.num_recs && curnode == 0;
+			recnum++) {
+
+			if (hfslib_read_attribute_record(recs[recnum], recsizes[recnum],
+				nd.kind, NULL, curkey, NULL, in_vol) == 0)
+				HFS_LIBERR("could not read attribute record #%" PRIu16, recnum);
+
+			cmp = hfslib_compare_attribute_keys(in_key, curkey);
+
+			if (cmp < 0) {
+				if (recnum > 0 && nd.kind == HFS_INDEXNODE) {
+					/* might be in the previous node */
+					if (hfslib_read_attribute_record(recs[recnum - 1],
+						recsizes[recnum - 1], nd.kind, &record, NULL, NULL,
+						in_vol) == 0)
+						HFS_LIBERR("could not read attribute record #%"
+							PRIu16, recnum);
+
+					curnode = record.child_node;
+				}
+
+				/*
+				 * otherwise the first record in the first index node is greater
+				 * than our search key, or we reached the end of a leaf node and
+				 * found nothing. either way we're done, there's no matching
+				 * xattr
+				 */
+			} else if ((cmp == 0 || recnum == nd.num_recs - 1) &&
+				nd.kind == HFS_INDEXNODE) {
+
+				/*
+				 * either an exact match or we've reached the end of the node
+				 * and didn't find anything. either way descend into this index
+				 */
+				if (hfslib_read_attribute_record(recs[recnum], recsizes[recnum],
+					nd.kind, &record, NULL, NULL, in_vol) == 0)
+					HFS_LIBERR("could not read attribute record #%" PRIu16,
+						recnum);
+
+				curnode = record.child_node;
+			} else if (cmp == 0) {
+				/* found the xattr */
+				if (hfslib_read_attribute_record(recs[recnum], recsizes[recnum],
+					nd.kind, &record, NULL, &inlinedata, in_vol) == 0)
+					HFS_LIBERR("could not read attribute record #%" PRIu16,
+						recnum);
+
+				memcpy(out_record, &record, sizeof(record));
+
+				/*
+				 * any inline data attrs are in the node buffer that we're about
+				 * to free. allocate a buffer with just the attribute which the
+				 * caller can manage.
+				 */
+				if (out_inline_data && inlinedata &&
+					record.inline_record.length) {
+					*out_inline_data = hfslib_malloc(
+						record.inline_record.length, cbargs);
+
+					if (*out_inline_data == NULL)
+						HFS_LIBERR("couldn't allocate attribute data #%"
+							PRIu16, recnum);
+
+					memcpy(*out_inline_data, inlinedata,
+						record.inline_record.length);
+				}
+
+				result = 0;
+				break;
+			}
+			/* continue on to the next record */
+		}
+		hfslib_free_recs(&recs, &recsizes, &nd.num_recs, cbargs);
+	}
+
+error:
+	hfslib_free(extents, cbargs);
+	hfslib_free_recs(&recs, &recsizes, &nd.num_recs, cbargs);
+	hfslib_free(curkey, cbargs);
+	hfslib_free(node, cbargs);
+
+	return result;
+}
+
+/*
+ * look up all extended attribute keys for a given CNID.
+ *
+ * the B-tree search for hfslib_find_attribute_record_with_key above can be a
+ * bit simpler as here we have the possibility of results spanning multiple
+ * nodes.
+ */
+int
+hfslib_find_attribute_records_for_cnid(hfs_volume* in_vol, hfs_cnid_t cnid,
+	hfs_attribute_key_t** out_attr_keys, uint32_t* out_num_attrs,
+	hfs_callback_args* cbargs)
+{
+	hfs_node_descriptor_t nd;
+	hfs_extent_descriptor_t* extents;
+	hfs_attribute_record_t record;
+	hfs_attribute_key_t* curkey;
+	hfs_attribute_key_t* resized_keys;
+	void** recs;
+	void* node;
+	uint64_t bytesread;
+	uint32_t nodes_visited, curnode;
+	uint16_t* recsizes;
+	uint16_t level, numextents, recnum;
+	int result;
+
+	if (out_num_attrs != NULL)
+		*out_num_attrs = 0;
+	if (out_attr_keys != NULL)
+		*out_attr_keys = NULL;
+
+	if (out_attr_keys == NULL || out_num_attrs == NULL || in_vol == NULL)
+		return 1;
+
+	result = 1;
+	extents = NULL;
+	recs = NULL;
+	recsizes = NULL;
+	curnode = 0;
+	node = NULL;
+	nd.num_recs = 0;
+
+	/* Not all volumes have an attributes file */
+	if (in_vol->vh.attributes_file.extents[0].block_count == 0 ||
+		in_vol->ahr.leaf_recs == 0 ||
+		in_vol->ahr.tree_depth == 0)
+		return 1;
+
+	curkey = hfslib_malloc(sizeof(hfs_attribute_key_t), cbargs);
+	if (curkey == NULL)
+		HFS_LIBERR("could not allocate attributes search key");
+
+	node = hfslib_malloc(in_vol->ahr.node_size, cbargs);
+	if (node == NULL)
+		HFS_LIBERR("could not allocate attributes file node buffer");
+
+	curnode = in_vol->ahr.root_node;
+
+	numextents = hfslib_get_file_extents(in_vol, HFS_CNID_ATTRIBUTES,
+		HFS_DATAFORK, &extents, NULL);
+	if (numextents == 0)
+		HFS_LIBERR("could not locate attributes file extents");
+
+	for (level = 0, nodes_visited = 0; curnode != 0 &&
+		level < in_vol->ahr.tree_depth &&
+		nodes_visited < in_vol->ahr.total_nodes;
+		nodes_visited++) {
+
+		if (hfslib_readd_with_extents(in_vol, node, &bytesread,
+			in_vol->ahr.node_size, curnode * in_vol->ahr.node_size, extents,
+			numextents, cbargs) != 0)
+			HFS_LIBERR("could not read attribute node #%" PRIu32, curnode);
+
+		if (hfslib_reada_node(node, &nd, &recs, &recsizes, HFS_ATTRIBUTES_FILE,
+			in_vol, cbargs) == 0)
+			HFS_LIBERR("could not parse attribute node #%" PRIu32, curnode);
+
+		if ((level < in_vol->ahr.tree_depth - 1 && nd.kind != HFS_INDEXNODE) ||
+			(level == in_vol->ahr.tree_depth - 1 && nd.kind != HFS_LEAFNODE))
+			HFS_LIBERR("attribute node kind unexpected at depth %" PRIu16 " #%"
+				PRIu32, level, curnode);
+
+		for (recnum = 0, curnode = 0; recnum < nd.num_recs; recnum++) {
+			if (hfslib_read_attribute_record(recs[recnum], recsizes[recnum],
+				nd.kind, NULL, curkey, NULL, in_vol) == 0)
+				HFS_LIBERR("could not read attribute record #%" PRIu16, recnum);
+
+
+			if (cnid < curkey->cnid) {
+				if (recnum > 0 && nd.kind == HFS_INDEXNODE) {
+					/* might be in the previous node */
+					if (hfslib_read_attribute_record(recs[recnum - 1],
+						recsizes[recnum - 1], nd.kind, &record, NULL, NULL,
+						in_vol) == 0)
+						HFS_LIBERR("could not read attribute record %d",
+							recnum-1);
+
+					curnode = record.child_node;
+					level++;
+				}
+
+				/*
+				 * otherwise the first record in the first index node is greater
+				 * than our search key, or all further keys in the tree are
+				 * greater and we've found nothing. either way we're done,
+				 * there's no matching xattr
+				 */
+				break;
+			}
+
+			if ((cnid == curkey->cnid || recnum == nd.num_recs - 1) &&
+				nd.kind == HFS_INDEXNODE) {
+				/*
+				 * either an exact match or we've reached the end of the node
+				 * and need to check the last index. if this is the first index
+				 * node descend into it, otherwise the cnid's attrs may start in
+				 * the previous node
+				 */
+				if (recnum > 0 && cnid == curkey->cnid)
+					recnum--;
+				if (hfslib_read_attribute_record(recs[recnum],
+					recsizes[recnum], nd.kind, &record, NULL, NULL,
+					in_vol) == 0)
+					HFS_LIBERR("could not read attribute record #%" PRIu16,
+						recnum);
+
+				curnode = record.child_node;
+				level++;
+				break;
+			}
+
+			if (recnum == nd.num_recs - 1) {
+				/*
+				 * we're at the end of a leaf node. if we're here we may
+				 * have found matching keys in this or the subsequent node
+				 * either way we need to continue the search horizontally.
+				 * continue for one more node, unless our key already matches
+				 * in which case continue for as long as we can
+				 */
+				if (cnid == curkey->cnid || curnode != nd.blink)
+					curnode = nd.flink;
+			}
+
+			if (cnid == curkey->cnid && curkey->start_block == 0) {
+				/* found an xattr */
+				resized_keys = hfslib_realloc(*out_attr_keys,
+					sizeof(hfs_attribute_key_t) * (*out_num_attrs + 1), cbargs);
+				if (resized_keys == NULL) {
+					/*
+					 * only require callers to free this if we returned at least
+					 * one xattr
+					 */
+					if (*out_num_attrs == 0) {
+						hfslib_free(*out_attr_keys, cbargs);
+						*out_attr_keys = NULL;
+					}
+					HFS_LIBERR("could not allocate attribute keys");
+				}
+
+				*out_attr_keys = resized_keys;
+
+				if (hfslib_read_attribute_record(recs[recnum], recsizes[recnum],
+					nd.kind, NULL, *out_attr_keys + *out_num_attrs, NULL,
+					in_vol) == 0)
+					HFS_LIBERR("could not read attribute record #%" PRIu16,
+						recnum);
+
+				(*out_num_attrs)++;
+			}
+
+			/* continue on to the next record */
+		}
+
+		hfslib_free_recs(&recs, &recsizes, &nd.num_recs, cbargs);
+	}
+
+	result = 0;
+
+error:
+	hfslib_free(extents, cbargs);
+	hfslib_free_recs(&recs, &recsizes, &nd.num_recs, cbargs);
+	hfslib_free(curkey, cbargs);
+	hfslib_free(node, cbargs);
+
+	return result;
+}
+
+/*
  * hfslib_get_directory_contents()
  *
  * Finds the immediate children of a given directory CNID and places their 
@@ -1337,9 +1788,10 @@ hfslib_read_master_directory_block(void* in_bytes,
  *	HFS_ATTRIBUTES_FILE, depending on the special file in which this node
  *	resides.
  *
- *	inout_volume must have its catnodesize or extnodesize field (depending on
- *	the parent file) set to the correct value if this is an index, leaf, or map
- *	node. If this is a header node, the field will be set to its correct value.
+ *	inout_volume must have its catnodesize, extnodesize, or attrnodesize field
+ *	(depending on the parent file) set to the correct value if this is an index,
+ *	leaf, or map node. If this is a header node, the field will be set to its
+ *	correct value.
  */
 size_t
 hfslib_reada_node(void* in_bytes,
@@ -1430,6 +1882,9 @@ hfslib_reada_node(void* in_bytes,
 				break;
 
 			case HFS_ATTRIBUTES_FILE:
+				inout_volume->ahr.node_size = hr.node_size;
+				break;
+
 			default:
 				HFS_LIBERR("invalid parent file type specified");
 				/* NOTREACHED */
@@ -1449,6 +1904,11 @@ hfslib_reada_node(void* in_bytes,
 			break;
 
 		case HFS_ATTRIBUTES_FILE:
+			nodesize = inout_volume->ahr.node_size;
+			/* HFS has no attributes file and this is always 2 for HFS+ */
+			keysizefieldsize = sizeof(uint16_t);
+			break;
+
 		default:
 			HFS_LIBERR("invalid parent file type specified");
 			/* NOTREACHED */
@@ -1525,18 +1985,24 @@ hfslib_reada_node(void* in_bytes,
 		if (out_node_descriptor->kind == HFS_LEAFNODE ||
 		    out_node_descriptor->kind == HFS_INDEXNODE)
 		{
-			hfs_catalog_key_t	reckey;
-			int16_t	rectype;
+			if (in_parent_file == HFS_CATALOG_FILE) {
+				/*
+				 * This rule doesn't apply to the variable-length attributes file
+				 * keys, nor the extents overflow file (whose keys are always even.)
+				 */
+				hfs_catalog_key_t	reckey;
+				int16_t	rectype;
 
-			rectype = out_node_descriptor->kind;
-			last_bytes_read = hfslib_read_catalog_keyed_record(ptr, NULL,
-				&rectype, &reckey, inout_volume);
-			if (last_bytes_read == 0)
-				HFS_LIBERR("could not read node record");
+				rectype = out_node_descriptor->kind;
+				last_bytes_read = hfslib_read_catalog_keyed_record(ptr, NULL,
+					&rectype, &reckey, inout_volume);
+				if (last_bytes_read == 0)
+					HFS_LIBERR("could not read node record");
 
-			if ((reckey.key_len + keysizefieldsize) % 2 == 1) {
-				ptr = (uint8_t*)ptr + 1;
-				(*out_record_ptr_sizes_array)[i]--;
+				if ((reckey.key_len + keysizefieldsize) % 2 == 1) {
+					ptr = (uint8_t*)ptr + 1;
+					(*out_record_ptr_sizes_array)[i]--;
+				}
 			}
 
 			if ((*out_record_ptr_sizes_array)[i] % 2 == 1)
@@ -1873,6 +2339,154 @@ hfslib_read_extent_record(
 	}
 
 	return ((uint8_t*)ptr - (uint8_t*)in_bytes);
+}
+
+/*
+ * hfslib_read_attribute_record()
+ *
+ * out_key or out_recdata may be NULL if either one of these is not needed.
+ *
+ * the out_inline_data argument may be NULL. otherwise, if the record contains
+ * inline data this will be updated to point to its location in in_bytes.
+ */
+size_t
+hfslib_read_attribute_record(
+	void* in_bytes,
+	size_t in_length,
+	hfs_node_kind in_kind,
+	hfs_attribute_record_t* out_recdata,
+	hfs_attribute_key_t* out_key,
+	void** out_inline_data,
+	hfs_volume* in_volume)
+{
+	size_t last_bytes_read, name_len;
+	uint16_t key_len;
+	void* ptr;
+
+	if (out_inline_data)
+		*out_inline_data = NULL;
+
+	if (in_bytes == NULL || (out_key == NULL && out_recdata == NULL) ||
+		in_length < 2)
+		return 0;
+
+	ptr = in_bytes;
+
+	key_len = be16tohp(&ptr);
+
+	/* corrupt key or not enough space in in_bytes to hold it */
+	if (key_len < 12 || key_len > in_volume->ahr.max_key_len ||
+		in_length < key_len + 2)
+		return 0;
+
+	/* we might only need the record data */
+	if (out_key != NULL) {
+		out_key->key_len = key_len;
+		out_key->unknown[0] = *(uint8_t*)ptr;
+		ptr = (uint8_t*)ptr + 1;
+		out_key->unknown[1] = *(uint8_t*)ptr;
+		ptr = (uint8_t*)ptr + 1;
+		out_key->cnid = be32tohp(&ptr);
+		out_key->start_block = be32tohp(&ptr);
+
+		/*
+		 * attr file has variable length keys. check against the key length
+		 * reported initially to make sure there is enough room.
+		 */
+		name_len = be16tohp(&ptr) * 2u;
+		if (out_key->key_len != 12 + name_len)
+			return 0;
+
+		last_bytes_read = hfslib_read_unistr255((uint8_t*)ptr - 2,
+			&out_key->name);
+		if (last_bytes_read == 0)
+			return 0;
+	}
+
+	if (out_recdata == NULL)
+		return (uint8_t*)ptr - (uint8_t*)in_bytes;
+
+	ptr = (uint8_t*)in_bytes + 2 + key_len;
+
+	if (in_length < (size_t)((uint8_t*)ptr - (uint8_t*)in_bytes) + 4)
+		return 0;
+
+	switch (in_kind) {
+	case HFS_INDEXNODE:
+		out_recdata->child_node = be32tohp(&ptr);
+		break;
+
+	case HFS_LEAFNODE: {
+		out_recdata->type = be32tohp(&ptr);
+
+		switch(out_recdata->type) {
+		case HFS_ATTR_INLINE_DATA: {
+			if (in_length < (size_t)((uint8_t*)ptr - (uint8_t*)in_bytes) + 12)
+				return 0;
+
+			out_recdata->inline_record.reserved = be32tohp(&ptr);
+			out_recdata->inline_record.reserved2 = be32tohp(&ptr);
+			out_recdata->inline_record.length = be32tohp(&ptr);
+
+			if (in_length < (size_t)((uint8_t*)ptr - (uint8_t*)in_bytes) +
+				out_recdata->inline_record.length)
+				return 0;
+
+			if (out_inline_data)
+				*out_inline_data = ptr;
+
+			ptr = (uint8_t*)ptr + out_recdata->inline_record.length;
+
+			if (in_length < (size_t)((uint8_t*)ptr - (uint8_t*)in_bytes) + 1 &&
+				out_recdata->inline_record.length % 2 == 0)
+				ptr = (uint8_t*)ptr + 1;
+
+			break;
+		}
+
+		case HFS_ATTR_FORK_DATA: {
+			if (in_length < (size_t)((uint8_t*)ptr - (uint8_t*)in_bytes) + 84)
+				return 0;
+
+			out_recdata->fork_record.reserved = be32tohp(&ptr);
+
+			last_bytes_read = hfslib_read_fork_descriptor(ptr,
+				&out_recdata->fork_record.fork);
+			if (last_bytes_read == 0)
+				return 0;
+			ptr = (uint8_t*)ptr + last_bytes_read;
+
+			break;
+		}
+
+		case HFS_ATTR_EXTENTS: {
+			if (in_length < (size_t)((uint8_t*)ptr - (uint8_t*)in_bytes) + 68)
+				return 0;
+
+			out_recdata->extents_record.reserved = be32tohp(&ptr);
+
+			last_bytes_read = hfslib_read_extent_descriptors(ptr,
+				&out_recdata->extents_record.extents);
+			if (last_bytes_read == 0)
+					return 0;
+			ptr = (uint8_t*)ptr + last_bytes_read;
+
+			break;
+		}
+
+		default:
+			return 0;
+			/* NOTREACHED */
+		}
+		break;
+	}
+
+	default:
+		return 0;
+		/* NOTREACHED */
+	}
+
+	return (uint8_t*)ptr - (uint8_t*)in_bytes;
 }
 
 void
@@ -2334,6 +2948,34 @@ hfslib_make_extent_key(
 	return out_key->key_length;
 }
 
+/* returns key length */
+uint16_t
+hfslib_make_attribute_key(
+	hfs_cnid_t in_cnid,
+	uint32_t in_start_block,
+	uint16_t in_name_len,
+	unichar_t* in_unicode,
+	hfs_attribute_key_t* out_key)
+{
+	if (in_cnid == 0 || (in_name_len > 0 && in_unicode == NULL) ||
+		out_key == 0)
+		return 0;
+
+	if (in_name_len > 255)
+		in_name_len = 255;
+
+	out_key->key_len = 6 + 2 * in_name_len;
+	out_key->unknown[0] = 0;
+	out_key->unknown[1] = 0;
+	out_key->cnid = in_cnid;
+	out_key->start_block = in_start_block;
+	out_key->name.length = in_name_len;
+	if (in_name_len > 0)
+		memcpy(&out_key->name.unicode, in_unicode, in_name_len*2);
+
+	return out_key->key_len;
+}
+
 /* case-folding */
 int
 hfslib_compare_catalog_keys_cf (
@@ -2473,6 +3115,33 @@ hfslib_compare_extent_keys (
 	} else {
 		return (a->file_cnid - b->file_cnid);
 	}
+}
+
+int
+hfslib_compare_attribute_keys(const hfs_attribute_key_t* a,
+	const hfs_attribute_key_t* b) {
+
+	int cmp;
+
+	if (a->cnid < b->cnid)
+		return -1;
+	if (a->cnid > b->cnid)
+		return 1;
+
+	/* unlike catalog keys these are strictly byte ordered */
+	cmp = memcmp(a->name.unicode, b->name.unicode,
+		min(a->name.length, b->name.length) * sizeof(unichar_t));
+	if (cmp != 0)
+		return cmp;
+
+	cmp = a->name.length - (int)b->name.length;
+	if (cmp != 0)
+		return cmp;
+
+	if (a->start_block < b->start_block)
+		return -1;
+
+	return a->start_block > b->start_block;
 }
 
 /* 1+10 tables of 16 rows and 16 columns, each 2 bytes wide = 5632 bytes */

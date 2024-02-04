@@ -13,12 +13,12 @@ This driver is read-only and cannot write to or alter the target filesystem.
 * Hard links, including directory hard links (i.e. Time Machine backups)
 * Resource fork, Finder info, and creation/backup time access via extended attributes
 * birthtime (with compatible FUSE)
+* User-defined extended attributes
 
 **Not supported**
 
 * HFS without the "+", aka "Mac OS Standard" volumes. For these, try [hfsutils](https://www.mars.org/home/rob/proj/hfs/).
 * Writing
-* User-defined extended attributes
 
 # Installation
 With the FUSE headers and library for your platform installed, running `make install` (gmake on *BSD) from the project root will build and install hfsfuse and hfsdump and should be sufficient for most use cases. See below for more details or skip to [usage](#Use).
@@ -132,7 +132,6 @@ Under Haiku only, all extended attribute values are hex encoded to allow binary 
 catattr -r user.com.apple.ResourceFork file | xxd -r -p
 ```
 
-Other, user-created extended attributes are not currently supported as their on-disk structure is not fully specified.
 
 ## Mac OS Classic file permissions
 HFS+ filesystems created on Mac OS Classic do not contain the typical set of Unix ownership and permission information for files and folders.

@@ -160,7 +160,7 @@ static inline void dump_record(hfs_catalog_keyed_record_t rec) {
 
 int main(int argc, char* argv[]) {
 	if(argc < 2) {
-		fprintf(stderr,"Usage: hfsdump <device> [<stat|read> <path|inode>]\n");
+		fprintf(stderr,"Usage: hfsdump <device> [<stat|read|xattr> <path|inode> [xattrname]\n");
 		return 0;
 	}
 
@@ -238,7 +238,50 @@ int main(int argc, char* argv[]) {
 			free(extents);
 		}
 	}
-	else fprintf(stderr,"valid commands: stat, read\n");
+	else if(!strcmp(argv[2], "xattr")) {
+		if(argc < 5) {
+			hfs_attribute_key_t* attr_keys;
+			uint32_t nattrs;
+			ret = hfslib_find_attribute_records_for_cnid(&vol,rec.file.cnid,&attr_keys,&nattrs,NULL);
+			for(uint32_t i = 0; i < nattrs; i++) {
+				char attrname[HFS_NAME_MAX+1];
+				ssize_t u8len = hfs_unistr_to_utf8(&attr_keys[i].name, attrname);
+				if(u8len > 0)
+					printf("%s\n",attrname);
+			}
+		}
+		else {
+			hfs_attribute_record_t attrec;
+			hfs_unistr255_t attrname;
+			if(hfs_utf8_to_unistr(argv[4],&attrname) <= 0)
+				goto end;
+			hfs_attribute_key_t attrkey;
+			void* inlinedata;
+			if(hfslib_make_attribute_key(rec.file.cnid,0,attrname.length,attrname.unicode,&attrkey) &&
+			   (!(ret = hfslib_find_attribute_record_with_key(&vol,&attrkey,&attrec,&inlinedata,NULL)))) {
+				switch(attrec.type) {
+					case HFS_ATTR_INLINE_DATA:
+						fwrite(inlinedata,attrec.inline_record.length,1,stdout);
+						free(inlinedata);
+						break;
+					case HFS_ATTR_FORK_DATA: {
+						hfs_extent_descriptor_t* extents;
+						uint16_t nextents;
+						if(hfslib_get_attribute_extents(&vol,&attrkey,&attrec,&nextents,&extents,NULL))
+							break;
+						uint64_t bytes = 0, offset = 0, size = attrec.fork_record.fork.logical_size;
+						char data[4096];
+						while(!(ret = hfslib_readd_with_extents(&vol,data,&bytes,4096,offset,extents,nextents,NULL)) && offset < size) {
+							fwrite(data,(size-offset < bytes ? size-offset : bytes),1,stdout);
+							offset += bytes;
+						}
+						free(extents);
+					}; break;
+				}
+			}
+		}
+	}
+	else fprintf(stderr,"valid commands: stat, read, xattr\n");
 
 end:
 	hfslib_close_volume(&vol,NULL);

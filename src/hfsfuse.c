@@ -303,6 +303,27 @@ static int hfsfuse_listxattr(const char* path, char* attr, size_t size) {
 	if(memcmp(finderinfo,(char[32]){0},32))
 		declare_attr("com.apple.FinderInfo", attr, size, ret);
 
+	hfs_attribute_key_t* attr_keys;
+	uint32_t nattrs;
+	if(hfslib_find_attribute_records_for_cnid(vol,rec.file.cnid,&attr_keys,&nattrs,NULL))
+		return -1;
+	for(uint32_t i = 0; i < nattrs; i++) {
+		char attrname[HFS_NAME_MAX+1];
+		ssize_t u8len = hfs_unistr_to_utf8(&attr_keys[i].name, attrname);
+		if(u8len <= 0)
+			continue;
+		ret += u8len + 1;
+#ifndef __APPLE__
+		ret += 5; //user. prefix
+#endif
+		if(size >= (size_t)ret) {
+#ifndef __APPLE__
+			attr = stpcpy(attr, "user.");
+#endif
+			attr = stpcpy(attr, attrname)+1;
+		}
+	}
+
 	return ret;
 }
 
@@ -362,7 +383,68 @@ static int hfsfuse_getxattr_offset(const char* path, const char* attr, char* val
 		memcpy(value, timebuf, 24);
 	});
 
-	return -ENOATTR;
+#ifndef __APPLE__
+	if(!strncmp(attr,"user.",5))
+		attr += 5;
+#endif
+
+	hfs_attribute_record_t attrec;
+	hfs_unistr255_t attrname;
+	// xattr names have no normalization applied unlike catalog keys
+	if(hfs_utf8_to_unistr(attr,&attrname) <= 0)
+		return -EINVAL;
+	hfs_attribute_key_t attrkey;
+	if(!hfslib_make_attribute_key(rec.file.cnid,0,attrname.length,attrname.unicode,&attrkey))
+		return -EFAULT; // cnid was 0
+	void* inlinedata = NULL;
+	if(hfslib_find_attribute_record_with_key(vol,&attrkey,&attrec,(size ? &inlinedata : NULL),NULL))
+		 return -ENOATTR;
+
+	size_t attrsize = 0;
+	switch(attrec.type) {
+		case HFS_ATTR_INLINE_DATA:
+			attrsize = attrec.inline_record.length;
+			break;
+		case HFS_ATTR_FORK_DATA:
+			attrsize = attrec.fork_record.fork.logical_size;
+			break;
+		case HFS_ATTR_EXTENTS:
+			hfslib_error("unexpected extent attr found in getxattr. attr: %s path: %s\n", NULL, 0, attr, path);
+			return -EFAULT;
+	}
+	if(size) {
+		if(size < attrsize) {
+			ret = -ERANGE;
+			goto end;
+		}
+
+		switch(attrec.type) {
+			case HFS_ATTR_INLINE_DATA:
+				memcpy(value,inlinedata,attrsize);
+				break;
+			case HFS_ATTR_FORK_DATA: {
+				hfs_extent_descriptor_t* extents;
+				uint16_t nextents;
+				if(hfslib_get_attribute_extents(vol,&attrkey,&attrec,&nextents,&extents,NULL))
+					return -1;
+				uint64_t bytesread;
+				ret = hfslib_readd_with_extents(vol,value,&bytesread,attrsize,0,extents,nextents,NULL);
+				free(extents);
+				if(ret)
+					return ret;
+				attrsize = bytesread;
+			}; break;
+		}
+	}
+
+	if(attrsize > (size_t)INT_MAX)
+		ret = -ERANGE;
+	else
+		ret = attrsize;
+
+end:
+	free(inlinedata);
+	return ret;
 }
 
 #ifndef __APPLE__
