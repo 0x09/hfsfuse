@@ -451,37 +451,26 @@ static inline char* swapcopy(char* buf, char* src, size_t size) {
 #define SWAPCOPY(buf, src) swapcopy((char*)(buf),(char*)&(src),sizeof((src)))
 
 void hfs_serialize_finderinfo(hfs_catalog_keyed_record_t* rec, char buf[32]) {
+	memset(buf,0,32);
 	if(rec->type == HFS_REC_FILE) {
 		buf = SWAPCOPY(buf, rec->file.user_info.file_type);
 		buf = SWAPCOPY(buf, rec->file.user_info.file_creator);
 		buf = SWAPCOPY(buf, rec->file.user_info.finder_flags);
 		buf = SWAPCOPY(buf, rec->file.user_info.location.v);
 		buf = SWAPCOPY(buf, rec->file.user_info.location.h);
-		buf = SWAPCOPY(buf, rec->file.user_info.reserved);
-
-		for(int i = 0; i < 4; i++)
-			buf = SWAPCOPY(buf, rec->file.finder_info.reserved[i]);
+		buf += 10;
 		buf = SWAPCOPY(buf, rec->file.finder_info.extended_finder_flags);
-		buf = SWAPCOPY(buf, rec->file.finder_info.reserved2);
-		buf = SWAPCOPY(buf, rec->file.finder_info.put_away_folder_cnid);
 	}
 	else if(rec->type == HFS_REC_FLDR) {
 		buf = SWAPCOPY(buf, rec->folder.user_info.window_bounds.t);
 		buf = SWAPCOPY(buf, rec->folder.user_info.window_bounds.l);
 		buf = SWAPCOPY(buf, rec->folder.user_info.window_bounds.b);
 		buf = SWAPCOPY(buf, rec->folder.user_info.window_bounds.r);
-
 		buf = SWAPCOPY(buf, rec->folder.user_info.finder_flags);
 		buf = SWAPCOPY(buf, rec->folder.user_info.location.v);
 		buf = SWAPCOPY(buf, rec->folder.user_info.location.h);
-		buf = SWAPCOPY(buf, rec->folder.user_info.reserved);
-
-		buf = SWAPCOPY(buf, rec->folder.finder_info.scroll_position.v);
-		buf = SWAPCOPY(buf, rec->folder.finder_info.scroll_position.h);
-		buf = SWAPCOPY(buf, rec->folder.finder_info.reserved);
+		buf += 10;
 		buf = SWAPCOPY(buf, rec->folder.finder_info.extended_finder_flags);
-		buf = SWAPCOPY(buf, rec->folder.finder_info.reserved2);
-		buf = SWAPCOPY(buf, rec->folder.finder_info.put_away_folder_cnid);
 	}
 }
 
