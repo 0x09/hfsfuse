@@ -2034,12 +2034,11 @@ hfslib_read_file_finderinfo(
 
 	ptr = in_bytes;
 
-#if 0
-	#pragma warn Fill in with real code!
-#endif
-	/* FIXME: Fill in with real code! */
-	memset(out_info, 0, sizeof(*out_info));
-	ptr = (uint8_t*)ptr + sizeof(hfs_macos_extended_file_info_t);
+	for(int i = 0; i < 4; i++)
+		out_info->reserved[i] = be16tohp(&ptr);
+	out_info->extended_finder_flags = be16tohp(&ptr);
+	out_info->reserved2 = be16tohp(&ptr);
+	out_info->put_away_folder_cnid = be32tohp(&ptr);
 
 	return ((uint8_t*)ptr - (uint8_t*)in_bytes);
 }
@@ -2054,12 +2053,14 @@ hfslib_read_folder_userinfo(void* in_bytes, hfs_macos_folder_info_t* out_info)
 
 	ptr = in_bytes;
 
-#if 0
-	#pragma warn Fill in with real code!
-#endif
-	/* FIXME: Fill in with real code! */
-	memset(out_info, 0, sizeof(*out_info));
-	ptr = (uint8_t*)ptr + sizeof(hfs_macos_folder_info_t);
+	out_info->window_bounds.t = be16tohp(&ptr);
+	out_info->window_bounds.l = be16tohp(&ptr);
+	out_info->window_bounds.b = be16tohp(&ptr);
+	out_info->window_bounds.r = be16tohp(&ptr);
+	out_info->finder_flags = be16tohp(&ptr);
+	out_info->location.v = be16tohp(&ptr);
+	out_info->location.h = be16tohp(&ptr);
+	out_info->reserved = be16tohp(&ptr);
 
 	return ((uint8_t*)ptr - (uint8_t*)in_bytes);
 }
@@ -2076,12 +2077,12 @@ hfslib_read_folder_finderinfo(
 
 	ptr = in_bytes;
 
-#if 0
-	#pragma warn Fill in with real code!
-#endif
-	/* FIXME: Fill in with real code! */
-	memset(out_info, 0, sizeof(*out_info));
-	ptr = (uint8_t*)ptr + sizeof(hfs_macos_extended_folder_info_t);
+	out_info->scroll_position.v = be16tohp(&ptr);
+	out_info->scroll_position.h = be16tohp(&ptr);
+	out_info->reserved = be32tohp(&ptr);
+	out_info->extended_finder_flags = be16tohp(&ptr);
+	out_info->reserved2 = be16tohp(&ptr);
+	out_info->put_away_folder_cnid = be32tohp(&ptr);
 
 	return ((uint8_t*)ptr - (uint8_t*)in_bytes);
 }
