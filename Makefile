@@ -129,6 +129,9 @@ $(eval $(call cccheck,HAVE_STAT_BLOCKS,{ (struct stat){0}.st_blocks; },sys/stat.
 $(eval $(call cccheck,HAVE_VSYSLOG,{ vsyslog(0,(const char*){0},(va_list){0}); },syslog.h stdarg.h))
 $(eval $(call cccheck,HAVE_PREAD,{ pread(0,(void*){0},0,0); },unistd.h))
 
+$(eval $(call cccheck,HAVE_LZFSE,,lzfse.h))
+$(eval $(call cccheck,HAVE_ZLIB,,zlib.h))
+
 $(foreach cfg,OS CC AR RANLIB INSTALL TAR PREFIX WITH_UBLIO WITH_UTF8PROC CONFIG_CFLAGS $(FEATURES),$(eval CONFIG:=$(CONFIG)$(cfg)=$$($(cfg))\n))
 $(foreach feature,$(FEATURES),$(if $(filter $($(feature)),1),$(eval CFLAGS+=-D$(feature))))
 
@@ -157,6 +160,9 @@ ifneq ($(WITH_UTF8PROC), none)
 $(error Invalid option "$(WITH_UTF8PROC)" for WITH_UTF8PROC. Use one of: none, system, local)
 	endif
 endif
+
+APP_LIB+=$(if $(filter $(HAVE_ZLIB),1),-lz)
+APP_LIB+=$(if $(filter $(HAVE_LZFSE),1),-llzfse)
 
 RELEASE_NAME=hfsfuse
 GIT_HEAD_SHA=$(shell git rev-parse --short HEAD 2> /dev/null)

@@ -54,6 +54,7 @@ struct hf_file {
 	uint16_t nextents;
 	uint8_t fork;
 	uint64_t logical_size;
+	struct hfs_decmpfs_context* decmpfs;
 };
 
 static int hfsfuse_open(const char* path, struct fuse_file_info* info) {
@@ -69,8 +70,20 @@ static int hfsfuse_open(const char* path, struct fuse_file_info* info) {
 
 	f->cnid = rec.file.cnid;
 	f->fork = fork;
+	f->extents = NULL;
+	f->nextents = 0;
 	f->logical_size = (fork == HFS_RSRCFORK ? rec.file.rsrc_fork : rec.file.data_fork).logical_size;
-	f->nextents = hfslib_get_file_extents(vol,f->cnid,fork,&f->extents,NULL);
+	f->decmpfs = NULL;
+
+	struct hfs_decmpfs_header h;
+	uint32_t inlinelength;
+	unsigned char* inlinedata;
+	if(fork == HFS_DATAFORK && !hfs_decmpfs_lookup(vol,&rec.file,&h,&inlinelength,&inlinedata)) {
+		f->decmpfs = hfs_decmpfs_create_context(vol,rec.file.cnid,inlinelength,inlinedata);
+		free(inlinedata);
+	}
+	else f->nextents = hfslib_get_file_extents(vol,f->cnid,fork,&f->extents,NULL);
+
 	info->fh = (uint64_t)f;
 	info->keep_cache = 1;
 	return 0;
@@ -78,6 +91,7 @@ static int hfsfuse_open(const char* path, struct fuse_file_info* info) {
 
 static int hfsfuse_release(const char* path, struct fuse_file_info* info) {
 	struct hf_file* f = (struct hf_file*)info->fh;
+	hfs_decmpfs_destroy_context(f->decmpfs);
 	free(f->extents);
 	free(f);
 	return 0;
@@ -93,6 +107,8 @@ static int hfsfuse_read(const char* path, char* buf, size_t size, off_t offset, 
 		return 0;
 	if(size > f->logical_size - offset)
 		size = f->logical_size - offset;
+	if(f->decmpfs)
+		return hfs_decmpfs_read(vol,f->decmpfs,buf,size,offset);
 	int ret = hfslib_readd_with_extents(vol,buf,&bytes,size,offset,f->extents,f->nextents,NULL);
 	if(ret < 0)
 		return ret;
@@ -115,7 +131,11 @@ static int hfsfuse_getattr(const char* path, struct stat* st) {
 	if(ret)
 		return ret;
 
-	hfs_stat(vol, &rec,st,fork);
+	struct hfs_decmpfs_header h,* hp = NULL;
+	if(rec.type == HFS_REC_FILE && fork == HFS_DATAFORK && !hfs_decmpfs_lookup(vol,&rec.file,&h,NULL,NULL))
+		hp = &h;
+	hfs_stat(vol,&rec,st,fork,hp);
+
 	return 0;
 }
 
@@ -126,7 +146,12 @@ static int hfsfuse_fgetattr(const char* path, struct stat* st, struct fuse_file_
 	int ret = hfslib_find_catalog_record_with_cnid(vol,f->cnid,&rec,&key,NULL);
 	if(ret < 0) return ret;
 	else if(ret > 0) return -ENOENT;
-	hfs_stat(vol,&rec,st,f->fork);
+
+	struct hfs_decmpfs_header h,* hp = NULL;
+	if(f->fork == HFS_DATAFORK && hfs_decmpfs_get_header(f->decmpfs,&h))
+		hp = &h;
+	hfs_stat(vol,&rec,st,f->fork,hp);
+
 	return 0;
 }
 
@@ -209,7 +234,7 @@ static int hfsfuse_readdir2(const char* path, void* buf, fuse_fill_dir_t filler,
 	if(offset < 2) {
 		hfslib_find_catalog_record_with_cnid(vol, d->cnid, &rec, &key, NULL);
 		if(offset < 1) {
-			hfs_stat(vol, &rec, &st, 0);
+			hfs_stat(vol, &rec, &st, 0, NULL);
 			if(filler(buf, ".", &st, 1))
 				return 0;
 		}
@@ -218,7 +243,7 @@ static int hfsfuse_readdir2(const char* path, void* buf, fuse_fill_dir_t filler,
 		if(d->cnid != HFS_CNID_ROOT_FOLDER) {
 			stp = &st;
 			hfslib_find_catalog_record_with_cnid(vol, key.parent_cnid, &rec, &key, NULL);
-			hfs_stat(vol, &rec, stp, 0);
+			hfs_stat(vol, &rec, stp, 0, NULL);
 		}
 		if(filler(buf, "..", stp, 2))
 			return 0;
@@ -231,7 +256,7 @@ static int hfsfuse_readdir2(const char* path, void* buf, fuse_fill_dir_t filler,
 			ret = err;
 			continue;
 		}
-		hfs_stat(vol,d->keys+i,&st,0);
+		hfs_stat(vol,d->keys+i,&st,0,NULL);
 		if(filler(buf,pelem,&st,i+3))
 			break;
 	}
@@ -606,6 +631,10 @@ static void version(void) {
 		fprintf(stderr, "    ublio v%s\n", hfs_lib_ublio_version());
 	if(hfs_get_lib_features() & HFS_LIB_FEATURES_UTF8PROC)
 		fprintf(stderr, "    utf8proc v%s\n", hfs_lib_utf8proc_version());
+	if(hfs_get_lib_features() & HFS_LIB_FEATURES_ZLIB)
+		fprintf(stderr, "    zlib v%s\n", hfs_lib_zlib_version());
+	if(hfs_get_lib_features() & HFS_LIB_FEATURES_LZFSE)
+		fprintf(stderr, "    lzfse\n");
 }
 
 #if FUSE_VERSION < 28 || defined(__HAIKU__)

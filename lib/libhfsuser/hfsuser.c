@@ -372,7 +372,7 @@ end:
 	X(S_IFSOCK,0140000)\
 	X(S_IFWHT, 0160000)
 
-void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st, uint8_t fork) {
+void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st, uint8_t fork, struct hfs_decmpfs_header* decmpfs_header) {
 	st->st_ino = key->file.cnid;
 
 	struct hfs_device* dev = vol->cbdata;
@@ -421,10 +421,11 @@ void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st,
 #endif
 	if(key->type == HFS_REC_FILE) {
 		hfs_fork_t* f = fork == HFS_DATAFORK ? &key->file.data_fork : &key->file.rsrc_fork;
-		if(generic_int_max(st->st_size) < f->logical_size)
-			hfslib_error("hfs_stat: logical_size %" PRIu64 " too large for CNID %" PRIu32,NULL,0,f->logical_size,key->file.cnid);
+		uint64_t logical_size = decmpfs_header ? decmpfs_header->logical_size : f->logical_size;
+		if(generic_int_max(st->st_size) < logical_size)
+			hfslib_error("hfs_stat: logical_size %" PRIu64 " too large for CNID %" PRIu32,NULL,0,logical_size,key->file.cnid);
 		else
-			st->st_size = f->logical_size;
+			st->st_size = logical_size;
 #if HAVE_STAT_BLOCKS
 		uint64_t nblocks = f->total_blocks * (uint64_t)(vol->vh.block_size/512);
 		if(generic_int_max(st->st_blocks) < nblocks)
@@ -432,15 +433,21 @@ void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st,
 		else
 			st->st_blocks = nblocks;
 #endif
+#if HAVE_STAT_BLKSIZE
+		size_t blksize = decmpfs_header ? hfs_decmpfs_buffer_size(decmpfs_header) : vol->vh.block_size;
+		if(generic_int_max(st->st_blksize) < blksize)
+			st->st_blksize = blksize;
+		else
+			hfslib_error("hfs_stat: block_size %zu too large for CNID %" PRIu32,NULL,0,blksize,key->file.cnid);
+#endif
 	}
 	else {
 		st->st_nlink = key->folder.valence + 2;
 		st->st_size = vol->vh.block_size;
-	}
-
 #if HAVE_STAT_BLKSIZE
-	st->st_blksize = vol->vh.block_size;
+		st->st_blksize = vol->vh.block_size;
 #endif
+	}
 }
 
 static inline char* swapcopy(char* buf, char* src, size_t size) {

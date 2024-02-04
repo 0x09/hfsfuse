@@ -35,6 +35,12 @@ enum hfs_lib_features hfs_get_lib_features(void) {
 #ifdef HAVE_UTF8PROC
 	     | HFS_LIB_FEATURES_UTF8PROC
 #endif
+#if HAVE_ZLIB
+	     | HFS_LIB_FEATURES_ZLIB
+#endif
+#if HAVE_LZFSE
+	     | HFS_LIB_FEATURES_LZFSE
+#endif
 	;
 }
 
@@ -53,6 +59,14 @@ const char* hfs_lib_ublio_version(void) {
 const char* hfs_lib_utf8proc_version(void) {
 #ifdef HAVE_UTF8PROC
 	return utf8proc_version();
+#else
+	return NULL;
+#endif
+}
+
+const char* hfs_lib_zlib_version(void) {
+#if HAVE_ZLIB
+	return ZLIB_VERSION;
 #else
 	return NULL;
 #endif

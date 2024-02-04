@@ -35,6 +35,13 @@ char* hfs_ctime_r(time_t clock, char* buf) {
 	return t ? memcpy(buf,t,26) : NULL;
 }
 
+static inline void* hfs_reallocf(void* ptr, size_t size) {
+	void* p = realloc(ptr,size);
+	if(!p)
+		free(ptr);
+	return p;
+}
+
 static inline void dump_volume_header(hfs_volume_header_t vh) {
 	char ctimebuf[4][26] = {0};
 	printf(
@@ -211,6 +218,9 @@ int main(int argc, char* argv[]) {
 		printf("\n");
 		free(path);
 		dump_record(rec);
+		struct hfs_decmpfs_header h;
+		if(fork == HFS_DATAFORK && !hfs_decmpfs_lookup(&vol,&rec.file,&h,NULL,NULL))
+			printf("decmpfs.type: %" PRIu8 "\ndecmpfs.logical_size: %" PRIu64 "\n", h.type, h.logical_size);
 	}
 	else if(!strcmp(argv[2], "read")) {
 		if(rec.type == HFS_REC_FLDR) {
@@ -227,15 +237,37 @@ int main(int argc, char* argv[]) {
 			free(keys);
 		}
 		else if(rec.type == HFS_REC_FILE) {
-			hfs_extent_descriptor_t* extents = NULL;
-			uint16_t nextents = hfslib_get_file_extents(&vol,rec.file.cnid,fork,&extents,NULL);
-			uint64_t bytes = 0, offset = 0, size = fork == HFS_DATAFORK ? rec.file.data_fork.logical_size : rec.file.rsrc_fork.logical_size;
-			char data[4096];
-			while(!(ret = hfslib_readd_with_extents(&vol,data,&bytes,4096,offset,extents,nextents,NULL)) && offset < size) {
-				fwrite(data,(size-offset < bytes ? size-offset : bytes),1,stdout);
-				offset += bytes;
+			struct hfs_decmpfs_header h;
+			uint32_t inlinelength;
+			unsigned char* data;
+			if(fork == HFS_DATAFORK && !hfs_decmpfs_lookup(&vol,&rec.file,&h,&inlinelength,&data)) {
+				struct hfs_decmpfs_context* decmpfs = hfs_decmpfs_create_context(&vol,rec.file.cnid,inlinelength,data);
+
+				size_t bufsize = hfs_decmpfs_buffer_size(&h);
+				if(!(data = hfs_reallocf(data,bufsize)))
+					goto end;
+
+				off_t offset = 0;
+				int bytes;
+				for(bytes = 0; (bytes = hfs_decmpfs_read(&vol,decmpfs,(char*)data,bufsize,offset)) > 0; offset += bytes)
+					fwrite(data,bytes,1,stdout);
+				if(bytes < 0)
+					ret = 1;
+
+				free(data);
+				hfs_decmpfs_destroy_context(decmpfs);
 			}
-			free(extents);
+			else {
+				hfs_extent_descriptor_t* extents = NULL;
+				uint16_t nextents = hfslib_get_file_extents(&vol,rec.file.cnid,fork,&extents,NULL);
+				uint64_t bytes = 0, offset = 0, size = fork == HFS_DATAFORK ? rec.file.data_fork.logical_size : rec.file.rsrc_fork.logical_size;
+				char data[4096];
+				while(!(ret = hfslib_readd_with_extents(&vol,data,&bytes,4096,offset,extents,nextents,NULL)) && offset < size) {
+					fwrite(data,(size-offset < bytes ? size-offset : bytes),1,stdout);
+					offset += bytes;
+				}
+				free(extents);
+			}
 		}
 	}
 	else if(!strcmp(argv[2], "xattr")) {
