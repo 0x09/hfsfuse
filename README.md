@@ -126,6 +126,12 @@ This option may be combined with the `rsrc_ext` option described above, in which
 On Linux you may encounter the following error when inspecting xattrs: `user.com.apple.ResourceFork: Argument list too long`  
 This occurs when the resource fork is larger than the maximum allowed extended attribute size of 64kb. In this case you can still access the resource fork as described above by setting the `rsrc_ext` option or mounting in `rsrc_only` mode.
 
+Under Haiku only, all extended attribute values are hex encoded to allow binary attribute data to be passed along from FUSE. Values may be read using a tool like xxd, e.g. to read the resource fork extended attribute for "file":
+
+```shell
+catattr -r user.com.apple.ResourceFork file | xxd -r -p
+```
+
 Other, user-created extended attributes are not currently supported as their on-disk structure is not fully specified.
 
 ## Mac OS Classic file permissions

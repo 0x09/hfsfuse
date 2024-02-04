@@ -366,9 +366,31 @@ static int hfsfuse_getxattr_offset(const char* path, const char* attr, char* val
 }
 
 #ifndef __APPLE__
+#ifdef __HAIKU__
+static inline char hex4b(uint8_t dec) {
+	return dec < 10 ? '0' + dec : 'a' + (dec-10);
+}
+
+// Haiku's userlandfs FUSE implementation copies attr values using strlcpy, so any binary attr values that contain NULs will be truncated
+// to support this we just encode all xattr values as hex strings that can be decoded with e.g. xxd -t -p
+static int hfsfuse_getxattr(const char* path, const char* attr, char* value, size_t size) {
+	int attrsize = hfsfuse_getxattr_offset(path, attr, value, size, 0);
+	if(attrsize > INT_MAX/2-1)
+		return -ENOTSUP;
+	if(size) {
+		for(int rsize = attrsize-1; rsize >= 0; rsize--) {
+			value[rsize*2+1] = hex4b((uint8_t)value[rsize] & 0xF);
+			value[rsize*2] = hex4b((uint8_t)value[rsize] >> 4);
+		}
+		value[attrsize*2] = '\0';
+	}
+	return attrsize*2+1;
+}
+#else
 static int hfsfuse_getxattr(const char* path, const char* attr, char* value, size_t size) {
 	return hfsfuse_getxattr_offset(path, attr, value, size, 0);
 }
+#endif
 #endif
 
 static struct fuse_operations hfsfuse_ops = {
