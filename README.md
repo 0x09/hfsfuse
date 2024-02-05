@@ -105,10 +105,11 @@ Afterwards filesystems may be mounted like so:
 ## hfsdump
 	hfsdump <device> <command> <node>
 	
-`command` may be either `stat` or `read`: `stat` prints the record structure, while `read` copies the node's contents to standard out (or lists if node is a directory).  
+`command` may be either `stat`, `read`, or `xattr`: `stat` prints the record structure, while `read` copies the node's contents to standard out (or lists if node is a directory).  
 `node` is either an integer inode/CNID to lookup, or a full path from the root of the volume being inspected.  
 If the command and node are ommitted, hfsdump prints the volume header and exits.  
-`/rsrc` may be appended to the path of a read operation to dump the resource fork instead.
+`/rsrc` may be appended to the path of a read operation to dump the resource fork instead.  
+The `xattr` command lists extended attribute names for the given node. If an attribute name is provided following the node argument, its value will be printed to standard out.
 
 ## Extended attributes and resource forks
 hfsfuse exposes some nonstandard HFS+ attributes as extended attributes. These include:
