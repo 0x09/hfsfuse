@@ -236,6 +236,4 @@ config:
 	@echo "$$CONFIG" > config.mak
 
 dist: version
-	ln -s . $(RELEASE_NAME)
-	git ls-files | sed "s/^/$(RELEASE_NAME)\//" | COPYFILE_DISABLE=1 $(TAR) -czf "$(RELEASE_NAME).tar.gz" -T - -- "$(RELEASE_NAME)/src/version.h"
-	rm -f -- $(RELEASE_NAME)
+	git archive master -o "$(RELEASE_NAME).tar.gz" --prefix "$(RELEASE_NAME)/src/" --add-file src/version.h --prefix "$(RELEASE_NAME)/"
