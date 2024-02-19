@@ -1,4 +1,4 @@
-/*	$NetBSD: libhfs.c,v 1.14.18.1 2019/06/10 22:09:00 christos Exp $	*/
+/*	$NetBSD: libhfs.c,v 1.19 2023/08/11 05:51:34 mrg Exp $	*/
 
 /*-
  * Copyright (c) 2005, 2007 The NetBSD Foundation, Inc.
@@ -47,7 +47,7 @@
  */
 
 #include "rcsid.h"
-__KERNEL_RCSID(0, "$NetBSD: libhfs.c,v 1.14.18.1 2019/06/10 22:09:00 christos Exp $");
+__KERNEL_RCSID(0, "$NetBSD: libhfs.c,v 1.19 2023/08/11 05:51:34 mrg Exp $");
 
 #include "libhfs.h"
 #include "byteorder.h"
@@ -558,7 +558,7 @@ hfslib_find_catalog_record_with_key(
 	hfs_catalog_keyed_record_t* out_rec,
 	hfs_callback_args* cbargs)
 {
-	hfs_node_descriptor_t			nd;
+	hfs_node_descriptor_t			nd = { .num_recs = 0 };
 	hfs_extent_descriptor_t*		extents;
 	hfs_catalog_keyed_record_t		lastrec;
 	hfs_catalog_key_t*	curkey;
@@ -582,7 +582,6 @@ hfslib_find_catalog_record_with_key(
 	extents = NULL;
 	recs = NULL;
 	recsizes = NULL;
-	nd.num_recs = 0;
 
 	/* The key takes up over half a kb of ram, which is a lot for the BSD
 	 * kernel stack. So allocate it in the heap instead to play it safe. */
@@ -700,7 +699,7 @@ hfslib_find_extent_record_with_key(hfs_volume* in_vol,
 	hfs_extent_record_t* out_rec,
 	hfs_callback_args* cbargs)
 {
-	hfs_node_descriptor_t		nd;
+	hfs_node_descriptor_t		nd = { .num_recs = 0 };
 	hfs_extent_descriptor_t*	extents;
 	hfs_extent_record_t		lastrec;
 	hfs_extent_key_t	curkey;
@@ -722,7 +721,6 @@ hfslib_find_extent_record_with_key(hfs_volume* in_vol,
 	extents = NULL;
 	recs = NULL;
 	recsizes = NULL;
-	nd.num_recs = 0;
 
 	buffer = hfslib_malloc(in_vol->ehr.node_size, cbargs);
 	if (buffer == NULL)
@@ -733,6 +731,7 @@ hfslib_find_extent_record_with_key(hfs_volume* in_vol,
 	if (numextents == 0)
 		HFS_LIBERR("could not locate fork extents");
 
+	nd.num_recs = 0;
 	curnode = in_vol->ehr.root_node;
 
 	do {
@@ -772,7 +771,7 @@ hfslib_find_extent_record_with_key(hfs_volume* in_vol,
 		else if (nd.kind == HFS_LEAFNODE)
 			break;
 		else
-		    HFS_LIBERR("unknwon node type for extents overflow node #%i",curnode);
+		    HFS_LIBERR("unknown node type for extents overflow node #%i",curnode);
 	} while (nd.kind != HFS_LEAFNODE);
 
 	result = 0;
@@ -1369,7 +1368,7 @@ hfslib_get_directory_contents(
 	uint32_t* out_numchildren,
 	hfs_callback_args* cbargs)
 {
-	hfs_node_descriptor_t			nd;
+	hfs_node_descriptor_t			nd = { .num_recs = 0 };
 	hfs_extent_descriptor_t*		extents;
 	hfs_catalog_keyed_record_t		currec;
 	hfs_catalog_key_t	curkey;
@@ -1400,7 +1399,6 @@ hfslib_get_directory_contents(
 		*out_children = NULL;
 	if (out_childnames != NULL)
 		*out_childnames = NULL;
-	nd.num_recs = 0;
 
 	buffer = hfslib_malloc(in_vol->chr.node_size, cbargs);
 	if (buffer == NULL)
@@ -1411,6 +1409,7 @@ hfslib_get_directory_contents(
 	if (numextents == 0)
 		HFS_LIBERR("could not locate fork extents");
 
+	nd.num_recs = 0;
 	curnode = in_vol->chr.root_node;
 
 	while (1)
@@ -2042,12 +2041,12 @@ exit:
  *	in reverse order. Does not read the free space offset.
  */
 size_t
-hfslib_reada_node_offsets(void* in_bytes, uint16_t* out_offset_array, uint16_t numrecords)
+hfslib_reada_node_offsets(void* in_bytes, uint16_t* out_offset_array,
+    uint16_t numrecords)
 {
 	void*		ptr;
-	int i = 0;
 
-	if (in_bytes == NULL || out_offset_array == NULL || numrecords == 0)
+	if (in_bytes == NULL || out_offset_array == NULL)
 		return 0;
 
 	ptr = in_bytes;
@@ -2055,11 +2054,14 @@ hfslib_reada_node_offsets(void* in_bytes, uint16_t* out_offset_array, uint16_t n
 	/*
 	 * The offset for record 0 (which is the very last offset in the node) is
 	 * always equal to 14, the size of the node descriptor. So, once we hit
-	 * offset=14, we know this is the last offset.
+	 * offset=14, we know this is the last offset. In this way, we don't need
+	 * to know the number of records beforehand.
 	 */
 	do {
+		if (numrecords-- == 0)
+			return 0;
 		*out_offset_array = be16tohp(&ptr);
-	} while (*out_offset_array++ != (uint16_t)14 && ++i < numrecords);
+	} while (*out_offset_array++ != (uint16_t)14);
 
 	return ((uint8_t*)ptr - (uint8_t*)in_bytes);
 }
@@ -2800,7 +2802,6 @@ hfslib_readd_with_extents(
 
 			isect_start = max(in_offset, last_offset);
 			isect_end = min(in_offset+in_length, last_offset+ext_length);
-
 			error = hfslib_readd(in_vol, out_bytes, isect_end-isect_start,
 				isect_start - last_offset + (uint64_t)in_extents[i].start_block
 					* in_vol->vh.block_size, cbargs);
