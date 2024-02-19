@@ -1,17 +1,20 @@
-cmake_minimum_required (VERSION 2.8.12)
+cmake_minimum_required (VERSION 3.0.0)
 
 include (utils.cmake)
 
 disallow_intree_builds()
 
-project (utf8proc C)
+if (POLICY CMP0048)
+  cmake_policy (SET CMP0048 NEW)
+endif ()
+project (utf8proc VERSION 2.9.0 LANGUAGES C)
 
 # This is the ABI version number, which may differ from the
-# API version number (defined in utf8proc.h).
+# API version number (defined in utf8proc.h and above).
 # Be sure to also update these in Makefile and MANIFEST!
-set(SO_MAJOR 2)
-set(SO_MINOR 4)
-set(SO_PATCH 1)
+set(SO_MAJOR 3)
+set(SO_MINOR 0)
+set(SO_PATCH 0)
 
 option(UTF8PROC_INSTALL "Enable installation of utf8proc" On)
 option(UTF8PROC_ENABLE_TESTING "Enable testing of utf8proc" Off)
@@ -52,22 +55,20 @@ set_target_properties (utf8proc PROPERTIES
 
 if (UTF8PROC_INSTALL)
   include(GNUInstallDirs)
-  mark_as_advanced(CLEAR CMAKE_INSTALL_LIBDIR CMAKE_INSTALL_INCLUDEDIR)
+  install(FILES utf8proc.h DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
   install(TARGETS utf8proc
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}${INSTALL_SUFFIX}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}${INSTALL_SUFFIX})
-
-  install(
-    FILES
-      "${PROJECT_SOURCE_DIR}/utf8proc.h"
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}${INSTALL_SUFFIX})
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
+    LIBRARY DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
+    RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}"
+  )
+  configure_file(libutf8proc.pc.cmakein libutf8proc.pc @ONLY)
+  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libutf8proc.pc" DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}/pkgconfig")
 endif()
 
 if(UTF8PROC_ENABLE_TESTING)
   enable_testing()
   file(MAKE_DIRECTORY data)
-  set(UNICODE_VERSION 13.0.0)
+  set(UNICODE_VERSION 15.1.0)
   file(DOWNLOAD https://www.unicode.org/Public/${UNICODE_VERSION}/ucd/NormalizationTest.txt ${CMAKE_BINARY_DIR}/data/NormalizationTest.txt SHOW_PROGRESS)
   file(DOWNLOAD https://www.unicode.org/Public/${UNICODE_VERSION}/ucd/auxiliary/GraphemeBreakTest.txt ${CMAKE_BINARY_DIR}/data/GraphemeBreakTest.txt SHOW_PROGRESS)
   add_executable(case test/tests.h test/tests.c utf8proc.h test/case.c)
@@ -101,7 +102,7 @@ if(UTF8PROC_ENABLE_TESTING)
   target_link_libraries(normtest utf8proc)
   add_test(utf8proc.testgraphemetest graphemetest data/GraphemeBreakTest.txt)
   add_test(utf8proc.testnormtest normtest data/NormalizationTest.txt)
-  
+
   if(LIB_FUZZING_ENGINE)
     add_executable(fuzzer utf8proc.h test/fuzzer.c)
     target_link_libraries(fuzzer ${LIB_FUZZING_ENGINE} utf8proc)
