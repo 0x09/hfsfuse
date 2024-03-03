@@ -4,8 +4,6 @@ ifeq ($(filter config, $(MAKECMDGOALS)),)
 -include config.mak
 endif
 
-CC ?= cc
-AR ?= ar
 RANLIB ?= ranlib
 INSTALL ?= install
 TAR ?= tar
@@ -182,29 +180,30 @@ export CONFIG PREFIX prefix bindir libdir includedir DESTDIR CC CFLAGS LOCAL_CFL
 
 all: $(TARGETS)
 
-%.o: %.c
-	$(CC) $(INCLUDE) $(CFLAGS) $(LOCAL_CFLAGS) -c -o $*.o $^
+%.o: CPPFLAGS += $(INCLUDE)
+%.o: CFLAGS += $(LOCAL_CFLAGS)
 
-src/hfsfuse.o: src/hfsfuse.c
-	$(CC) $(FUSE_FLAGS) $(INCLUDE) $(CFLAGS) $(LOCAL_CFLAGS) -c -o $*.o $^
+src/hfsfuse.o: CPPFLAGS += $(FUSE_FLAGS)
 
 $(LIBS): always_check
 	$(MAKE) -C $(dir $@)
 
 lib: $(LIBS)
 
+hfsfuse: LDLIBS += $(LIBS) $(APP_LIB) $(FUSE_LIB) -lpthread
 hfsfuse: src/hfsfuse.o $(LIBS)
-	$(CC) $(CFLAGS) -o $@ src/hfsfuse.o $(LIBS) $(APP_LIB) $(FUSE_LIB) -lpthread
+	$(CC) $(LDFLAGS) src/hfsfuse.o $(LDLIBS) -o hfsfuse
 
+hfsdump: LDLIBS += $(LIBS) $(APP_LIB) -lpthread
 hfsdump: src/hfsdump.o $(LIBS)
-	$(CC) $(CFLAGS) -o $@ src/hfsdump.o $(LIBS) $(APP_LIB) -lpthread
+	$(CC) $(LDFLAGS) src/hfsdump.o $(LDLIBS) -o hfsdump
 
 clean:
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir clean; done
-	rm -f src/hfsfuse.o hfsfuse src/hfsdump.o hfsdump
+	$(RM) src/hfsfuse.o hfsfuse src/hfsdump.o hfsdump
 
 distclean: clean
-	rm -f config.mak src/version.h
+	$(RM) config.mak src/version.h
 
 install-lib: $(LIBS)
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir install; done
@@ -219,14 +218,14 @@ install: $(TARGETS)
 	$(INSTALL) -m755 hfsdump $(DESTDIR)$(bindir)
 
 uninstall:
-	rm -f $(DESTDIR)$(prefix)/add-ons/userlandfs/hfsfuse $(DESTDIR)$(bindir)/hfsdump
+	$(RM) $(DESTDIR)$(prefix)/add-ons/userlandfs/hfsfuse $(DESTDIR)$(bindir)/hfsdump
 else
-install:$(TARGETS)
+install: $(TARGETS)
 	mkdir -pm755 $(DESTDIR)$(bindir)
 	$(INSTALL) -m755 $^ $(DESTDIR)$(bindir)
 
 uninstall:
-	rm -f $(DESTDIR)$(bindir)/hfsfuse $(DESTDIR)$(bindir)/hfsdump
+	$(RM) $(DESTDIR)$(bindir)/hfsfuse $(DESTDIR)$(bindir)/hfsdump
 endif
 
 version:

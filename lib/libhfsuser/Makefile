@@ -6,9 +6,7 @@ TARGET = libhfsuser.a
 
 all: $(TARGET)
 
-%.o: %.c
-	$(CC) $(CFLAGS) $(LOCAL_CFLAGS) $(INCLUDE) $(APP_FLAGS) -c -o $*.o $^
-
+$(TARGET): CPPFLAGS += $(LOCAL_CFLAGS) $(INCLUDE) $(APP_FLAGS)
 $(TARGET): $(OBJS)
 	$(AR) rcs $@ $^
 	$(RANLIB) $@
@@ -19,7 +17,7 @@ install: $(TARGET)
 	$(INSTALL) -m644 $(TARGET) $(DESTDIR)$(libdir)
 
 uninstall:
-	rm -f $(DESTDIR)$(includedir)/hfsuser.h $(DESTDIR)$(libdir)/$(TARGET)
+	$(RM) $(DESTDIR)$(includedir)/hfsuser.h $(DESTDIR)$(libdir)/$(TARGET)
 
 clean:
-	rm -f $(OBJS) $(TARGET)
+	$(RM) $(OBJS) $(TARGET)

@@ -6,9 +6,7 @@ TARGET = libhfs.a
 
 all: $(TARGET)
 
-%.o: %.c
-	$(CC) $(CFLAGS) $(LIBHFS_CFLAGS) -c -o $*.o $^
-
+$(TARGET): CFLAGS += $(LIBHFS_CFLAGS)
 $(TARGET): $(OBJS)
 	$(AR) rcs $@ $^
 	$(RANLIB) $@
@@ -19,7 +17,7 @@ install: $(TARGET)
 	$(INSTALL) -m644 $(TARGET) $(DESTDIR)$(libdir)
 
 uninstall:
-	rm -f $(DESTDIR)$(includedir)/libhfs.h $(DESTDIR)$(libdir)/$(TARGET)
+	$(RM) $(DESTDIR)$(includedir)/libhfs.h $(DESTDIR)$(libdir)/$(TARGET)
 
 clean:
-	rm -f $(OBJS) $(TARGET)
+	$(RM) $(OBJS) $(TARGET)
