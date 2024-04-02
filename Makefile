@@ -112,23 +112,27 @@ ifneq ($$(call parsecexpr),1)
 endif
 endef
 
-CEXPR_CFLAGS=$(CFLAGS) $(LIBHFS_CFLAGS)
-$(eval $(call testcccheck))
-$(eval $(call cccheck,HAVE_BEXXTOH_ENDIAN_H,{ be16toh(0); be32toh(0); be64toh(0); },endian.h))
-$(eval $(call cccheck,HAVE_BEXXTOH_SYS_ENDIAN_H,{ be16toh(0); be32toh(0); be64toh(0); },sys/endian.h))
-$(eval $(call cccheck,HAVE_OSBYTEORDER_H,{ OSSwapBigToHostInt16(0); OSSwapBigToHostInt32(0); OSSwapBigToHostInt64(0); },libkern/OSByteOrder.h))
+non_build_targets = dist version uninstall uninstall-lib clean distclean
 
-CEXPR_CFLAGS=$(CFLAGS) $(LOCAL_CFLAGS)
-$(eval $(call testcccheck))
-$(eval $(call cccheck,HAVE_BIRTHTIME,{ (struct stat){0}.st_birthtime; },sys/stat.h))
-$(eval $(call cccheck,HAVE_STAT_FLAGS,{ (struct stat){0}.st_flags; },sys/stat.h))
-$(eval $(call cccheck,HAVE_STAT_BLKSIZE,{ (struct stat){0}.st_blksize; },sys/stat.h))
-$(eval $(call cccheck,HAVE_STAT_BLOCKS,{ (struct stat){0}.st_blocks; },sys/stat.h))
-$(eval $(call cccheck,HAVE_VSYSLOG,{ vsyslog(0,(const char*){0},(va_list){0}); },syslog.h stdarg.h))
-$(eval $(call cccheck,HAVE_PREAD,{ pread(0,(void*){0},0,0); },unistd.h))
+ifneq ($(filter-out $(non_build_targets),$(or $(MAKECMDGOALS),all)),)
+    CEXPR_CFLAGS=$(CFLAGS) $(LIBHFS_CFLAGS)
+    $(eval $(call testcccheck))
+    $(eval $(call cccheck,HAVE_BEXXTOH_ENDIAN_H,{ be16toh(0); be32toh(0); be64toh(0); },endian.h))
+    $(eval $(call cccheck,HAVE_BEXXTOH_SYS_ENDIAN_H,{ be16toh(0); be32toh(0); be64toh(0); },sys/endian.h))
+    $(eval $(call cccheck,HAVE_OSBYTEORDER_H,{ OSSwapBigToHostInt16(0); OSSwapBigToHostInt32(0); OSSwapBigToHostInt64(0); },libkern/OSByteOrder.h))
 
-$(eval $(call cccheck,HAVE_LZFSE,,lzfse.h))
-$(eval $(call cccheck,HAVE_ZLIB,,zlib.h))
+    CEXPR_CFLAGS=$(CFLAGS) $(LOCAL_CFLAGS)
+    $(eval $(call testcccheck))
+    $(eval $(call cccheck,HAVE_BIRTHTIME,{ (struct stat){0}.st_birthtime; },sys/stat.h))
+    $(eval $(call cccheck,HAVE_STAT_FLAGS,{ (struct stat){0}.st_flags; },sys/stat.h))
+    $(eval $(call cccheck,HAVE_STAT_BLKSIZE,{ (struct stat){0}.st_blksize; },sys/stat.h))
+    $(eval $(call cccheck,HAVE_STAT_BLOCKS,{ (struct stat){0}.st_blocks; },sys/stat.h))
+    $(eval $(call cccheck,HAVE_VSYSLOG,{ vsyslog(0,(const char*){0},(va_list){0}); },syslog.h stdarg.h))
+    $(eval $(call cccheck,HAVE_PREAD,{ pread(0,(void*){0},0,0); },unistd.h))
+
+    $(eval $(call cccheck,HAVE_LZFSE,,lzfse.h))
+    $(eval $(call cccheck,HAVE_ZLIB,,zlib.h))
+endif
 
 $(foreach cfg,OS CC AR RANLIB INSTALL TAR PREFIX WITH_UBLIO WITH_UTF8PROC CONFIG_CFLAGS $(FEATURES),$(eval CONFIG:=$(CONFIG)$(cfg)=$$($(cfg))\n))
 $(foreach feature,$(FEATURES),$(if $(filter $($(feature)),1),$(eval CFLAGS+=-D$(feature))))
@@ -176,7 +180,7 @@ endif
 
 export CONFIG PREFIX prefix bindir libdir includedir DESTDIR CC CFLAGS LOCAL_CFLAGS APP_FLAGS LIBDIRS AR RANLIB INSTALL INCLUDE
 
-.PHONY: all clean always_check config install uninstall install-lib uninstall-lib lib version dist
+.PHONY: all clean always_check config install install-lib lib $(non_build_targets)
 
 all: $(TARGETS)
 
