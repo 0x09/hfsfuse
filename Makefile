@@ -180,6 +180,8 @@ endif
 
 export CONFIG PREFIX prefix bindir libdir includedir DESTDIR CC CFLAGS LOCAL_CFLAGS APP_FLAGS LIBDIRS AR RANLIB INSTALL INCLUDE
 
+vpath %.o src
+
 .PHONY: all clean always_check config install install-lib lib $(non_build_targets)
 
 all: $(TARGETS)
@@ -196,11 +198,9 @@ lib: $(LIBS)
 
 hfsfuse: LDLIBS += $(LIBS) $(APP_LIB) $(FUSE_LIB) -lpthread
 hfsfuse: src/hfsfuse.o $(LIBS)
-	$(CC) $(LDFLAGS) src/hfsfuse.o $(LDLIBS) -o hfsfuse
 
 hfsdump: LDLIBS += $(LIBS) $(APP_LIB) -lpthread
 hfsdump: src/hfsdump.o $(LIBS)
-	$(CC) $(LDFLAGS) src/hfsdump.o $(LDLIBS) -o hfsdump
 
 clean:
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir clean; done
