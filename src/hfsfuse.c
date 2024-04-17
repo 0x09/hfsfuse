@@ -112,6 +112,8 @@ static int hfsfuse_read(const char* path, char* buf, size_t size, off_t offset, 
 	int ret = hfslib_readd_with_extents(vol,buf,&bytes,size,offset,f->extents,f->nextents,NULL);
 	if(ret < 0)
 		return ret;
+	if(bytes > INT_MAX)
+		return -(errno = EINVAL);
 	return bytes;
 }
 
