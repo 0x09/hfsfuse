@@ -1196,11 +1196,14 @@ hfslib_find_attribute_records_for_cnid(hfs_volume* in_vol, hfs_cnid_t cnid,
 	node = NULL;
 	nd.num_recs = 0;
 
-	/* Not all volumes have an attributes file */
+	/*
+	 * Not all volumes have an attributes file. this is not an error, but
+	 * out_num_attrs will be zero.
+	 */
 	if (in_vol->vh.attributes_file.extents[0].block_count == 0 ||
 		in_vol->ahr.leaf_recs == 0 ||
 		in_vol->ahr.tree_depth == 0)
-		return 1;
+		return 0;
 
 	curkey = hfslib_malloc(sizeof(hfs_attribute_key_t), cbargs);
 	if (curkey == NULL)
