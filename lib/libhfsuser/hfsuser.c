@@ -436,9 +436,9 @@ void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st,
 #if HAVE_STAT_BLKSIZE
 		size_t blksize = decmpfs_header ? hfs_decmpfs_buffer_size(decmpfs_header) : vol->vh.block_size;
 		if(generic_int_max(st->st_blksize) < blksize)
-			st->st_blksize = blksize;
-		else
 			hfslib_error("hfs_stat: block_size %zu too large for CNID %" PRIu32,NULL,0,blksize,key->file.cnid);
+		else
+			st->st_blksize = blksize;
 #endif
 	}
 	else {
