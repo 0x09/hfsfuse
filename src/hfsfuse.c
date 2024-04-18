@@ -118,11 +118,14 @@ static int hfsfuse_read(const char* path, char* buf, size_t size, off_t offset, 
 }
 
 static int hfsfuse_readlink(const char* path, char* buf, size_t size) {
+	if(!size)
+		return -EINVAL;
 	struct fuse_file_info info;
 	if(hfsfuse_open(path,&info)) return -errno;
-	int bytes = hfsfuse_read(path,buf,size,0,&info);
+	int bytes = hfsfuse_read(path,buf,size-1,0,&info);
 	hfsfuse_release(NULL,&info);
 	if(bytes < 0) return -errno;
+	buf[bytes] = '\0';
 	return 0;
 }
 
