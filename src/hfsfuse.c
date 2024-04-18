@@ -321,6 +321,14 @@ static int hfsfuse_listxattr(const char* path, char* attr, size_t size) {
 	if(ret)
 		return ret;
 
+#ifdef __linux__
+	// only regular files can contain user namespace xattrs on Linux
+	struct stat st;
+	hfs_stat(vol,&rec,&st,HFS_DATAFORK,NULL);
+	if(!S_ISREG(st.st_mode))
+		return 0;
+#endif
+
 	declare_attr("hfsfuse.record.date_created", attr, size, ret);
 	if(rec.file.date_backedup)
 		declare_attr("hfsfuse.record.date_backedup", attr, size, ret);
