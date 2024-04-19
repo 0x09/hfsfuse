@@ -325,7 +325,7 @@ static int hfsfuse_listxattr(const char* path, char* attr, size_t size) {
 	// only regular files can contain user namespace xattrs on Linux
 	struct stat st;
 	hfs_stat(vol,&rec,&st,HFS_DATAFORK,NULL);
-	if(!S_ISREG(st.st_mode))
+	if(!(S_ISREG(st.st_mode) || S_ISDIR(st.st_mode)))
 		return 0;
 #endif
 
