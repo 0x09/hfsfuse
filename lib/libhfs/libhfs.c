@@ -797,7 +797,7 @@ hfslib_get_file_extents(hfs_volume* in_vol,
 {
 	hfs_extent_descriptor_t*	dummy;
 	hfs_extent_key_t		extentkey;
-	hfs_file_record_t		file;
+	hfs_catalog_keyed_record_t filerec;
 	hfs_catalog_key_t		filekey;
 	hfs_thread_record_t	fileparent;
 	hfs_fork_t		fork = {.logical_size = 0};
@@ -845,18 +845,18 @@ hfslib_get_file_extents(hfs_volume* in_vol,
 				fileparent.name.length, fileparent.name.unicode, &filekey) == 0)
 				goto error;
 
-			if (hfslib_find_catalog_record_with_key(in_vol, &filekey,
-				(hfs_catalog_keyed_record_t*)&file, cbargs) != 0)
+			if (hfslib_find_catalog_record_with_key(in_vol, &filekey, &filerec,
+			    cbargs) != 0)
 				goto error;
 
 			/* only files have extents, not folders or threads */
-			if (file.rec_type != HFS_REC_FILE)
+			if (filerec.file.rec_type != HFS_REC_FILE)
 				goto error;
 
 			if (in_forktype == HFS_DATAFORK)
-				fork = file.data_fork;
+				fork = filerec.file.data_fork;
 			else if (in_forktype == HFS_RSRCFORK)
-				fork = file.rsrc_fork;
+				fork = filerec.file.rsrc_fork;
 	}
 
 	numextents = 0;
