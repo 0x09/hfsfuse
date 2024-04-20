@@ -680,7 +680,7 @@ static int hfsfuse_opt_proc(void* data, const char* arg, int key, struct fuse_ar
 #endif
 			if(key == HFSFUSE_OPT_KEY_FULLHELP) {
 				// fuse_mount and fuse_new print their own set of options
-				fuse_mount(NULL, args);
+				fuse_mount("", args);
 				fuse_new(NULL, args, NULL, 0, NULL);
 			}
 			fuse_opt_free_args(args);
