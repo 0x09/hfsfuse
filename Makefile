@@ -169,9 +169,10 @@ APP_LIB+=$(if $(filter $(HAVE_ZLIB),1),-lz)
 APP_LIB+=$(if $(filter $(HAVE_LZFSE),1),-llzfse)
 
 RELEASE_NAME=hfsfuse
-GIT_HEAD_SHA=$(shell git rev-parse --short HEAD 2> /dev/null)
+RELEASE_BRANCH=master
+GIT_HEAD_SHA=$(shell git rev-parse --short $(RELEASE_BRANCH) 2> /dev/null)
 ifneq ($(GIT_HEAD_SHA), )
-	VERSION = 0.$(shell git rev-list HEAD --count)
+	VERSION = 0.$(shell git rev-list $(RELEASE_BRANCH) --count)
 	RELEASE_NAME := $(RELEASE_NAME)-$(VERSION)
 	VERSION_STRING = \"$(VERSION)-$(GIT_HEAD_SHA)\"
 	CFLAGS += -DHFSFUSE_VERSION_STRING=$(VERSION_STRING)
@@ -241,4 +242,4 @@ config:
 	@echo "$$CONFIG" > config.mak
 
 dist: version
-	git archive master -o "$(RELEASE_NAME).tar.gz" --prefix "$(RELEASE_NAME)/src/" --add-file src/version.h --prefix "$(RELEASE_NAME)/"
+	git archive $(RELEASE_BRANCH) -o "$(RELEASE_NAME).tar.gz" --prefix "$(RELEASE_NAME)/src/" --add-file src/version.h --prefix "$(RELEASE_NAME)/"
