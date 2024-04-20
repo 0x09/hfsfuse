@@ -22,7 +22,7 @@ TARGETS = hfsfuse hfsdump
 FUSE_FLAGS = -DFUSE_USE_VERSION=28
 FUSE_LIB = -lfuse
 
-XATTR_NAMESPACE = user.
+XATTR_NAMESPACE ?= user.
 ifeq ($(OS), Darwin)
 	APP_FLAGS += -I/usr/local/include
 	APP_LIB += -L/usr/local/lib
@@ -241,8 +241,4 @@ config:
 	@echo "$$CONFIG" > config.mak
 
 dist: version
-	#git archive master -o "$(RELEASE_NAME).tar.gz" --prefix "$(RELEASE_NAME)/src/" --add-file src/version.h --prefix "$(RELEASE_NAME)/"
-	ln -s . $(RELEASE_NAME)
-	$(RM) -- $(RELEASE_NAME).tar.gz
-	git ls-files | sed "s/^/$(RELEASE_NAME)\//" | COPYFILE_DISABLE=1 $(TAR) --no-xattrs -czf $(RELEASE_NAME).tar.gz -T - -- $(RELEASE_NAME)/src/version.h
-	$(RM) -- $(RELEASE_NAME)
+	git archive master -o "$(RELEASE_NAME).tar.gz" --prefix "$(RELEASE_NAME)/src/" --add-file src/version.h --prefix "$(RELEASE_NAME)/"
