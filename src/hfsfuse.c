@@ -180,7 +180,10 @@ static int hfsfuse_opendir(const char* path, struct fuse_file_info* info) {
 		return -ENOMEM;
 
 	d->cnid = rec.folder.cnid;
-	hfslib_get_directory_contents(vol,d->cnid,&d->keys,&d->paths,&d->npaths,NULL);
+	if(hfslib_get_directory_contents(vol,d->cnid,&d->keys,&d->paths,&d->npaths,NULL)) {
+		free(d);
+		return -1;
+	}
 
 	hfs_catalog_keyed_record_t link;
 	for(hfs_catalog_keyed_record_t* record = d->keys; record != d->keys + d->npaths; record++)
