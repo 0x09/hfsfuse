@@ -22,9 +22,11 @@ TARGETS = hfsfuse hfsdump
 FUSE_FLAGS = -DFUSE_USE_VERSION=28
 FUSE_LIB = -lfuse
 
+XATTR_NAMESPACE = user.
 ifeq ($(OS), Darwin)
 	APP_FLAGS += -I/usr/local/include
 	APP_LIB += -L/usr/local/lib
+	XATTR_NAMESPACE = #no namespaces on macOS
 	ifeq ($(shell [ -e /usr/local/lib/libosxfuse.dylib ] && echo 1), 1)
 		FUSE_FLAGS += -I/usr/local/include/osxfuse
 		FUSE_LIB = -losxfuse
@@ -134,7 +136,7 @@ ifneq ($(filter-out $(non_build_targets),$(or $(MAKECMDGOALS),all)),)
     $(eval $(call cccheck,HAVE_ZLIB,,zlib.h))
 endif
 
-$(foreach cfg,OS CC AR RANLIB INSTALL TAR PREFIX WITH_UBLIO WITH_UTF8PROC CONFIG_CFLAGS $(FEATURES),$(eval CONFIG:=$(CONFIG)$(cfg)=$$($(cfg))\n))
+$(foreach cfg,OS CC AR RANLIB INSTALL TAR PREFIX WITH_UBLIO WITH_UTF8PROC XATTR_NAMESPACE CONFIG_CFLAGS $(FEATURES),$(eval CONFIG:=$(CONFIG)$(cfg)=$$($(cfg))\n))
 $(foreach feature,$(FEATURES),$(if $(filter $($(feature)),1),$(eval CFLAGS+=-D$(feature))))
 
 LIBS = lib/libhfsuser/libhfsuser.a lib/libhfs/libhfs.a
@@ -189,7 +191,7 @@ all: $(TARGETS)
 %.o: CPPFLAGS += $(INCLUDE)
 %.o: CFLAGS += $(LOCAL_CFLAGS)
 
-src/hfsfuse.o: CPPFLAGS += $(FUSE_FLAGS)
+src/hfsfuse.o: CPPFLAGS += $(FUSE_FLAGS) -DXATTR_NAMESPACE=$(XATTR_NAMESPACE)
 
 $(LIBS): always_check
 	$(MAKE) -C $(dir $@)
@@ -239,4 +241,8 @@ config:
 	@echo "$$CONFIG" > config.mak
 
 dist: version
-	git archive master -o "$(RELEASE_NAME).tar.gz" --prefix "$(RELEASE_NAME)/src/" --add-file src/version.h --prefix "$(RELEASE_NAME)/"
+	#git archive master -o "$(RELEASE_NAME).tar.gz" --prefix "$(RELEASE_NAME)/src/" --add-file src/version.h --prefix "$(RELEASE_NAME)/"
+	ln -s . $(RELEASE_NAME)
+	$(RM) -- $(RELEASE_NAME).tar.gz
+	git ls-files | sed "s/^/$(RELEASE_NAME)\//" | COPYFILE_DISABLE=1 $(TAR) --no-xattrs -czf $(RELEASE_NAME).tar.gz -T - -- $(RELEASE_NAME)/src/version.h
+	$(RM) -- $(RELEASE_NAME)

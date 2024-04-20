@@ -135,6 +135,8 @@ Under Haiku only, all extended attribute values are hex encoded to allow binary 
 catattr -r user.com.apple.ResourceFork file | xxd -r -p
 ```
 
+Extended attributes are presented in the preferred namespace for the OS, typically `user.`. Alternate namespaces may be chosen when building hfsfuse by setting the `XATTR_NAMESPACE` make var.  
+This should include the trailing `.` as an empty value indicates no namespacing (such as on macOS.)
 
 ## Mac OS Classic file permissions
 HFS+ filesystems created on Mac OS Classic do not contain the typical set of Unix ownership and permission information for files and folders.

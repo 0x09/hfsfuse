@@ -300,11 +300,10 @@ static int hfsfuse_getxtimes(const char* path, struct timespec* bkuptime, struct
 }
 #endif
 
-#ifdef __APPLE__
-#define attrname(name) name
-#else
-#define attrname(name) "user." name
-#endif
+#define STR_(x) #x
+#define STR(x) STR_(x)
+#define XATTR_NAMESPACE_STR STR(XATTR_NAMESPACE)
+#define attrname(name) XATTR_NAMESPACE_STR name
 
 #define declare_attr(name, buf, bufsize, accum) do {\
 	accum += strlen(attrname(name))+1;\
@@ -350,14 +349,9 @@ static int hfsfuse_listxattr(const char* path, char* attr, size_t size) {
 		ssize_t u8len = hfs_unistr_to_utf8(&attr_keys[i].name, attrname);
 		if(u8len <= 0)
 			continue;
-		ret += u8len + 1;
-#ifndef __APPLE__
-		ret += 5; //user. prefix
-#endif
+		ret += u8len + strlen(XATTR_NAMESPACE_STR) + 1;
 		if(size >= (size_t)ret) {
-#ifndef __APPLE__
-			attr = stpcpy(attr, "user.");
-#endif
+			attr = stpcpy(attr, XATTR_NAMESPACE_STR);
 			attr = stpcpy(attr, attrname)+1;
 		}
 	}
@@ -421,10 +415,8 @@ static int hfsfuse_getxattr_offset(const char* path, const char* attr, char* val
 		memcpy(value, timebuf, 24);
 	});
 
-#ifndef __APPLE__
-	if(!strncmp(attr,"user.",5))
-		attr += 5;
-#endif
+	if(!strncmp(attr,XATTR_NAMESPACE_STR,strlen(XATTR_NAMESPACE_STR)))
+		attr += strlen(XATTR_NAMESPACE_STR);
 
 	hfs_attribute_record_t attrec;
 	hfs_unistr255_t attrname;
