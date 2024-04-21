@@ -3357,7 +3357,7 @@ hfslib_get_hardlink(hfs_volume *vol, uint32_t inode_num,
 		|| metadata.type != HFS_REC_FLDR)
 		return -1;
 
-	len = snprintf(name, sizeof(name), "iNode%d", inode_num);
+	len = snprintf(name, sizeof(name), "iNode%" PRIu32, inode_num);
 	for (i = 0; i < len; i++)
 		name_uni[i] = name[i];
 
@@ -3386,7 +3386,7 @@ hfslib_get_directory_hardlink(hfs_volume *vol, uint32_t inode_num,
 		|| metadata.type != HFS_REC_FLDR)
 		return -1;
 
-	len = snprintf(name, sizeof(name), "dir_%d", inode_num);
+	len = snprintf(name, sizeof(name), "dir_%" PRIu32, inode_num);
 	for (i = 0; i < len; i++)
 		name_uni[i] = name[i];
 
