@@ -283,6 +283,8 @@ int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* re
 	if(alt_fork_lookup)
 		pathcpy[pathlen - dev->rsrc_len] = '\0';
 
+	hfs_catalog_keyed_record_t inode_rec; //for resolving hard links
+
 	// lookup normally ends when either the path is exhasuted or a file is found, however there are exactly two cases
 	// where a file is permitted as part of the path: hard links to other directories, or when accessing a file's
 	// resource fork via the special /rsrc suffix
@@ -306,12 +308,10 @@ int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* re
 
 		if(record->type == HFS_REC_FILE) {
 			if(record->file.user_info.file_creator == HFS_MACS_CREATOR &&
-			   record->file.user_info.file_type == HFS_DIR_HARD_LINK_FILE_TYPE) {
+			   record->file.user_info.file_type == HFS_DIR_HARD_LINK_FILE_TYPE &&
+			   !hfslib_get_directory_hardlink(vol, record->file.bsd.special.inode_num, &inode_rec, NULL)) {
 				// resolve directory hard links and resume path traversal
-				if(hfslib_get_directory_hardlink(vol, record->file.bsd.special.inode_num, record, NULL)) {
-					ret = -ENOENT;
-					goto end;
-				}
+				*record = inode_rec;
 				continue;
 			}
 
@@ -330,10 +330,8 @@ int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* re
 	if(record->type == HFS_REC_FILE &&
 	   record->file.user_info.file_creator == HFS_HFSPLUS_CREATOR &&
 	   record->file.user_info.file_type == HFS_HARD_LINK_FILE_TYPE &&
-	   hfslib_get_hardlink(vol, record->file.bsd.special.inode_num, record, NULL)) {
-		ret = -ENOENT;
-		goto end;
-	}
+	   !hfslib_get_hardlink(vol, record->file.bsd.special.inode_num, &inode_rec, NULL))
+		   *record = inode_rec;
 
 	if(!alt_fork_lookup) // don't cache alternate fork lookups
 		hfs_record_cache_add(cache,path,pathlen,record,key);
