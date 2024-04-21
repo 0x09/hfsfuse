@@ -80,6 +80,7 @@ static int hfsfuse_open(const char* path, struct fuse_file_info* info) {
 	unsigned char* inlinedata;
 	if(fork == HFS_DATAFORK && !hfs_decmpfs_lookup(vol,&rec.file,&h,&inlinelength,&inlinedata)) {
 		f->decmpfs = hfs_decmpfs_create_context(vol,rec.file.cnid,inlinelength,inlinedata);
+		f->logical_size = h.logical_size;
 		free(inlinedata);
 	}
 	else f->nextents = hfslib_get_file_extents(vol,f->cnid,fork,&f->extents,NULL);
