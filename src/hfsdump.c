@@ -153,8 +153,8 @@ static inline void dump_record(hfs_catalog_keyed_record_t rec) {
 			"finder_info.put_away_folder_cnid: %" PRIu32 "\n"
 			"data_fork.logical_size: %" PRIu64 "\n"
 			"rsrc_fork.logical_size: %" PRIu64 "\n",
-			(file.user_info.file_type >> 3) & 1,(file.user_info.file_type >> 2) & 1, (file.user_info.file_type >> 1) & 1, file.user_info.file_type & 1,
-			(file.user_info.file_creator >> 3) & 1,(file.user_info.file_creator >> 2) & 1, (file.user_info.file_creator >> 1) & 1, file.user_info.file_creator & 1,
+			(file.user_info.file_type >> 24) & 0xFF,(file.user_info.file_type >> 16) & 0xFF, (file.user_info.file_type >> 8) & 0xFF, file.user_info.file_type & 0xFF,
+			(file.user_info.file_creator >> 24) & 0xFF,(file.user_info.file_creator >> 16) & 0xFF, (file.user_info.file_creator >> 8) & 0xFF, file.user_info.file_creator & 0xFF,
 			file.user_info.finder_flags,
 			file.user_info.location.v,file.user_info.location.h,
 			file.finder_info.extended_finder_flags,
