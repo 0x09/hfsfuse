@@ -406,6 +406,11 @@ void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st,
 
 #if HAVE_STAT_FLAGS
 	st->st_flags = (key->file.bsd.admin_flags << 16) | key->file.bsd.owner_flags;
+#ifdef UF_HIDDEN
+	//infer UF_HIDDEN from the kIsInvisible Finder flag
+	if(key->file.user_info.finder_flags & 0x4000)
+		st->st_flags |= UF_HIDDEN;
+#endif
 #endif
 	if(S_ISBLK(st->st_mode) || S_ISCHR(st->st_mode))
 		st->st_rdev = key->file.bsd.special.raw_device;
