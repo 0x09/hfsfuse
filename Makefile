@@ -14,7 +14,7 @@ CONFIG_CFLAGS := $(CONFIG_CFLAGS) $(CFLAGS)
 CFLAGS := -D_FILE_OFFSET_BITS=64 $(CONFIG_CFLAGS)
 
 # extra flags we don't want to forward to the "external" libs like libhfs/ublio/utf8proc
-LOCAL_CFLAGS+=-Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -Wno-unused-parameter
+LOCAL_CFLAGS+=-Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -Wno-unused-parameter -Wno-error=type-limits -Wno-tautological-constant-out-of-range-compare
 # older versions of gcc/clang need these as well
 LOCAL_CFLAGS+=-Wno-missing-field-initializers -Wno-missing-braces
 

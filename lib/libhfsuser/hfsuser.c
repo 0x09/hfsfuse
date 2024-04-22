@@ -445,7 +445,14 @@ void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st,
 #endif
 	}
 	else {
-		st->st_nlink = key->folder.valence + 2;
+		if(generic_int_max(st->st_nlink)-2 < key->folder.valence)
+			st->st_nlink = generic_int_max(st->st_nlink);
+		else {
+			//valence must be cast to the type of st_nlink to really guarantee no overflow here, but nlink_t is not always defined (e.g. mingw) hence separate ops
+			st->st_nlink = key->folder.valence;
+			st->st_nlink += 2;
+		}
+
 		st->st_size = vol->vh.block_size;
 #if HAVE_STAT_BLKSIZE
 		st->st_blksize = vol->vh.block_size;
