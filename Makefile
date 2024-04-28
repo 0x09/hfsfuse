@@ -67,14 +67,14 @@ else ifeq (MSYS, $(findstring MSYS, $(OS)))
 $(info MSYS2 detected, only hfsdump will be built by default)
 	WITH_UBLIO ?= none
 	ifneq (none, $(WITH_UBLIO))
-$(warn building with ublio is not supported under MSYS2)
+$(warning building with ublio is not supported under MSYS2)
 	endif
 	TARGETS = hfsdump
 else ifeq (MINGW, $(findstring MINGW, $(OS)))
 $(info MinGW detected, only hfsdump will be built by default)
 	WITH_UBLIO ?= none
 	ifneq ($(WITH_UBLIO), none)
-$(warn building with ublio is not supported under MinGW)
+$(warning building with ublio is not supported under MinGW)
 	endif
 	TARGETS = hfsdump
 endif
