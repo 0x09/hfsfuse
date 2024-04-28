@@ -45,7 +45,8 @@ hfsfuse optionally uses these additional libraries to enable certain functionali
 utf8proc and ublio are both bundled with hfsfuse and built by default. hfsfuse can be configured to use already-installed versions of these if available, or may be built without them entirely if the respective functionality is not needed (see [Configuring](#Configuring)).
 
 ## Configuring
-hfsfuse is configured by passing options directly to `make`, and separate configure and build steps are not needed. For repeated builds using the same options, or to more easily view and edit config values, `make config` can optionally be used to generate a config.mak file which will be used by future invocations.
+hfsfuse is configured by passing options directly to `make`, and separate configure and build steps are not needed. `make showconfig` can be used to print available make options and their current values.  
+For repeated builds using the same options, or to more easily edit config values, `make config` can optionally be used to generate a config.mak file which will be used by future invocations.
 
 To configure hfsfuse's optional utf8proc and ublio dependencies, use WITH_*DEP*=(none/local/system). The default behavior with no arguments is to use the bundled versions of these and is the same as using
 

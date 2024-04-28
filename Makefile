@@ -93,11 +93,13 @@ CEXPR_TEST_CFLAGS = -Werror-implicit-function-declaration -Wno-unused-value -Wno
 ccshellcmd = printf "%s\n" "int main(void){$(1);}" | $(CC) $(if $(CEXPR_CFLAGS),$(CEXPR_CFLAGS),$(CFLAGS)) -xc -fsyntax-only $(CEXPR_TEST_CFLAGS) $(foreach inc,$(2),-include $(inc)) -
 parsecexpr = $(shell ! $(call ccshellcmd, $(1), $(2)) > $(if $(VERBOSE),/dev/stdout,/dev/null) 2> $(if $(VERBOSE),/dev/stderr,/dev/null); echo $$?)
 
+echo_features = $(if $(filter showconfig,$(MAKECMDGOALS)),,1)
+
 define cccheck
 ifndef $(1)
     $$(if $$(VERBOSE),$$(info Checking $(1) with `$(call ccshellcmd, $(2), $(3))`))
     $(1) := $$(call parsecexpr, $(2), $(3))
-    $$(info $(1): $$(if $$(filter $$($(1)),1),yes,no))
+    $$(if $$(echo_features),$$(info $(1): $$(if $$(filter $$($(1)),1),yes,no)))
 endif
 FEATURES+=$(1)
 endef
@@ -185,7 +187,7 @@ export CONFIG PREFIX prefix bindir libdir includedir DESTDIR CC CFLAGS LOCAL_CFL
 
 vpath %.o src
 
-.PHONY: all clean always_check config install install-lib lib $(non_build_targets)
+.PHONY: all clean always_check config showconfig install install-lib lib $(non_build_targets)
 
 all: $(TARGETS)
 
@@ -237,6 +239,9 @@ endif
 
 version:
 	echo \#define HFSFUSE_VERSION_STRING $(VERSION_STRING) > src/version.h
+
+showconfig:
+	@echo "$$CONFIG"
 
 config:
 	@echo "$$CONFIG" > config.mak
