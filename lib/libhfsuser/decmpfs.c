@@ -28,6 +28,7 @@
 
 #include <inttypes.h>
 #include <errno.h>
+#include <pthread.h>
 
 // note: these values are scaled down from the full decmpfs type to account for inline/rsrc variants,
 // e.g. a decmpfs_compression value of 2 corresponds to decmpfs types 3 and 4 (zlib compressed, inline or resource fork data respectively)
@@ -58,6 +59,7 @@ struct hfs_decmpfs_context {
 	// buffered for small reads;
 	uint16_t current_chunk;
 	size_t current_chunk_len;
+	pthread_rwlock_t current_chunk_lock;
 	hfs_extent_descriptor_t* extents;
 	uint16_t nextents;
 };
@@ -153,6 +155,9 @@ struct hfs_decmpfs_context* hfs_decmpfs_create_context(hfs_volume* vol, hfs_cnid
 	ctx->extents = NULL;
 	ctx->nextents = 0;
 
+	if(pthread_rwlock_init(&ctx->current_chunk_lock,NULL))
+		goto err;
+
 	if(compression_type == DECMPFS_COMPRESSION_SPARSE) {
 		if(!decmpfs_storage_inline(ctx->header.type))
 			goto err;
@@ -194,6 +199,7 @@ err:
 void hfs_decmpfs_destroy_context(struct hfs_decmpfs_context* ctx) {
 	if(!ctx)
 		return;
+	pthread_rwlock_destroy(&ctx->current_chunk_lock);
 	free(ctx->extents);
 	free(ctx->chunk_map);
 	free(ctx->buf);
@@ -225,10 +231,15 @@ static int decmpfs_read_rsrc(hfs_volume* vol, struct hfs_decmpfs_context* ctx, c
 		      chunk_offset = ctx->chunk_map[i][0];
 
 		size_t bytes_read = 0;
+		pthread_rwlock_rdlock(&ctx->current_chunk_lock);
 		if(!ctx->buf || ctx->current_chunk != i) {
+			pthread_rwlock_unlock(&ctx->current_chunk_lock);
+			pthread_rwlock_wrlock(&ctx->current_chunk_lock);
 			if(!ctx->buf) {
-				if(!(ctx->buf = malloc(decompressed_buf_len)))
-					return -ENOMEM;
+				if(!(ctx->buf = malloc(decompressed_buf_len))) {
+					ret = -ENOMEM;
+					break;
+				}
 				ctx->buflen = decompressed_buf_len;
 			}
 
@@ -237,8 +248,10 @@ static int decmpfs_read_rsrc(hfs_volume* vol, struct hfs_decmpfs_context* ctx, c
 				for(size_t j = chunk_start+1; j < chunk_end; j++)
 					if(max_chunk_len < ctx->chunk_map[j][1])
 						max_chunk_len = ctx->chunk_map[j][1];
-				if(!(compressed_buf = malloc(max_chunk_len)))
-					return -ENOMEM;
+				if(!(compressed_buf = malloc(max_chunk_len))) {
+					ret = -ENOMEM;
+					break;
+				}
 			}
 
 			uint64_t compressed_bytes_read;
@@ -256,11 +269,14 @@ static int decmpfs_read_rsrc(hfs_volume* vol, struct hfs_decmpfs_context* ctx, c
 			memcpy(buf+bytes_written,ctx->buf+decode_offset,writesize);
 			bytes_written += writesize;
 		}
+		pthread_rwlock_unlock(&ctx->current_chunk_lock);
 	}
 	free(compressed_buf);
-
-	if(ret < 0)
-		return ret;
+	if(ret) {
+		pthread_rwlock_unlock(&ctx->current_chunk_lock);
+		if(ret < 0)
+			return ret;
+	}
 	return bytes_written;
 }
 
