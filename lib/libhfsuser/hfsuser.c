@@ -495,7 +495,6 @@ void hfs_serialize_finderinfo(hfs_catalog_keyed_record_t* rec, char buf[32]) {
 #include <sys/ioctl.h>
 #include <sys/disk.h>
 #define DISKBLOCKSIZE DKIOCGETPHYSICALBLOCKSIZE
-#define DISKIDEALSIZE DKIOCGETMAXBYTECOUNTREAD
 #elif defined(__FreeBSD__)
 #if _BSD_SOURCE
 #include <sys/ioctl.h>
