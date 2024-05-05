@@ -77,6 +77,8 @@ struct hfs_device {
 	uint16_t default_file_mode, default_dir_mode;
 	uid_t default_uid;
 	gid_t default_gid;
+	void* read_buf;
+	pthread_mutex_t read_mutex;
 #ifdef HAVE_UBLIO
 	bool use_ublio;
 	ublio_filehandle_t ubfh;
@@ -608,7 +610,14 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 			BAIL(ubmtx_err);
 		}
 	}
+	else
 #endif
+	if(dev->blksize) {
+		if(!(dev->read_buf = malloc(dev->blksize)))
+			BAIL(ENOMEM);
+		if((err = pthread_mutex_init(&dev->read_mutex,NULL)))
+			goto error;
+	}
 
 	return 0;
 
@@ -630,6 +639,10 @@ void hfs_close(hfs_volume* vol, hfs_callback_args* cbargs) {
 		pthread_mutex_destroy(&dev->ubmtx);
 	}
 #endif
+	if(dev->read_buf) {
+		free(dev->read_buf);
+		pthread_mutex_destroy(&dev->read_mutex);
+	}
 	if(dev->fd >= 0)
 		close(dev->fd);
 	free(dev);
@@ -680,12 +693,15 @@ static inline int hfs_read_pread(struct hfs_device* dev, void* outbytes, uint64_
 
 	char* outbuf = outbytes;
 	uint32_t leading_padding = offset % dev->blksize;
-	char buf[dev->blksize];
 	if(leading_padding) {
-		if(!hfs_preadall(dev->fd,buf,dev->blksize,offset-leading_padding))
+		pthread_mutex_lock(&dev->read_mutex);
+		if(!hfs_preadall(dev->fd,dev->read_buf,dev->blksize,offset-leading_padding)) {
+			pthread_mutex_unlock(&dev->read_mutex);
 			return -errno;
+		}
 		uint32_t leading_bytes = dev->blksize - leading_padding;
-		memcpy(outbuf,buf+leading_padding,min(leading_bytes,length));
+		memcpy(outbuf,(char*)dev->read_buf+leading_padding,min(leading_bytes,length));
+		pthread_mutex_unlock(&dev->read_mutex);
 		if(leading_bytes >= length)
 			return 0;
 		offset += leading_bytes;
@@ -697,9 +713,13 @@ static inline int hfs_read_pread(struct hfs_device* dev, void* outbytes, uint64_
 	if(length && !hfs_preadall(dev->fd,outbuf,length,offset))
 		return -errno;
 	if(trailing_bytes) {
-		if(!hfs_preadall(dev->fd,buf,dev->blksize,offset+length))
+		pthread_mutex_lock(&dev->read_mutex);
+		if(!hfs_preadall(dev->fd,dev->read_buf,dev->blksize,offset+length)) {
+			pthread_mutex_unlock(&dev->read_mutex);
 			return -errno;
-		memcpy(outbuf+length,buf,trailing_bytes);
+		}
+		memcpy(outbuf+length,dev->read_buf,trailing_bytes);
+		pthread_mutex_unlock(&dev->read_mutex);
 	}
 	return 0;
 }
