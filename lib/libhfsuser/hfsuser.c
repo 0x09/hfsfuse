@@ -666,28 +666,32 @@ static inline ssize_t hfs_pread(int d, void* buf, size_t nbyte, off_t offset) {
 }
 #endif
 
+static inline bool hfs_preadall(int d, void* buf, size_t nbyte, off_t offset) {
+	ssize_t bytesread;
+	while((bytesread = hfs_pread(d,buf,nbyte,offset)) > 0) {
+		buf = (char*)buf + bytesread;
+		offset += bytesread;
+		nbyte -= bytesread;
+	}
+	if(!bytesread && nbyte) {
+		errno = EINVAL; // requested read beyond EOF
+		return false;
+	}
+	return !bytesread;
+}
+
 static inline int hfs_read_pread(struct hfs_device* dev, void* outbytes, uint64_t length, uint64_t offset) {
 	char* outbuf = outbytes;
-	ssize_t ret = 0;
 	uint64_t rem = length % dev->blksize;
 	length -= rem;
-	while(length && (ret = hfs_pread(dev->fd,outbuf,length,offset)) > 0) {
-		if((ret = min((ssize_t)length,ret)) <= 0)
-			break;
-		outbuf += ret;
-		offset += ret;
-		length -= ret;
-	}
-	if(ret < 0)
+	if(length && !hfs_preadall(dev->fd,outbuf,length,offset))
 		return -errno;
 	if(rem) {
 		char buf[dev->blksize];
-		ret = hfs_pread(dev->fd,buf,dev->blksize,offset);
-		if((ret = min((ssize_t)rem,ret)) > 0)
-			memcpy(outbuf,buf,ret);
+		if(!hfs_preadall(dev->fd,buf,dev->blksize,offset+length))
+			return -errno;
+		memcpy(outbuf+length,buf,rem);
 	}
-	if(ret < 0)
-		return -errno;
 	return 0;
 }
 
