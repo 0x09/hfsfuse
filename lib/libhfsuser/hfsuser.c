@@ -682,15 +682,27 @@ static inline bool hfs_preadall(int d, void* buf, size_t nbyte, off_t offset) {
 
 static inline int hfs_read_pread(struct hfs_device* dev, void* outbytes, uint64_t length, uint64_t offset) {
 	char* outbuf = outbytes;
-	uint64_t rem = length % dev->blksize;
-	length -= rem;
+	uint32_t leading_padding = offset % dev->blksize;
+	char buf[dev->blksize];
+	if(leading_padding) {
+		if(!hfs_preadall(dev->fd,buf,dev->blksize,offset-leading_padding))
+			return -errno;
+		uint32_t leading_bytes = dev->blksize - leading_padding;
+		memcpy(outbuf,buf+leading_padding,min(leading_bytes,length));
+		if(leading_bytes >= length)
+			return 0;
+		offset += leading_bytes;
+		outbuf += leading_bytes;
+		length -= leading_bytes;
+	}
+	uint32_t trailing_bytes = length % dev->blksize;
+	length -= trailing_bytes;
 	if(length && !hfs_preadall(dev->fd,outbuf,length,offset))
 		return -errno;
-	if(rem) {
-		char buf[dev->blksize];
+	if(trailing_bytes) {
 		if(!hfs_preadall(dev->fd,buf,dev->blksize,offset+length))
 			return -errno;
-		memcpy(outbuf+length,buf,rem);
+		memcpy(outbuf+length,buf,trailing_bytes);
 	}
 	return 0;
 }
