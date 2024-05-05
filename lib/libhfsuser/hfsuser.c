@@ -660,7 +660,7 @@ static inline ssize_t hfs_pread(int d, void* buf, size_t nbyte, off_t offset) {
 	static pthread_mutex_t pread_mutex = PTHREAD_MUTEX_INITIALIZER;
 	pthread_mutex_lock(&pread_mutex);
 	lseek(d,offset,SEEK_SET);
-	int ret = read(d,buf,nbyte);
+	ssize_t ret = read(d,buf,nbyte);
 	pthread_mutex_unlock(&pread_mutex);
 	return ret;
 }
