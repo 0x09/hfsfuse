@@ -553,7 +553,7 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 
 	if(cfg.blksize)
 		dev->blksize = cfg.blksize;
-	else if(cfg.noublio) {
+	else {
 		struct stat st;
 		if(fstat(dev->fd, &st))
 			BAIL(errno);
