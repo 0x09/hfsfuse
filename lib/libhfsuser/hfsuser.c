@@ -557,7 +557,7 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 		struct stat st;
 		if(fstat(dev->fd, &st))
 			BAIL(errno);
-		if(S_ISCHR(st.st_mode) || S_ISBLK(st.st_mode)) {
+		if(S_ISCHR(st.st_mode)) {
 #ifdef DISKBLOCKSIZE
 #ifdef DISKIDEALSIZE
 			if(ioctl(dev->fd,DISKIDEALSIZE,&dev->blksize))
@@ -571,17 +571,10 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 				BAIL(errno);
 			dev->blksize = diskinfo_blocksize(d);
 #endif
+			if(!dev->blksize)
+				dev->blksize = 512;
 		}
-		else if(S_ISREG(st.st_mode)) {
-#if HAVE_STAT_BLKSIZE
-			dev->blksize = st.st_blksize;
-#endif
-		}
-		else BAIL(EINVAL);
 	}
-
-	if(!dev->blksize)
-		dev->blksize=512;
 
 	if(cfg.cache_size && !(dev->cache = hfs_record_cache_create(cfg.cache_size)))
 		BAIL(ENOMEM);
@@ -605,6 +598,8 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 			.up_items = cfg.ublio_items,
 			.up_grace = cfg.ublio_grace,
 		};
+		if(!p.up_blocksize)
+			p.up_blocksize = 512;
 		if(!(dev->ubfh = ublio_open(&p)))
 			BAIL(errno);
 		int ubmtx_err = pthread_mutex_init(&dev->ubmtx,NULL);
@@ -681,6 +676,9 @@ static inline bool hfs_preadall(int d, void* buf, size_t nbyte, off_t offset) {
 }
 
 static inline int hfs_read_pread(struct hfs_device* dev, void* outbytes, uint64_t length, uint64_t offset) {
+	if(!dev->blksize)
+		return hfs_preadall(dev->fd,outbytes,length,offset) ? 0 : -errno;
+
 	char* outbuf = outbytes;
 	uint32_t leading_padding = offset % dev->blksize;
 	char buf[dev->blksize];
