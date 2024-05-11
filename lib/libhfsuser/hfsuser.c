@@ -263,13 +263,13 @@ int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* re
 		*fork = dev->default_fork;
 
 	size_t pathlen = strlen(path);
-	if(hfs_record_cache_lookup(cache,path,pathlen,record,key))
+	if(hfs_record_cache_lookup(cache,path,pathlen,record))
 		return 0;
 
 	char* pathcpy = hfs_memdup(path, pathlen+1);
 	if(!pathcpy)
 		return -ENOMEM;
-	size_t found_pathlen = hfs_record_cache_lookup_parents(cache, pathcpy, pathlen, record, key);
+	size_t found_pathlen = hfs_record_cache_lookup_parents(cache, pathcpy, pathlen, record);
 
 	if(!found_pathlen && hfslib_find_catalog_record_with_cnid(vol,HFS_CNID_ROOT_FOLDER,record,key,NULL)) {
 		ret = -ENOENT;
@@ -337,7 +337,7 @@ int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* re
 		   *record = inode_rec;
 
 	if(!alt_fork_lookup) // don't cache alternate fork lookups
-		hfs_record_cache_add(cache,path,pathlen,record,key);
+		hfs_record_cache_add(cache,path,pathlen,record);
 	else if(fork)
 		*fork = ~*fork;
 

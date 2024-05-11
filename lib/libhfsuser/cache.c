@@ -32,7 +32,6 @@ struct ringnode {
 	char* path;
 	size_t len;
 	hfs_catalog_keyed_record_t record;
-	hfs_catalog_key_t key;
 };
 
 struct hfs_record_cache {
@@ -74,7 +73,7 @@ void hfs_record_cache_destroy(struct hfs_record_cache* buf) {
 	free(buf);
 }
 
-bool hfs_record_cache_lookup(struct hfs_record_cache* buf, const char* path, size_t len, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key) {
+bool hfs_record_cache_lookup(struct hfs_record_cache* buf, const char* path, size_t len, hfs_catalog_keyed_record_t* record) {
 	bool ret = false;
 	if(!buf || pthread_rwlock_rdlock(&buf->lock))
 		return ret;
@@ -83,7 +82,6 @@ bool hfs_record_cache_lookup(struct hfs_record_cache* buf, const char* path, siz
 		if(!it->path) break;
 		if(len == it->len && !memcmp(it->path,path,len)) {
 			*record = it->record;
-			*key = it->key;
 			ret = true;
 			break;
 		}
@@ -93,18 +91,18 @@ bool hfs_record_cache_lookup(struct hfs_record_cache* buf, const char* path, siz
 	return ret;
 }
 
-size_t hfs_record_cache_lookup_parents(struct hfs_record_cache* buf, char* path, size_t len, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key) {
+size_t hfs_record_cache_lookup_parents(struct hfs_record_cache* buf, char* path, size_t len, hfs_catalog_keyed_record_t* record) {
 	char* c;
 	while((c = strrchr(path, '/'))) {
 		*c = '\0';
 		len = c - path;
-		if(*path && hfs_record_cache_lookup(buf, path, len, record, key))
+		if(*path && hfs_record_cache_lookup(buf, path, len, record))
 			break;
 	}
 	return len;
 }
 
-void hfs_record_cache_add(struct hfs_record_cache* buf, const char* path, size_t len, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key) {
+void hfs_record_cache_add(struct hfs_record_cache* buf, const char* path, size_t len, hfs_catalog_keyed_record_t* record) {
 	if(!buf || pthread_rwlock_wrlock(&buf->lock))
 		return;
 	struct ringnode* tail = buf->head->prev;
@@ -120,7 +118,6 @@ void hfs_record_cache_add(struct hfs_record_cache* buf, const char* path, size_t
 	memcpy(newpath, path,len);
 	tail->path = newpath;
 	tail->len = len;
-	tail->key = *key;
 	tail->record = *record;
 	buf->head = tail;
 end:
