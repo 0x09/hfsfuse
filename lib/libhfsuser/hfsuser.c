@@ -227,14 +227,14 @@ char* hfs_get_path(hfs_volume* vol, hfs_cnid_t cnid) {
 	hfs_unistr255_t* elem = elements+nelems;
 	while(elem != elements) {
 		elem--;
-		size_t utf8len = hfs_pathname_to_unix(elem, it);
+		ssize_t utf8len = hfs_pathname_to_unix(elem, it);
 		if(utf8len <= 0) {
 			free(out);
 			out = NULL;
 			goto end;
 		}
 
-		outlen += utf8len + 1;
+		outlen += (size_t)utf8len + 1;
 		it += utf8len;
 		*it++ = '/';
 	}
