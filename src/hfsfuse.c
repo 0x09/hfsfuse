@@ -164,9 +164,9 @@ static int hfsfuse_fgetattr(const char* path, struct stat* st, struct fuse_file_
 
 struct hf_dir {
 	hfs_cnid_t cnid;
-	hfs_catalog_keyed_record_t* keys;
-	hfs_unistr255_t* paths;
-	uint32_t npaths;
+	hfs_catalog_keyed_record_t* records;
+	hfs_unistr255_t* names;
+	uint32_t nentries;
 };
 
 static int hfsfuse_opendir(const char* path, struct fuse_file_info* info) {
@@ -181,13 +181,13 @@ static int hfsfuse_opendir(const char* path, struct fuse_file_info* info) {
 		return -ENOMEM;
 
 	d->cnid = rec.folder.cnid;
-	if(hfslib_get_directory_contents(vol,d->cnid,&d->keys,&d->paths,&d->npaths,NULL)) {
+	if(hfslib_get_directory_contents(vol,d->cnid,&d->records,&d->names,&d->nentries,NULL)) {
 		free(d);
 		return -1;
 	}
 
 	hfs_catalog_keyed_record_t link;
-	for(hfs_catalog_keyed_record_t* record = d->keys; record != d->keys + d->npaths; record++)
+	for(hfs_catalog_keyed_record_t* record = d->records; record != d->records + d->nentries; record++)
 		if(record->type == HFS_REC_FILE && (
 		  (record->file.user_info.file_creator == HFS_HFSPLUS_CREATOR &&
 		   record->file.user_info.file_type    == HFS_HARD_LINK_FILE_TYPE &&
@@ -203,8 +203,8 @@ static int hfsfuse_opendir(const char* path, struct fuse_file_info* info) {
 
 static int hfsfuse_releasedir(const char* path, struct fuse_file_info* info) {
 	struct hf_dir* d = (struct hf_dir*)info->fh;
-	free(d->paths);
-	free(d->keys);
+	free(d->names);
+	free(d->records);
 	free(d);
 	return 0;
 }
@@ -232,13 +232,13 @@ static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, 
 	}
 	char pelem[HFS_NAME_MAX+1];
 	int ret = 0;
-	for(off_t i = max(0,offset-2); i < d->npaths; i++) {
+	for(off_t i = max(0,offset-2); i < d->nentries; i++) {
 		int err;
-		if((err = hfs_pathname_to_unix(d->paths+i,pelem)) < 0) {
+		if((err = hfs_pathname_to_unix(d->names+i,pelem)) < 0) {
 			ret = err;
 			continue;
 		}
-		hfs_stat(vol,d->keys+i,&st,0,NULL);
+		hfs_stat(vol,d->records+i,&st,0,NULL);
 		if(filler(buf,pelem,&st,i+3))
 			break;
 	}
