@@ -227,7 +227,8 @@ int main(int argc, char* argv[]) {
 			hfs_catalog_keyed_record_t* keys;
 			hfs_unistr255_t* names;
 			uint32_t count;
-			hfslib_get_directory_contents(&vol,rec.folder.cnid,&keys,&names,&count,NULL);
+			if((ret = hfslib_get_directory_contents(&vol,rec.folder.cnid,&keys,&names,&count,NULL)))
+				goto end;
 			for(size_t i = 0; i < count; i++) {
 				char name[HFS_NAME_MAX+1];
 				hfs_pathname_to_unix(names+i,name);
