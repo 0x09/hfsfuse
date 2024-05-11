@@ -163,7 +163,8 @@ static int hfsfuse_fgetattr(const char* path, struct stat* st, struct fuse_file_
 
 
 struct hf_dir {
-	hfs_cnid_t cnid;
+	hfs_catalog_keyed_record_t dir_record;
+	hfs_cnid_t parent_cnid;
 	hfs_catalog_keyed_record_t* records;
 	hfs_unistr255_t* names;
 	uint32_t nentries;
@@ -171,21 +172,20 @@ struct hf_dir {
 
 static int hfsfuse_opendir(const char* path, struct fuse_file_info* info) {
 	hfs_volume* vol = fuse_get_context()->private_data;
-	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key;
-	int ret = hfs_lookup(vol,path,&rec,&key,NULL);
-	if(ret)
-		return ret;
-
 	struct hf_dir* d = malloc(sizeof(*d));
 	if(!d)
 		return -ENOMEM;
 
-	d->cnid = rec.folder.cnid;
-	if(hfslib_get_directory_contents(vol,d->cnid,&d->records,&d->names,&d->nentries,NULL)) {
-		free(d);
-		return -1;
-	}
+	hfs_catalog_key_t key;
+	int ret = hfs_lookup(vol,path,&d->dir_record,&key,NULL);
+	if(ret)
+		goto end;
+	d->parent_cnid = key.parent_cnid;
 
+	if(hfslib_get_directory_contents(vol,d->dir_record.folder.cnid,&d->records,&d->names,&d->nentries,NULL)) {
+		ret = -1;
+		goto end;
+	}
 	hfs_catalog_keyed_record_t link;
 	for(hfs_catalog_keyed_record_t* record = d->records; record != d->records + d->nentries; record++)
 		if(record->type == HFS_REC_FILE && (
@@ -198,7 +198,11 @@ static int hfsfuse_opendir(const char* path, struct fuse_file_info* info) {
 			*record = link;
 
 	info->fh = (uint64_t)d;
-	return 0;
+
+end:
+	if(ret)
+		free(d);
+	return ret;
 }
 
 static int hfsfuse_releasedir(const char* path, struct fuse_file_info* info) {
@@ -212,21 +216,20 @@ static int hfsfuse_releasedir(const char* path, struct fuse_file_info* info) {
 static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info* info) {
 	hfs_volume* vol = fuse_get_context()->private_data;
 	struct hf_dir* d = (struct hf_dir*)info->fh;
-	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key;
-	if(offset < 2) {
-		hfslib_find_catalog_record_with_cnid(vol, d->cnid, &rec, &key, NULL);
-		if(offset < 1) {
-			struct stat st = {0};
-			hfs_stat(vol, &rec, &st, 0, NULL);
-			if(filler(buf, ".", &st, 1))
-				return 0;
-		}
-
-		struct stat* stp = NULL;
+	if(offset < 1) {
 		struct stat st = {0};
-		if(d->cnid != HFS_CNID_ROOT_FOLDER) {
+		hfs_stat(vol, &d->dir_record, &st, 0, NULL);
+		if(filler(buf, ".", &st, 1))
+			return 0;
+	}
+	if(offset < 2) {
+		struct stat st = {0};
+		struct stat* stp = NULL;
+		if(d->dir_record.folder.cnid != HFS_CNID_ROOT_FOLDER) {
+			hfs_catalog_key_t key;
+			hfs_catalog_keyed_record_t rec;
+			hfslib_find_catalog_record_with_cnid(vol, d->parent_cnid, &rec, &key, NULL);
 			stp = &st;
-			hfslib_find_catalog_record_with_cnid(vol, key.parent_cnid, &rec, &key, NULL);
 			hfs_stat(vol, &rec, stp, 0, NULL);
 		}
 		if(filler(buf, "..", stp, 2))
