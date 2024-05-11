@@ -62,6 +62,8 @@ struct hfs_volume_config {
 
 	uint16_t default_file_mode, default_dir_mode;
 	uint32_t default_uid, default_gid;
+
+	int disable_symlinks;
 };
 
 // HFS+ compression support

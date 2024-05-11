@@ -575,6 +575,7 @@ static struct fuse_opt hfsfuse_opts[] = {
 	HFS_OPTION("default_dir_mode=%"SCNo16,default_dir_mode),
 	HFS_OPTION("default_uid=%" SCNu32,default_uid),
 	HFS_OPTION("default_gid=%" SCNu32,default_gid),
+	HFS_OPTION("disable_symlinks", disable_symlinks),
 	FUSE_OPT_END
 };
 
@@ -606,6 +607,9 @@ static void help(const char* self, struct hfsfuse_config* cfg) {
 		"    -o default_dir_mode=N  octal filesystem permissions for Mac OS Classic directories (%" PRIo16 ")\n"
 		"    -o default_uid=N       unix user ID for Mac OS Classic files (%" PRIu32 ")\n"
 		"    -o default_gid=N       unix group ID for Mac OS Classic files (%" PRIu32 ")\n"
+		"\n"
+		"    -o disable_symlinks    treat symbolic links as regular files. may be used to view extended attributes\n"
+		"                           of these on systems that don't support symlink xattrs\n"
 		"\n",
 		cfg->volume_config.cache_size,
 		cfg->volume_config.default_file_mode,

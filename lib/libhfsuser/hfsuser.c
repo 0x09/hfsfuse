@@ -79,6 +79,7 @@ struct hfs_device {
 	gid_t default_gid;
 	void* read_buf;
 	pthread_mutex_t read_mutex;
+	bool disable_symlinks;
 #ifdef HAVE_UBLIO
 	bool use_ublio;
 	ublio_filehandle_t ubfh;
@@ -362,6 +363,10 @@ end:
 #define S_IFWHT 0
 #endif
 
+#ifndef S_ISLNK
+#define S_ISLNK(mode) (((mode) & S_IFMT) == S_IFLNK)
+#endif
+
 #define HFS_IFMODES\
 	X(S_IFIFO, 0010000)\
 	X(S_IFCHR, 0020000)\
@@ -392,6 +397,9 @@ void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st,
 		#define X(mode,mask) if((key->file.bsd.file_mode & mask) == mask) st->st_mode |= mode;
 		HFS_IFMODES
 		#undef X
+
+		if(dev->disable_symlinks && S_ISLNK(st->st_mode))
+			st->st_mode = (st->st_mode & ~S_IFLNK) | S_IFREG;
 
 		if(key->file.bsd.owner_id > UID_MAX) {
 			hfslib_error("hfs_stat: owner_id %" PRIu32 " too large for CNID %" PRIu32 ", using default",NULL,0,key->file.bsd.owner_id,key->file.cnid);
@@ -589,6 +597,8 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 	if(cfg.default_gid > GID_MAX)
 		BAIL(ERANGE);
 	dev->default_gid = cfg.default_gid;
+
+	dev->disable_symlinks = cfg.disable_symlinks;
 
 #ifdef HAVE_UBLIO
 	dev->use_ublio = !cfg.noublio;

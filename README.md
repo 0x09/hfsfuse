@@ -85,11 +85,14 @@ hfsfuse-specific options are shown below
                                you should only set this if you are sure it is being misdetected
         -o rsrc_ext=suffix     special suffix for filenames which can be used to access their resource fork
                                or alternatively their data fork if mounted in rsrc_only mode
-
+    
         -o default_file_mode=N octal filesystem permissions for Mac OS Classic files (755)
         -o default_dir_mode=N  octal filesystem permissions for Mac OS Classic directories (777)
         -o default_uid=N       unix user ID for Mac OS Classic files (0)
         -o default_gid=N       unix group ID for Mac OS Classic files (0)
+
+        -o disable_symlinks    treat symbolic links as regular files. may be used to view extended attributes
+                               of these on systems that don't support symlink xattrs
     
         -o noublio             disable ublio read layer
         -o ublio_items=N       number of ublio cache entries, 0 for no caching (64)
@@ -127,6 +130,8 @@ Because of this, the more familiar `/rsrc` suffix used by previous releases of m
 Finally, the entire volume may be mounted in resource-fork only mode using the `rsrc_only` option. In this mode, all entries on the filesystem are presented using the size and contents of their resource fork. Files with no resource fork will appear as empty, 0 size entries.  
 This option may be combined with the `rsrc_ext` option described above, in which case the special suffix will instead be used to access the regular data fork.
 
+### OS-specific extended attribute behavior
+
 On Linux you may encounter the following error when inspecting xattrs: `user.com.apple.ResourceFork: Argument list too long`  
 This occurs when the resource fork is larger than the maximum allowed extended attribute size of 64kb. In this case you can still access the resource fork as described above by setting the `rsrc_ext` option or mounting in `rsrc_only` mode.
 
@@ -138,6 +143,9 @@ catattr -r user.com.apple.ResourceFork file | xxd -r -p
 
 Extended attributes are presented in the preferred namespace for the OS, typically `user.`. Alternate namespaces may be chosen when building hfsfuse by setting the `XATTR_NAMESPACE` make var.  
 This should include the trailing `.` as an empty value indicates no namespacing (such as on macOS.)
+
+HFS+ symbolic links may contain extended attributes of their own separate from their link destination.
+For systems such as Linux that do not support reading user-namespace extended attributes of symlinks, these can be viewed by using the `-o disable_symlinks` mount option, which will cause hfsfuse to display all symlinks as regular files.
 
 ## Mac OS Classic file permissions
 HFS+ filesystems created on Mac OS Classic do not contain the typical set of Unix ownership and permission information for files and folders.
