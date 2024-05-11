@@ -212,16 +212,18 @@ static int hfsfuse_releasedir(const char* path, struct fuse_file_info* info) {
 static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info* info) {
 	hfs_volume* vol = fuse_get_context()->private_data;
 	struct hf_dir* d = (struct hf_dir*)info->fh;
-	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key; struct stat st;
+	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key;
 	if(offset < 2) {
 		hfslib_find_catalog_record_with_cnid(vol, d->cnid, &rec, &key, NULL);
 		if(offset < 1) {
+			struct stat st = {0};
 			hfs_stat(vol, &rec, &st, 0, NULL);
 			if(filler(buf, ".", &st, 1))
 				return 0;
 		}
 
 		struct stat* stp = NULL;
+		struct stat st = {0};
 		if(d->cnid != HFS_CNID_ROOT_FOLDER) {
 			stp = &st;
 			hfslib_find_catalog_record_with_cnid(vol, key.parent_cnid, &rec, &key, NULL);
@@ -238,6 +240,7 @@ static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, 
 			ret = err;
 			continue;
 		}
+		struct stat st = {0};
 		hfs_stat(vol,d->records+i,&st,0,NULL);
 		if(filler(buf,pelem,&st,i+3))
 			break;
