@@ -247,6 +247,10 @@ end:
 	return out;
 }
 
+void hfs_cache_path(hfs_volume* vol, const char* path, size_t len, hfs_catalog_keyed_record_t* record) {
+	hfs_record_cache_add(((struct hfs_device*)vol->cbdata)->cache, path, len, record);
+}
+
 static inline void* hfs_memdup(const void* ptr, size_t size) {
 	char* p = malloc(size);
 	if(!p)

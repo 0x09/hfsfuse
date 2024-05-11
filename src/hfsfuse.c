@@ -168,6 +168,8 @@ struct hf_dir {
 	hfs_catalog_keyed_record_t* records;
 	hfs_unistr255_t* names;
 	uint32_t nentries;
+	char* path;
+	size_t pathlen;
 };
 
 static int hfsfuse_opendir(const char* path, struct fuse_file_info* info) {
@@ -181,6 +183,17 @@ static int hfsfuse_opendir(const char* path, struct fuse_file_info* info) {
 	if(ret)
 		goto end;
 	d->parent_cnid = key.parent_cnid;
+
+	d->pathlen = strlen(path);
+	if(d->pathlen > 1)
+		d->pathlen++;
+	if(!(d->path = malloc(d->pathlen))) {
+		ret = -ENOMEM;
+		goto end;
+	}
+	if(d->pathlen > 1)
+		memcpy(d->path,path,d->pathlen-1);
+	d->path[d->pathlen-1] = '/';
 
 	if(hfslib_get_directory_contents(vol,d->dir_record.folder.cnid,&d->records,&d->names,&d->nentries,NULL)) {
 		ret = -1;
@@ -209,6 +222,7 @@ static int hfsfuse_releasedir(const char* path, struct fuse_file_info* info) {
 	struct hf_dir* d = (struct hf_dir*)info->fh;
 	free(d->names);
 	free(d->records);
+	free(d->path);
 	free(d);
 	return 0;
 }
@@ -235,19 +249,28 @@ static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, 
 		if(filler(buf, "..", stp, 2))
 			return 0;
 	}
-	char pelem[HFS_NAME_MAX+1];
+
+	char* fullpath = malloc(d->pathlen+HFS_NAME_MAX+1);
+	if(!fullpath)
+		return -ENOMEM;
+
+	memcpy(fullpath,d->path,d->pathlen);
+	char* pelem = fullpath + d->pathlen;
 	int ret = 0;
 	for(off_t i = max(0,offset-2); i < d->nentries; i++) {
-		int err;
-		if((err = hfs_pathname_to_unix(d->names+i,pelem)) < 0) {
-			ret = err;
+		ssize_t len;
+		if((len = hfs_pathname_to_unix(d->names+i,pelem)) < 0) {
+			ret = len;
 			continue;
 		}
+		hfs_cache_path(vol,fullpath,d->pathlen+len,d->records+i);
+
 		struct stat st = {0};
 		hfs_stat(vol,d->records+i,&st,0,NULL);
 		if(filler(buf,pelem,&st,i+3))
 			break;
 	}
+	free(fullpath);
 	return min(ret,0);
 }
 
