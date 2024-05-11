@@ -209,34 +209,7 @@ static int hfsfuse_releasedir(const char* path, struct fuse_file_info* info) {
 	return 0;
 }
 
-#if 0
 static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info* info) {
-	filler(buf, ".", NULL, 0);
-	filler(buf, "..", NULL, 0);
-	hfs_volume* vol = fuse_get_context()->private_data;
-	struct hf_dir* d = (struct hf_dir*)info->fh;
-	char pelem[HFS_NAME_MAX+1];
-	int ret = 0;
-	for(size_t i = 0; i < d->npaths; i++) {
-		int err;
-		if((err = hfs_pathname_to_unix(d->paths+i,pelem)) < 0) {
-			ret = err;
-			continue;
-		}
-		struct stat st;
-		hfs_stat(vol,d->keys+i,&st,0);
-		if(filler(buf,pelem,&st,0)) {
-			ret = -errno;
-			break;
-		}
-	}
-	return min(ret,0);
-}
-#endif
-
-// FUSE expects readder to be implemented in one of two ways
-// This is the 'alternative' implementation that supports the offset param
-static int hfsfuse_readdir2(const char* path, void* buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info* info) {
 	hfs_volume* vol = fuse_get_context()->private_data;
 	struct hf_dir* d = (struct hf_dir*)info->fh;
 	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key; struct stat st;
@@ -516,7 +489,7 @@ static struct fuse_operations hfsfuse_ops = {
 	.open        = hfsfuse_open,
 	.opendir     = hfsfuse_opendir,
 	.read        = hfsfuse_read,
-	.readdir     = hfsfuse_readdir2,
+	.readdir     = hfsfuse_readdir,
 	.release     = hfsfuse_release,
 	.releasedir  = hfsfuse_releasedir,
 	.statfs      = hfsfuse_statfs,
