@@ -172,7 +172,7 @@ static char* hfs_utf8proc_NFD(const uint8_t* u8) {
 		else len++;
 	}
 
-	if(!len || result < 0 || !(buf = malloc(sizeof(*buf)*len+1)))
+	if(!len || result < 0 || !(buf = malloc(sizeof(*buf)*len+1))) //trailing byte for utf8proc_reencode
 		return NULL;
 
 	for(utf8proc_int32_t* it = buf; *u8 && (result = utf8proc_iterate(u8, -1, &codepoint)) > 0; u8 += result)
@@ -181,7 +181,7 @@ static char* hfs_utf8proc_NFD(const uint8_t* u8) {
 		else *it++ = codepoint;
 
 	sort_combining_characters(buf, len);
-	utf8proc_reencode(buf, len, UTF8PROC_STABLE);
+	utf8proc_reencode(buf, len, 0);
 	return (char*)buf;
 }
 
