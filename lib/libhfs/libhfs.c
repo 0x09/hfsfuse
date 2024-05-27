@@ -865,8 +865,13 @@ hfslib_get_file_extents(hfs_volume* in_vol,
 
 	while (1) {
 		for (n = 0; n < 8; n++) {
-			if (numblocks + nextextentrec[n].block_count <= numblocks)
+			if (nextextentrec[n].block_count == 0)
 				break;
+
+			if (UINT32_MAX - numblocks < nextextentrec[n].block_count)
+				HFS_LIBERR("block count overflow for CNID %" PRIu32 ", record #%" PRIu16
+					" count %" PRIu32, in_cnid, n, nextextentrec[n].block_count);
+
 			numblocks += nextextentrec[n].block_count;
 		}
 		if (out_extents != NULL) {
@@ -2795,8 +2800,9 @@ hfslib_readd_with_extents(
 
 		ext_length = (uint64_t)in_extents[i].block_count * in_vol->vh.block_size;
 
-		if (last_offset + ext_length < last_offset)
-			break;
+		if (UINT64_MAX - last_offset < ext_length)
+			HFS_LIBERR("extent length exceeds 16 exabytes at #%" PRIu16
+				", offset %" PRIu64 " length %" PRIu64, i, last_offset, ext_length);
 
 		if (in_offset < last_offset+ext_length
 			&& in_offset+in_length >= last_offset)
@@ -2820,6 +2826,9 @@ hfslib_readd_with_extents(
 	}
 
 	return 0;
+
+error:
+	return -1;
 }
 
 #if 0
