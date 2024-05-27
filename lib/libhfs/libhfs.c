@@ -2793,7 +2793,7 @@ hfslib_readd_with_extents(
 		if (in_extents[i].block_count == 0)
 			continue;
 
-		ext_length = in_extents[i].block_count * in_vol->vh.block_size;
+		ext_length = (uint64_t)in_extents[i].block_count * in_vol->vh.block_size;
 
 		if (last_offset + ext_length < last_offset)
 			break;
