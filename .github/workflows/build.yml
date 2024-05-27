@@ -42,6 +42,9 @@ jobs:
           CC: gcc
   build-freebsd:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: ['13.3', '14.0']
     steps:
       - uses: actions/checkout@v2
       - name: Build in default configuration
@@ -49,7 +52,7 @@ jobs:
         with:
           operating_system: freebsd
           architecture: x86-64
-          version: '13.2'
+          version: ${{ matrix.version }}
           run: |
             sudo pkg update
             sudo pkg install -y gmake fusefs-libs
@@ -59,13 +62,16 @@ jobs:
         with:
           operating_system: freebsd
           architecture: x86-64
-          version: '13.2'
+          version: ${{ matrix.version }}
           run: |
             sudo pkg install -y gmake fusefs-libs libublio utf8proc
             gmake clean
             gmake WITH_UBLIO=system WITH_UTF8PROC=system config all
   build-openbsd:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: ['7.4']
     steps:
       - uses: actions/checkout@v2
       - name: Build
@@ -73,12 +79,15 @@ jobs:
         with:
           operating_system: openbsd
           architecture: x86-64
-          version: '7.3'
+          version: ${{ matrix.version }}
           run: |
             sudo pkg_add gmake
             gmake
   build-netbsd:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: ['9.3', '10.0']
     steps:
       - uses: actions/checkout@v2
       - name: Build
@@ -86,7 +95,7 @@ jobs:
         with:
           operating_system: netbsd
           architecture: x86-64
-          version: '9.3'
+          version: ${{ matrix.version }}
           run: |
             sudo pkgin update
             sudo pkgin -y install gmake fuse
