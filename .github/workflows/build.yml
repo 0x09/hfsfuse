@@ -11,7 +11,7 @@ jobs:
   build-ubuntu:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -21,7 +21,7 @@ jobs:
   build-macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           brew update
@@ -31,7 +31,7 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Add MinGW to PATH
         run: echo "C:\msys64\mingw32\bin" >> $GITHUB_PATH
         shell: bash
@@ -46,7 +46,7 @@ jobs:
       matrix:
         version: ['13.3', '14.0']
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Build in default configuration
         uses: cross-platform-actions/action@v0.24.0
         with:
@@ -73,7 +73,7 @@ jobs:
       matrix:
         version: ['7.4']
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Build
         uses: cross-platform-actions/action@v0.24.0
         with:
@@ -89,7 +89,7 @@ jobs:
       matrix:
         version: ['9.3', '10.0']
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Build
         uses: cross-platform-actions/action@v0.24.0
         with:
@@ -111,7 +111,7 @@ jobs:
       run:
         shell: sh
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           sudo apt-get update
