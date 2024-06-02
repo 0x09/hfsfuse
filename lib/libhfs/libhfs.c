@@ -146,12 +146,6 @@ hfslib_init_cbargs(hfs_callback_args* ptr)
 	memset(ptr, 0, sizeof(hfs_callback_args));
 }
 
-hfs_callbacks*
-hfslib_callbacks(void)
-{
-	return &hfs_gcb;
-}
-
 #if 0
 #pragma mark -
 #pragma mark High-Level Routines

@@ -767,7 +767,7 @@ int main(int argc, char* argv[]) {
 			goto done;
 		}
 	}
-	hfslib_callbacks()->error = hfs_vsyslog; // prepare to daemonize
+	hfs_gcb.error = hfs_vsyslog; // prepare to daemonize
 	ret = fuse_main(args.argc, args.argv, &hfsfuse_ops, &vol);
 
 done:

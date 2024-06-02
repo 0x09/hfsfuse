@@ -602,7 +602,6 @@ extern const unichar_t hfs_gcft[2816];
 void hfslib_init(hfs_callbacks*);
 void hfslib_done(void);
 void hfslib_init_cbargs(hfs_callback_args*);
-hfs_callbacks* hfslib_callbacks(void);
 
 int hfslib_open_volume(const char*, int, hfs_volume*,
 	hfs_callback_args*);
