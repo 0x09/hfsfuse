@@ -1,3 +1,4 @@
 *.o
 *.a
 src/version.h
+AUTHORS

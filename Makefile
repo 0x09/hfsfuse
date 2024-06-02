@@ -116,7 +116,7 @@ ifneq ($$(call parsecexpr),1)
 endif
 endef
 
-non_build_targets = dist version uninstall uninstall-lib clean distclean
+non_build_targets = dist version authors uninstall uninstall-lib clean distclean
 
 ifneq ($(filter-out $(non_build_targets),$(or $(MAKECMDGOALS),all)),)
     CEXPR_CFLAGS=$(CFLAGS) $(LIBHFS_CFLAGS)
@@ -212,7 +212,7 @@ clean:
 	$(RM) src/hfsfuse.o hfsfuse src/hfsdump.o hfsdump
 
 distclean: clean
-	$(RM) config.mak src/version.h
+	$(RM) config.mak src/version.h AUTHORS
 
 install-lib: $(LIBS)
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir install; done
@@ -240,11 +240,14 @@ endif
 version:
 	echo \#define HFSFUSE_VERSION_STRING $(VERSION_STRING) > src/version.h
 
+authors:
+	git shortlog -sne $(RELEASE_BRANCH) | cut -d $$'\t' -f 2- > AUTHORS
+
 showconfig:
 	@echo "$$CONFIG"
 
 config:
 	@echo "$$CONFIG" > config.mak
 
-dist: version
-	git archive $(RELEASE_BRANCH) -o "$(RELEASE_NAME).tar.gz" --prefix "$(RELEASE_NAME)/src/" --add-file src/version.h --prefix "$(RELEASE_NAME)/"
+dist: version authors
+	git archive $(RELEASE_BRANCH) -o "$(RELEASE_NAME).tar.gz" --prefix "$(RELEASE_NAME)/src/" --add-file src/version.h --prefix "$(RELEASE_NAME)/" --add-file AUTHORS
