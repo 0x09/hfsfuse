@@ -2012,7 +2012,8 @@ hfslib_reada_node(void* in_bytes,
 				(*out_record_ptr_sizes_array)[i]--;
 		}
 
-		if ((ptr - in_bytes) + (*out_record_ptr_sizes_array)[i] > nodesize)
+		if (((uint8_t*)ptr - (uint8_t*)in_bytes) +
+			(*out_record_ptr_sizes_array)[i] > nodesize)
 			HFS_LIBERR("record offset outside of node bounds %" PRIu16,
 				(*out_record_ptr_sizes_array)[i]);
 

@@ -87,7 +87,7 @@ utf8_to_utf16(uint16_t *dst, size_t dst_len,
 			c = ((s[spos] & 0x0f) << 12) | ((s[spos+1] & 0x3f) << 6)
 			    | (s[spos+2] & 0x3f);
 			spos += 3;
-			if (c < 0x800 || c >= 0xd800 && c <= 0xdfff) {
+			if (c < 0x800 || (c >= 0xd800 && c <= 0xdfff)) {
 				/* overlong encoding or encoded surrogate */
 				error++;
 				continue;

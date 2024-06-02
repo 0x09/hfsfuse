@@ -8,7 +8,13 @@ all: $(TARGET)
 
 %.o: CPPFLAGS += "-D__KERNEL_RCSID(sec,string)=const char hfs_rcsid_$*[]=string"
 
-$(TARGET): CFLAGS += $(LIBHFS_CFLAGS)
+# from NetBSD syssrc usr/src/sys/conf/Makefile.kern.inc v 1.300
+LIBHFS_UPSTREAM_CFLAGS = -Wall -Wextra -Wno-unknown-warning-option\
+    -Wpointer-arith -Wstrict-prototypes -Wold-style-definition -Wswitch -Wshadow -Wcast-qual -Wwrite-strings -Walloca -Wold-style-definition -Wmissing-prototypes -Wstack-usage=3584\
+    -Wno-unused-parameter -Wno-sign-compare -Wno-conversion -Wno-self-assign\
+    -fno-common -fno-delete-null-pointer-checks -fno-strict-aliasing
+
+$(TARGET): CFLAGS := $(LIBHFS_UPSTREAM_CFLAGS) $(CFLAGS) $(LIBHFS_CFLAGS)
 $(TARGET): $(OBJS)
 	$(AR) rcs $@ $^
 	$(RANLIB) $@
