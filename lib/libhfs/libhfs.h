@@ -42,7 +42,7 @@
 #include <sys/fcntl.h>
 #endif /* defined(_KERNEL) */
 
-#if !defined(_KERNEL) && !defined(STANDALONE)
+#if !defined(_KERNEL) && !defined(_STANDALONE)
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -52,7 +52,7 @@
 #include <string.h>
 #include <assert.h>
 #define KASSERT(x) assert(x)
-#endif /* !defined(_KERNEL) && !defined(STANDALONE) */
+#endif /* !defined(_KERNEL) && !defined(_STANDALONE) */
 
 #define max(A,B) ((A) > (B) ? (A):(B))
 #define min(A,B) ((A) < (B) ? (A):(B))
