@@ -153,8 +153,9 @@ enum {
 enum {
 	HFS_DIR_HARD_LINK_FILE_TYPE = 0x66647270, /* 'fdrp' */
 	HFS_MACS_CREATOR = 0x4d414353, /* 'MACS' */
-	HFS_HFSPLUS_CREATOR = 0x6866732B,   /* 'hfs+';  identifier below retained for compatibility */
 	HFS_HARD_LINK_FILE_TYPE = 0x686C6E6B,  /* 'hlnk' */
+	HFS_HFSPLUS_CREATOR = 0x6866732B,   /* 'hfs+' */
+	/* identifier below retained for compatibility */
 	HFS_HFSLUS_CREATOR     = 0x6866732B   /* 'hfs+' */
 };
 

@@ -866,8 +866,9 @@ hfslib_get_file_extents(hfs_volume* in_vol,
 				break;
 
 			if (UINT32_MAX - numblocks < nextextentrec[n].block_count)
-				HFS_LIBERR("block count overflow for CNID %" PRIu32 ", record #%" PRIu16
-					" count %" PRIu32, in_cnid, n, nextextentrec[n].block_count);
+				HFS_LIBERR("block count overflow for CNID %" PRIu32
+					", record #%" PRIu16 " count %" PRIu32, in_cnid, n,
+					nextextentrec[n].block_count);
 
 			numblocks += nextextentrec[n].block_count;
 		}
@@ -1929,7 +1930,8 @@ hfslib_reada_node(void* in_bytes,
 		return ((uint8_t*)ptr - (uint8_t*)in_bytes);
 
 	if (nodesize < (numrecords+1) * sizeof(uint16_t))
-		HFS_LIBERR("nodesize %" PRIu16 " too small for %" PRIu16 " records", nodesize, numrecords);
+		HFS_LIBERR("nodesize %" PRIu16 " too small for %" PRIu16 " records",
+			nodesize, numrecords);
 
 	rec_offsets = hfslib_malloc(numrecords * sizeof(uint16_t), cbargs);
 	*out_record_ptr_sizes_array =
@@ -1952,13 +1954,15 @@ hfslib_reada_node(void* in_bytes,
 			(numrecords+1) * sizeof(uint16_t)));
 
 	if (free_space_offset <= rec_offsets[0])
-		HFS_LIBERR("corrupt record offsets %" PRIu16 "-%" PRIu16, free_space_offset, rec_offsets[0]);
+		HFS_LIBERR("corrupt record offsets %" PRIu16 "-%" PRIu16,
+			free_space_offset, rec_offsets[0]);
 
 	(*out_record_ptr_sizes_array)[numrecords-1] =
 		free_space_offset - rec_offsets[0];
 	for (i = 1; i < numrecords; i++) {
 		if (rec_offsets[i-1] <= rec_offsets[i])
-			HFS_LIBERR("corrupt record offsets %" PRIu16 "-%" PRIu16, rec_offsets[i-1], rec_offsets[i]);
+			HFS_LIBERR("corrupt record offsets %" PRIu16 "-%" PRIu16,
+				rec_offsets[i-1], rec_offsets[i]);
 
 		(*out_record_ptr_sizes_array)[numrecords-i-1] = 
 			rec_offsets[i-1] - rec_offsets[i];
@@ -1991,8 +1995,9 @@ hfslib_reada_node(void* in_bytes,
 		{
 			if (in_parent_file == HFS_CATALOG_FILE) {
 				/*
-				 * This rule doesn't apply to the variable-length attributes file
-				 * keys, nor the extents overflow file (whose keys are always even.)
+				 * This rule doesn't apply to the variable-length attributes
+				 * file keys, nor the extents overflow file (whose keys are
+				 * always even.)
 				 */
 				hfs_catalog_key_t	reckey;
 				int16_t	rectype;
@@ -2014,7 +2019,8 @@ hfslib_reada_node(void* in_bytes,
 		}
 
 		if ((ptr - in_bytes) + (*out_record_ptr_sizes_array)[i] > nodesize)
-			HFS_LIBERR("record offset outside of node bounds %" PRIu16, (*out_record_ptr_sizes_array)[i]);
+			HFS_LIBERR("record offset outside of node bounds %" PRIu16,
+				(*out_record_ptr_sizes_array)[i]);
 
 		memcpy((*out_record_ptrs_array)[i], ptr,
 				(*out_record_ptr_sizes_array)[i]);
@@ -2799,7 +2805,8 @@ hfslib_readd_with_extents(
 
 		if (UINT64_MAX - last_offset < ext_length)
 			HFS_LIBERR("extent length exceeds 16 exabytes at #%" PRIu16
-				", offset %" PRIu64 " length %" PRIu64, i, last_offset, ext_length);
+				", offset %" PRIu64 " length %" PRIu64, i, last_offset,
+				ext_length);
 
 		if (in_offset < last_offset+ext_length
 			&& in_offset+in_length >= last_offset)
