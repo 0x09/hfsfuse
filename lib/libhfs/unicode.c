@@ -29,9 +29,17 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#if defined(_KERNEL) || defined(_STANDALONE)
+#include <sys/cdefs.h>
+#endif /* defined(_KERNEL) || defined(_STANDALONE) */
+
 __KERNEL_RCSID(0, "$NetBSD: unicode.c,v 1.2.56.1 2017/12/03 11:38:41 jdolecek Exp $");
 
+#if defined(_KERNEL)
+#include <sys/null.h>
+#elif !defined(_STANDALONE)
 #include <stddef.h>
+#endif
 
 #include "unicode.h"
 

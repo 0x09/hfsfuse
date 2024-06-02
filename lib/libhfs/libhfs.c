@@ -46,12 +46,21 @@
  *	caller.
  */
 
+#if defined(_KERNEL) || defined(_STANDALONE)
+#include <sys/cdefs.h>
+#endif /* defined(_KERNEL) || defined(_STANDALONE) */
+
 __KERNEL_RCSID(0, "$NetBSD: libhfs.c,v 1.19 2023/08/11 05:51:34 mrg Exp $");
 
 #include "libhfs.h"
-#include "byteorder.h"
 
+#ifndef _NETBSD_SOURCE
+#include "byteorder.h"
+#endif
+
+#if !defined(_KERNEL) && !defined(_STANDALONE)
 #include <inttypes.h>
+#endif /* !defined(_KERNEL) && defined(_STANDALONE) */
 
 /* global private file/folder keys */
 hfs_catalog_key_t hfs_gMetadataDirectoryKey; /* contains HFS+ inodes */

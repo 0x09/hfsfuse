@@ -29,7 +29,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#if defined(_KERNEL)
+#include <sys/types.h>
+#elif !defined(_STANDALONE)
 #include <stdint.h>
+#endif
 
 #define UNICODE_DECOMPOSE		0x01
 #define UNICODE_PRECOMPOSE		0x02
