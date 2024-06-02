@@ -29,7 +29,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "rcsid.h"
 __KERNEL_RCSID(0, "$NetBSD: unicode.c,v 1.2.56.1 2017/12/03 11:38:41 jdolecek Exp $");
 
 #include <stddef.h>

@@ -598,8 +598,6 @@ extern const unichar_t hfs_gcft[2816];
 #pragma mark Functions
 #endif
 
-const char* hfslib_get_rcsid(void);
-
 void hfslib_init(hfs_callbacks*);
 void hfslib_done(void);
 void hfslib_init_cbargs(hfs_callback_args*);

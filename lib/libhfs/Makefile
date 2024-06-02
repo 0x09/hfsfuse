@@ -6,6 +6,8 @@ TARGET = libhfs.a
 
 all: $(TARGET)
 
+%.o: CPPFLAGS += "-D__KERNEL_RCSID(sec,string)=const char hfs_rcsid_$*[]=string"
+
 $(TARGET): CFLAGS += $(LIBHFS_CFLAGS)
 $(TARGET): $(OBJS)
 	$(AR) rcs $@ $^

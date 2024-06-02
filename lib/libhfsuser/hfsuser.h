@@ -16,6 +16,8 @@
 // maximum bytes an HFS+ path element can occupy in UTF-8
 #define HFS_NAME_MAX 765
 
+extern const char hfs_rcsid_libhfs[], hfs_rcsid_unicode[];
+
 enum hfs_lib_features {
 	HFS_LIB_FEATURES_NONE = 0,
 	HFS_LIB_FEATURES_UBLIO = 1 << 0,

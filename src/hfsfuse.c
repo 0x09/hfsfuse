@@ -619,10 +619,11 @@ static void version(void) {
 		"hfsfuse version " HFSFUSE_VERSION_STRING "\n"
 		"Built with:\n"
 		"    FUSE API v%d.%d\n"
-		"    libhfs RCSID %s\n",
+		"    libhfs RCSIDs %s; %s\n",
 		FUSE_MAJOR_VERSION,
 		FUSE_MINOR_VERSION,
-		hfslib_get_rcsid()
+		hfs_rcsid_libhfs,
+		hfs_rcsid_unicode
 	);
 
 	if(hfs_get_lib_features() & HFS_LIB_FEATURES_UBLIO)
