@@ -5,7 +5,7 @@
  * All rights reserved.
  *
  * This code is derived from software contributed to The NetBSD Foundation
- * by Yevgeny Binder, Dieter Baron, and Pelle Johansson.
+ * by Yevgeny Binder, Dieter Baron, Pelle Johansson, and the hfsfuse project.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
