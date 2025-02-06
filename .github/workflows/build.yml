@@ -48,7 +48,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build in default configuration
-        uses: cross-platform-actions/action@v0.24.0
+        uses: cross-platform-actions/action@v0.27.0
         with:
           operating_system: freebsd
           architecture: x86-64
@@ -75,7 +75,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build
-        uses: cross-platform-actions/action@v0.24.0
+        uses: cross-platform-actions/action@v0.27.0
         with:
           operating_system: openbsd
           architecture: x86-64
@@ -91,7 +91,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build
-        uses: cross-platform-actions/action@v0.24.0
+        uses: cross-platform-actions/action@v0.27.0
         with:
           operating_system: netbsd
           architecture: x86-64
