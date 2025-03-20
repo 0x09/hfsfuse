@@ -76,6 +76,7 @@ $(info MinGW detected, only hfsdump will be built by default)
 	ifneq ($(WITH_UBLIO), none)
 $(warning building with ublio is not supported under MinGW)
 	endif
+	APP_LIB += -static
 	TARGETS = hfsdump
 endif
 
