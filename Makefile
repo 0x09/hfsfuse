@@ -201,10 +201,10 @@ $(LIBS): always_check
 
 lib: $(LIBS)
 
-hfsfuse: LDLIBS += $(LIBS) $(APP_LIB) $(FUSE_LIB) -lpthread
+hfsfuse: LDLIBS += $(APP_LIB) $(FUSE_LIB) -lpthread
 hfsfuse: src/hfsfuse.o $(LIBS)
 
-hfsdump: LDLIBS += $(LIBS) $(APP_LIB) -lpthread
+hfsdump: LDLIBS += $(APP_LIB) -lpthread
 hfsdump: src/hfsdump.o $(LIBS)
 
 clean:
