@@ -231,7 +231,7 @@ int main(int argc, char* argv[]) {
 
 				off_t offset = 0;
 				int bytes;
-				for(bytes = 0; (bytes = hfs_decmpfs_read(&vol,decmpfs,(char*)data,bufsize,offset)) > 0; offset += bytes)
+				for(; (bytes = hfs_decmpfs_read(&vol,decmpfs,(char*)data,bufsize,offset)) > 0; offset += bytes)
 					fwrite(data,bytes,1,stdout);
 				if(bytes < 0)
 					ret = 1;

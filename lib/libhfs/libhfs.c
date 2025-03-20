@@ -1037,7 +1037,6 @@ hfslib_find_attribute_record_with_key(hfs_volume* in_vol,
 	extents = NULL;
 	recs = NULL;
 	recsizes = NULL;
-	curnode = 0;
 	node = NULL;
 	nd.num_recs = 0;
 
@@ -1198,7 +1197,6 @@ hfslib_find_attribute_records_for_cnid(hfs_volume* in_vol, hfs_cnid_t cnid,
 	extents = NULL;
 	recs = NULL;
 	recsizes = NULL;
-	curnode = 0;
 	node = NULL;
 	nd.num_recs = 0;
 
