@@ -363,6 +363,8 @@ end:
 	X(S_IFWHT, 0160000)
 
 void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st, uint8_t fork, struct hfs_decmpfs_header* decmpfs_header) {
+	memset(st,0,sizeof(*st));
+
 	st->st_ino = key->file.cnid;
 
 	struct hfs_device* dev = vol->cbdata;
