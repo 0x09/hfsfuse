@@ -263,6 +263,7 @@ int main(int argc, char* argv[]) {
 				if(u8len > 0)
 					printf("%s\n",attrname);
 			}
+			free(attr_keys);
 		}
 		else {
 			hfs_attribute_record_t attrec;

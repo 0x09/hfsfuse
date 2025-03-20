@@ -344,6 +344,7 @@ static int hfsfuse_listxattr(const char* path, char* attr, size_t size) {
 			attr = stpcpy(attr, attrname)+1;
 		}
 	}
+	free(attr_keys);
 
 	return ret;
 }
