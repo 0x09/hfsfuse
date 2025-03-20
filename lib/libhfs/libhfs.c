@@ -2170,6 +2170,8 @@ hfslib_read_catalog_keyed_record(
 		out_key->key_len = *(((uint8_t*)ptr));
 		ptr = (uint8_t*)ptr + 1;
 	}
+	else
+		return 0;
 
 	out_key->parent_cnid = be32tohp(&ptr);
 
