@@ -73,6 +73,7 @@ bool hfs_record_cache_lookup(struct hfs_record_cache* buf, const char* path, siz
 }
 
 size_t hfs_record_cache_lookup_parents(struct hfs_record_cache* buf, char* path, size_t len, hfs_catalog_keyed_record_t* record) {
+	len = 0;
 	char* c;
 	while((c = strrchr(path, '/'))) {
 		*c = '\0';
