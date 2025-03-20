@@ -126,7 +126,7 @@ ifneq ($(filter-out $(non_build_targets),$(or $(MAKECMDGOALS),all)),)
     $(eval $(call cccheck,HAVE_BEXXTOH_SYS_ENDIAN_H,{ be16toh(0); be32toh(0); be64toh(0); },sys/endian.h))
     $(eval $(call cccheck,HAVE_OSBYTEORDER_H,{ OSSwapBigToHostInt16(0); OSSwapBigToHostInt32(0); OSSwapBigToHostInt64(0); },libkern/OSByteOrder.h))
 
-    CEXPR_CFLAGS=$(CFLAGS) $(LOCAL_CFLAGS)
+    CEXPR_CFLAGS=$(CFLAGS) $(LOCAL_CFLAGS) $(APP_FLAGS)
     $(eval $(call testcccheck))
     $(eval $(call cccheck,HAVE_BIRTHTIME,{ (struct stat){0}.st_birthtime; },sys/stat.h))
     $(eval $(call cccheck,HAVE_STAT_FLAGS,{ (struct stat){0}.st_flags; },sys/stat.h))
