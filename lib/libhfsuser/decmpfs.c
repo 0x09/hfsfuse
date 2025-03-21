@@ -107,10 +107,15 @@ int hfs_decmpfs_decompress(uint8_t type, unsigned char* decompressed_buf, size_t
 	return 1;
 }
 
-struct hfs_decmpfs_context* hfs_decmpfs_create_context(hfs_volume* vol, hfs_cnid_t cnid, uint32_t length, unsigned char* data) {
+struct hfs_decmpfs_context* hfs_decmpfs_create_context(hfs_volume* vol, hfs_cnid_t cnid, uint32_t length, unsigned char* data, int* out_err) {
+	int err = 0;
+	struct hfs_decmpfs_context* ctx = NULL;
+
 	struct hfs_decmpfs_header h;
-	if(!hfs_decmpfs_parse_record(&h,length,data))
-		return NULL;
+	if(!hfs_decmpfs_parse_record(&h,length,data)) {
+		err = -EINVAL;
+		goto err;
+	}
 
 	uint8_t compression_type = decmpfs_compression(h.type);
 	// only reject entirely unknown types, allow unsupported ones since these may contain uncompressed data
@@ -120,12 +125,16 @@ struct hfs_decmpfs_context* hfs_decmpfs_create_context(hfs_volume* vol, hfs_cnid
 		case DECMPFS_COMPRESSION_LZVN:
 		case DECMPFS_COMPRESSION_LZFSE:
 			break;
-		default: return NULL;
+		default:
+			err = -EINVAL;
+			goto err;
 	}
 
-	struct hfs_decmpfs_context* ctx = malloc(sizeof(*ctx));
-	if(!ctx)
-		return NULL;
+	ctx = malloc(sizeof(*ctx));
+	if(!ctx) {
+		err = -ENOMEM;
+		goto err;
+	}
 	ctx->header = h;
 	ctx->buf = NULL;
 	ctx->buflen = 0;
@@ -136,44 +145,75 @@ struct hfs_decmpfs_context* hfs_decmpfs_create_context(hfs_volume* vol, hfs_cnid
 	ctx->extents = NULL;
 	ctx->nextents = 0;
 
-	if(pthread_rwlock_init(&ctx->current_chunk_lock,NULL))
+	if(pthread_rwlock_init(&ctx->current_chunk_lock,NULL)) {
+		err = -errno;
 		goto err;
+	}
 
 	if(compression_type == DECMPFS_COMPRESSION_SPARSE) {
-		if(!decmpfs_storage_inline(ctx->header.type))
+		if(!decmpfs_storage_inline(ctx->header.type)) {
+			err = -EINVAL;
 			goto err;
+		}
 	}
 	else if(decmpfs_storage_inline(ctx->header.type)) {
 		ctx->buflen = ctx->header.logical_size;
-		if(!(ctx->buf = malloc(ctx->buflen)) ||
-		   hfs_decmpfs_decompress(ctx->header.type, ctx->buf, ctx->buflen, data+16, length-16, &ctx->buflen, NULL))
+		if(!(ctx->buf = malloc(ctx->buflen))) {
+			err = -ENOMEM;
 			goto err;
+		}
+		if(hfs_decmpfs_decompress(ctx->header.type, ctx->buf, ctx->buflen, data+16, length-16, &ctx->buflen, NULL)) {
+			err = -1;
+			goto err;
+		}
 	}
 	else {
 		// resource fork
-		if(!(ctx->nextents = hfslib_get_file_extents(vol,cnid,HFS_RSRCFORK,&ctx->extents,NULL)))
+		if(!(ctx->nextents = hfslib_get_file_extents(vol,cnid,HFS_RSRCFORK,&ctx->extents,NULL))) {
+			err = -1;
 			goto err;
+		}
 		uint64_t bytes;
 		uint32_t rsrc_start; // usually 256
-		if(hfslib_readd_with_extents(vol,&rsrc_start,&bytes,4,0,ctx->extents,ctx->nextents,NULL) || bytes < 4)
+		if((err = hfslib_readd_with_extents(vol,&rsrc_start,&bytes,4,0,ctx->extents,ctx->nextents,NULL)))
 			goto err;
+		if(bytes < 4) {
+			err = -EIO;
+			goto err;
+		}
 		rsrc_start = be32toh(rsrc_start);
 
-		if(hfslib_readd_with_extents(vol,&ctx->nchunks,&bytes,4,rsrc_start+4,ctx->extents,ctx->nextents,NULL) || bytes < 4)
+		if((err = hfslib_readd_with_extents(vol,&ctx->nchunks,&bytes,4,rsrc_start+4,ctx->extents,ctx->nextents,NULL)))
 			goto err;
-		if(!(ctx->chunk_map = malloc(sizeof(*ctx->chunk_map)*ctx->nchunks)))
+		if(bytes < 4) {
+			err = -EIO;
 			goto err;
-		if(hfslib_readd_with_extents(vol,ctx->chunk_map,&bytes,ctx->nchunks*sizeof(*ctx->chunk_map),rsrc_start+8,ctx->extents,ctx->nextents,NULL) || bytes < ctx->nchunks*sizeof(*ctx->chunk_map))
+		}
+		if(!(ctx->chunk_map = malloc(sizeof(*ctx->chunk_map)*ctx->nchunks))) {
+			err = -ENOMEM;
 			goto err;
+		}
+		if((err = hfslib_readd_with_extents(vol,ctx->chunk_map,&bytes,ctx->nchunks*sizeof(*ctx->chunk_map),rsrc_start+8,ctx->extents,ctx->nextents,NULL)))
+			goto err;
+		if(bytes < ctx->nchunks*sizeof(*ctx->chunk_map)) {
+			err = -EIO;
+			goto err;
+		}
+
 		// adjust offets to be relative to start block
 		for(size_t i = 0; i < ctx->nchunks; i++)
 			ctx->chunk_map[i][0] += rsrc_start+4;
 	}
 
+	if(out_err)
+		*out_err = 0;
+
 	return ctx;
 
 err:
 	hfs_decmpfs_destroy_context(ctx);
+	if(out_err)
+		*out_err = err;
 	return NULL;
 }
 

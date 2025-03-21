@@ -223,7 +223,11 @@ int main(int argc, char* argv[]) {
 			uint32_t inlinelength;
 			unsigned char* data;
 			if(fork == HFS_DATAFORK && !hfs_decmpfs_lookup(&vol,&rec.file,&h,&inlinelength,&data)) {
-				struct hfs_decmpfs_context* decmpfs = hfs_decmpfs_create_context(&vol,rec.file.cnid,inlinelength,data);
+				struct hfs_decmpfs_context* decmpfs = hfs_decmpfs_create_context(&vol,rec.file.cnid,inlinelength,data,&(int){0});
+				if(!decmpfs) {
+					ret = 1;
+					goto end;
+				}
 
 				size_t bufsize = hfs_decmpfs_buffer_size(&h);
 				if(!(data = hfs_reallocf(data,bufsize)))

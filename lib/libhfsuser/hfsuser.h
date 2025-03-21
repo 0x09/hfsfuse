@@ -84,7 +84,7 @@ bool hfs_decmpfs_type_supported(uint8_t type);
 // not required, but useful as a hint for the ideal size to call hfs_decmpfs_read with
 size_t hfs_decmpfs_buffer_size(struct hfs_decmpfs_header* h);
 
-struct hfs_decmpfs_context* hfs_decmpfs_create_context(hfs_volume*, hfs_cnid_t, uint32_t length, unsigned char* data);
+struct hfs_decmpfs_context* hfs_decmpfs_create_context(hfs_volume*, hfs_cnid_t, uint32_t length, unsigned char* data, int* err);
 void hfs_decmpfs_destroy_context(struct hfs_decmpfs_context*);
 
 bool hfs_decmpfs_get_header(struct hfs_decmpfs_context*, struct hfs_decmpfs_header*);
