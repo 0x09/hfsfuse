@@ -11,6 +11,8 @@
 #include <errno.h>
 #include <pthread.h>
 
+#define HFS_UF_COMPRESSED 0x00000020
+
 // note: these values are scaled down from the full decmpfs type to account for inline/rsrc variants,
 // e.g. a decmpfs_compression value of 2 corresponds to decmpfs types 3 and 4 (zlib compressed, inline or resource fork data respectively)
 // see the decmpfs_compression(type) macro below
@@ -337,7 +339,7 @@ int hfs_decmpfs_lookup(hfs_volume* vol, hfs_file_record_t* file, struct hfs_decm
 	if(length)
 		*length = 0;
 
-	if(file->data_fork.logical_size)
+	if(!(file->bsd.owner_flags & HFS_UF_COMPRESSED) || file->data_fork.logical_size)
 		return 1;
 
 	hfs_attribute_key_t attrkey;
