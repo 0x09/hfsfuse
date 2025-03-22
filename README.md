@@ -59,24 +59,23 @@ The default `make` and `make install` targets build and install hfsfuse and hfsd
 
 hfsfuse's supporting libraries can be built and installed independently using `make lib` and `make install-lib`. Applications can use these to read from HFS+ volumes by including [hfsuser.h](lib/libhfsuser/hfsuser.h) and linking with libhfsuser, libhfs, and ublio/utf8proc if configured.
 
-Some version information is generated from the git repository. For distributions outside of revision control of tree builds, run `make version` within the repository first or provide your own version.h.
+Some version information is generated from the git repository. For distributions outside of revision control, run `make version` within the repository first or provide your own version.h.
 
 # Use
 ## hfsfuse
-    hfsfuse <opts> <device> <mountpoint>
+hfsfuse is the FUSE driver and is invoked similarly to the Unix mount command.
+hfsfuse accepts an HFS+ volume (device or image), mount point, and a series of options to be passed along to FUSE.  
+Use `hfsfuse -h` for general options or `hfsfuse -H` for a list of all switches supported by FUSE. hfsfuse-specific options are shown below.
 
-Where `<opts>` are any series of arguments to be passed along to FUSE. Use `hfsfuse -h` for general options or `hfsfuse -H` for a list of all switches supported by FUSE.  
-hfsfuse-specific options are shown below
+    usage: hfsfuse [-hHv] [-o options] volume mountpoint
 
-    usage: hfsfuse [-hHv] [-o options] device mountpoint
-    
     general options:
         -o opt,[opt...]        mount options
-        -h   --help            this help
-        -H   --fullhelp        list all FUSE options
-        -v   --version
+        -h, --help             this help
+        -H, --fullhelp         list all FUSE options
+        -v, --version
     
-    HFS options:
+    HFS+ options:
         --force                force mount volumes with dirty journal
         -o rsrc_only           only mount the resource forks of files
         -o noallow_other       restrict filesystem access to mounting user
@@ -107,19 +106,21 @@ Afterwards filesystems may be mounted like so:
     mount -t userlandfs -o "hfsfuse <opts> <device>" <mountpoint>
 
 ## hfsdump
-	hfsdump <device> <command> <node>
+hfsdump is a small standalone tool which can be used to inspect the contents of an HFS+ volume by printing record info and file or directory contents to standard out.
+
+    Usage: hfsdump <device> <stat|read|xattr> <path|inode> [xattrname]
 	
-`command` may be either `stat`, `read`, or `xattr`: `stat` prints the record structure, while `read` copies the node's contents to standard out (or lists if node is a directory).  
-`node` is either an integer inode/CNID to lookup, or a full path from the root of the volume being inspected.  
+`stat`, `read`, and `xattr` are commands to perform. `stat` prints the record structure, while `read` copies the node's contents to standard out (or lists if node is a directory).  
+The `xattr` command lists extended attribute names for the given node. If an attribute name is provided following the node argument, its value will be printed to standard out.  
+`inode` or `path` are either an integer inode/CNID to lookup, or a full path from the root of the volume being inspected.  
 If the command and node are ommitted, hfsdump prints the volume header and exits.  
 `/rsrc` may be appended to the path of a read operation to dump the resource fork instead.  
-The `xattr` command lists extended attribute names for the given node. If an attribute name is provided following the node argument, its value will be printed to standard out.
 
 ## Extended attributes and resource forks
 hfsfuse exposes some nonstandard HFS+ attributes as extended attributes. These include:
 
-* hfsfuse.record.date\_created: The date created as an ISO-8601 timestamp. Identical to `st_birthtime` on macOS or FreeBSD.
-* hfsfuse.record.date\_backedup: The backup time of a file as an ISO-8601 timestamp.
+* hfsfuse.record.date\_created: The date created as an ISO-8601 timestamp, displayed in localtime with the time zone offset. Identical to `st_birthtime` on macOS or FreeBSD.
+* hfsfuse.record.date\_backedup: The backup time of a file in the same format as hfsfuse.record.date\_created.
 * com.apple.FinderInfo: The Finder info as binary data, presented the same as with the macOS native driver.
 * com.apple.ResourceFork: The resource fork as binary data.
 
@@ -131,7 +132,6 @@ Finally, the entire volume may be mounted in resource-fork only mode using the `
 This option may be combined with the `rsrc_ext` option described above, in which case the special suffix will instead be used to access the regular data fork.
 
 ### OS-specific extended attribute behavior
-
 On Linux you may encounter the following error when inspecting xattrs: `user.com.apple.ResourceFork: Argument list too long`  
 This occurs when the resource fork is larger than the maximum allowed extended attribute size of 64kb. In this case you can still access the resource fork as described above by setting the `rsrc_ext` option or mounting in `rsrc_only` mode.
 

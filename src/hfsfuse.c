@@ -568,7 +568,7 @@ static struct fuse_opt hfsfuse_opts[] = {
 };
 
 static void usage(const char* self) {
-	fprintf(stderr,"usage: %s [-hHv] [-o options] device mountpoint\n\n",self);
+	fprintf(stderr,"usage: %s [-hHv] [-o options] volume mountpoint\n\n",self);
 }
 
 static void help(const char* self, struct hfsfuse_config* cfg) {
@@ -577,11 +577,11 @@ static void help(const char* self, struct hfsfuse_config* cfg) {
 		stderr,
 		"general options:\n"
 		"    -o opt,[opt...]        mount options\n"
-		"    -h   --help            this help\n"
-		"    -H   --fullhelp        list all FUSE options\n"
-		"    -v   --version\n"
+		"    -h, --help             this help\n"
+		"    -H, --fullhelp         list all FUSE options\n"
+		"    -v, --version\n"
 		"\n"
-		"HFS options:\n"
+		"HFS+ options:\n"
 		"    --force                force mount volumes with dirty journal\n"
 		"    -o rsrc_only           only mount the resource forks of files\n"
 		"    -o noallow_other       restrict filesystem access to mounting user\n"
