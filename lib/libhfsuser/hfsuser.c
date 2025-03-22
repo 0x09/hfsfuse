@@ -648,6 +648,10 @@ void hfs_close(hfs_volume* vol, hfs_callback_args* cbargs) {
 	vol->cbdata = NULL;
 }
 
+uint32_t hfs_device_block_size(hfs_volume* vol) {
+	return ((struct hfs_device*)vol->cbdata)->blksize;
+}
+
 #ifdef HAVE_UBLIO
 static inline int hfs_read_ublio(struct hfs_device* dev, void* outbytes, uint64_t length, uint64_t offset) {
 	int ret = 0;

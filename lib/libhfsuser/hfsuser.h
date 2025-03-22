@@ -81,6 +81,9 @@ int  hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* r
 void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st, uint8_t fork, struct hfs_decmpfs_header*);
 void hfs_serialize_finderinfo(hfs_catalog_keyed_record_t*, char[32]);
 
+// 0 if vol is a regular file
+uint32_t hfs_device_block_size(hfs_volume* vol);
+
 // libhfs callbacks
 int  hfs_open(hfs_volume*,const char*,hfs_callback_args*);
 void hfs_close(hfs_volume*,hfs_callback_args*);
