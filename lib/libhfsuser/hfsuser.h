@@ -16,6 +16,17 @@
 // maximum bytes an HFS+ path element can occupy in UTF-8
 #define HFS_NAME_MAX 765
 
+// file modes specified by TN1150
+#define HFS_S_IFIFO  0010000
+#define HFS_S_IFCHR  0020000
+#define HFS_S_IFDIR  0040000
+#define HFS_S_IFBLK  0060000
+#define HFS_S_IFREG  0100000
+#define HFS_S_IFLNK  0120000
+#define HFS_S_IFSOCK 0140000
+#define HFS_S_IFWHT  0160000
+#define HFS_S_IFMT   0170000
+
 extern const char hfs_rcsid_libhfs[], hfs_rcsid_unicode[];
 
 enum hfs_lib_features {

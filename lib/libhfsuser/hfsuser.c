@@ -336,8 +336,6 @@ end:
 
 // POSIX 08 specifies values for all file modes below 07777 but leaves the following to the implementation
 // so for these we translate to the system's modes from the definitions given in TN1150
-#define HFS_S_IFMT 0170000
-
 #ifndef S_IFLNK
 #define S_IFLNK 0
 #endif
@@ -353,14 +351,14 @@ end:
 #endif
 
 #define HFS_IFMODES\
-	X(S_IFIFO, 0010000)\
-	X(S_IFCHR, 0020000)\
-	X(S_IFDIR, 0040000)\
-	X(S_IFBLK, 0060000)\
-	X(S_IFREG, 0100000)\
-	X(S_IFLNK, 0120000)\
-	X(S_IFSOCK,0140000)\
-	X(S_IFWHT, 0160000)
+	X(S_IFIFO, HFS_S_IFIFO)\
+	X(S_IFCHR, HFS_S_IFCHR)\
+	X(S_IFDIR, HFS_S_IFDIR)\
+	X(S_IFBLK, HFS_S_IFBLK)\
+	X(S_IFREG, HFS_S_IFREG)\
+	X(S_IFLNK, HFS_S_IFLNK)\
+	X(S_IFSOCK,HFS_S_IFSOCK)\
+	X(S_IFWHT, HFS_S_IFWHT)
 
 void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st, uint8_t fork, struct hfs_decmpfs_header* decmpfs_header) {
 	memset(st,0,sizeof(*st));
