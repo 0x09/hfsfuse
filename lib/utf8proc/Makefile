@@ -23,11 +23,11 @@ SOFLAG = -Wl,-soname
 # The API version number is defined in utf8proc.h.
 # Be sure to also update these ABI versions in MANIFEST and CMakeLists.txt!
 MAJOR=3
-MINOR=0
+MINOR=1
 PATCH=0
 
 # api version (also in utf8proc.h and CMakeLists.txt)
-VERSION=2.9.0
+VERSION=2.10.0
 
 OS := $(shell uname)
 ifeq ($(OS),Darwin) # MacOS X
@@ -73,7 +73,7 @@ manifest: MANIFEST.new
 
 # real targets
 
-data/utf8proc_data.c.new: libutf8proc.$(SHLIB_EXT) data/data_generator.rb data/charwidths.jl
+data/utf8proc_data.c.new: libutf8proc.$(SHLIB_EXT) data/data_generator.jl
 	$(MAKE) -C data utf8proc_data.c.new
 
 utf8proc.o: utf8proc.h utf8proc.c utf8proc_data.c
