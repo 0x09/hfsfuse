@@ -15,7 +15,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libfuse-dev
+          sudo apt-get install -y libfuse-dev libarchive-dev
       - name: Build
         run: make
   build-macos:
@@ -26,6 +26,7 @@ jobs:
         run: |
           brew update
           brew install --cask macfuse
+          brew install libarchive
       - name: Build
         run: make
   build-windows:
@@ -115,7 +116,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libfuse-dev libutf8proc-dev
+          sudo apt-get install -y libfuse-dev libutf8proc-dev libarchive-dev
       - name: Build
         run: make all clean
       - name: Build with conformance flags
