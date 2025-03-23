@@ -2,7 +2,7 @@
 
 hfsfuse embeds and extends [NetBSD's HFS+ kernel driver](http://cvsweb.netbsd.org/bsdweb.cgi/src/sys/fs/hfs/) into a portable library for use with FUSE and other userspace tools. hfsfuse was created for use on FreeBSD and other Unix-like systems that lack a native HFS+ driver, but can also be used on Linux and macOS as an alternative to their kernel drivers.
 
-hfsfuse also includes a standalone tool, hfsdump, to inspect the contents of an HFS+ volume without FUSE.
+hfsfuse also includes two standalone tools, hfsdump and hfstar, which can be used without FUSE.
 
 This driver is read-only and cannot write to or alter the target filesystem.
 
@@ -22,7 +22,7 @@ This driver is read-only and cannot write to or alter the target filesystem.
 * Writing
 
 # Installation
-With the FUSE headers and library for your platform installed, running `make install` (gmake on *BSD) from the project root will build and install hfsfuse and hfsdump and should be sufficient for most use cases. See below for more details or skip to [usage](#Use).
+With the FUSE headers and library for your platform installed, running `make install` (gmake on *BSD) from the project root will build and install hfsfuse and related tools and should be sufficient for most use cases. See below for more details or skip to [usage](#Use).
 
 ## Dependencies
 hfsfuse aims to be widely portable across Unix-like systems. Build requirements include GNU Make, a C11 compiler with a GCC-compatible frontend, and a POSIX-compatible shell and utilities.
@@ -44,6 +44,8 @@ hfsfuse optionally uses these additional libraries to enable certain functionali
 
 utf8proc and ublio are both bundled with hfsfuse and built by default. hfsfuse can be configured to use already-installed versions of these if available, or may be built without them entirely if the respective functionality is not needed (see [Configuring](#Configuring)).
 
+hfstar additionally requires [libarchive](https://www.libarchive.org). Like hfsdump it can also be built for Windows with Mingw-w64 or msys2.
+
 ## Configuring
 hfsfuse is configured by passing options directly to `make`, and separate configure and build steps are not needed. `make showconfig` can be used to print available make options and their current values.  
 For repeated builds using the same options, or to more easily edit config values, `make config` can optionally be used to generate a config.mak file which will be used by future invocations.
@@ -55,7 +57,7 @@ To configure hfsfuse's optional utf8proc and ublio dependencies, use WITH_*DEP*=
 To ease portability, the Makefile will attempt to detect certain features of the host libc in an autoconf-like way, and creates a series of defines for these labeled HAVE_*FEATURENAME*. To override and skip checks for a given feature, these may be provided directly to `make` or overridden in config.mak.
 
 ## Building
-The default `make` and `make install` targets build and install hfsfuse and hfsdump. hfsdump can also be built standalone with `make hfsdump`, in which case FUSE is not needed.
+The default `make` and `make install` targets build and install hfsfuse, hfsdump, and hfstar. hfsdump and hfstar can also be built standalone with `make hfsdump hfstar`, in which case FUSE is not needed.
 
 hfsfuse's supporting libraries can be built and installed independently using `make lib` and `make install-lib`. Applications can use these to read from HFS+ volumes by including [hfsuser.h](lib/libhfsuser/hfsuser.h) and linking with libhfsuser, libhfs, and ublio/utf8proc if configured.
 
@@ -115,6 +117,62 @@ The `xattr` command lists extended attribute names for the given node. If an att
 `inode` or `path` are either an integer inode/CNID to lookup, or a full path from the root of the volume being inspected.  
 If the command and node are ommitted, hfsdump prints the volume header and exits.  
 `/rsrc` may be appended to the path of a read operation to dump the resource fork instead.  
+
+## hfstar
+hfstar can be used to archive the contents of an HFS+ volume to tar or any other archive format supported by libarchive.
+
+    Usage: hfstar [options] <volume> <archive> [<prefix>]
+    
+      <volume>   HFS+ image or device to convert.
+      <archive>  Output archive file.
+      <prefix>   Optional path in the HFS+ volume to archive. Default: /
+    
+    Options:
+      -h, --help
+      -v, --version
+    
+      -b <bufsize>  Size of read buffer. Default: device's block size or 16kb for regular files.
+      -s            Archive directory hard links as symbolic links instead of resolving them.
+      -t            Trim <prefix> from archived paths. The root entry will be omitted.
+      -e            Stop archiving if any entry has an error.
+      -p            Print paths being archived.
+      -W            Silence warnings.
+    
+    libarchive options:
+      --format <name>   Name of the archive format. May be any format accepted by libarchive.
+                        Default: inferred from the output archive file extension.
+                        For .tar or no extension, defaults to posix format.
+      --filter <name>   Name of a libarchive filter. Default: inferred from the output file extension.
+      --options <opts>  String of libarchive options in the format option=value,...
+    
+    HFS+ options:
+      --force           Try to read volumes with a dirty journal
+      --blksize <n>     Device block size. Default: autodetected.
+      --rsrc-ext <ext>  Archive resource forks as separate files with this extension, instead of as an xattr.
+    
+      --default-file-mode <mode>  Octal filesystem permissions for Mac OS Classic files. Default: 755
+      --default-dir-mode <mode>   Octal filesystem permissions for Mac OS Classic directories. Default: 777
+      --default-uid <uid>         Unix user ID for Mac OS Classic files. Default: 0
+      --default-gid <gid>         Unix group ID for Mac OS Classic files. Default: 0
+    
+      --noublio          Disable ublio read layer.
+      --ublio-items <N>  Number of ublio cache entries, 0 for no caching. Default: 64
+      --ublio-grace <N>  Reclaim cache entries only after N requests. Default: 32
+
+
+For tar archives, hfstar defaults to the `posix` format for compatibility with the most HFS+ attributes. This can be overridden with the `--format` option.  
+When archiving to a format that supports extended attributes, hfstar includes any user-defined extended attributes as well as the automatic xattrs described [below](#extended-attributes-and-resource-forks).
+In addition to hfsfuse.record.date_created, file creation times are stored using libarchive's LIBARCHIVE.creationtime attribute.
+
+By default, files' resource fork data is archived in the com.apple.ResourceFork extended attribute. This may optionally instead be archived to independent files with a special suffix using the `--rsrc-ext` option.
+
+Any directory hard links are resolved by default, which duplicates their content in the archive. These can be converted into symbolic links instead with `-s`.
+
+hfstar is about 50% faster than archiving from a filesystem mounted with hfsfuse. hfstar can also be used to extract an HFS+ volume onto the local filesystem with a command like:
+
+```shell
+hfstar <volume> - | tar --xattrs -C <dest> -xf -`
+```
 
 ## Extended attributes and resource forks
 hfsfuse exposes some nonstandard HFS+ attributes as extended attributes. These include:

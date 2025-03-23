@@ -36,7 +36,7 @@ ifeq ($(OS), Darwin)
 		FUSE_FLAGS += -I/usr/local/include/fuse
 		FUSE_LIB = -lfuse-t
 	else
-$(info no FUSE install detected, only hfsdump will be built)
+$(info no FUSE library found, FUSE driver will not be built)
 		TARGETS = hfsdump
 	endif
 else ifeq ($(OS), Haiku)
@@ -64,19 +64,20 @@ else ifeq ($(OS), NetBSD)
 else ifeq ($(OS), SunOS)
 	FUSE_FLAGS += -I/usr/include/fuse
 else ifeq (MSYS, $(findstring MSYS, $(OS)))
-$(info MSYS2 detected, only hfsdump will be built by default)
+$(info MSYS2 detected, FUSE driver will not be built)
 	WITH_UBLIO ?= none
 	ifneq (none, $(WITH_UBLIO))
 $(warning building with ublio is not supported under MSYS2)
 	endif
 	TARGETS = hfsdump
 else ifeq (MINGW, $(findstring MINGW, $(OS)))
-$(info MinGW detected, only hfsdump will be built by default)
+$(info MinGW detected, FUSE driver will not be built)
 	WITH_UBLIO ?= none
 	ifneq ($(WITH_UBLIO), none)
 $(warning building with ublio is not supported under MinGW)
 	endif
 	APP_LIB += -static
+	APP_FLAGS += -D_POSIX_THREAD_SAFE_FUNCTIONS
 	TARGETS = hfsdump
 endif
 
@@ -137,6 +138,14 @@ ifneq ($(filter-out $(non_build_targets),$(or $(MAKECMDGOALS),all)),)
 
     $(eval $(call cccheck,HAVE_LZFSE,,lzfse.h))
     $(eval $(call cccheck,HAVE_ZLIB,,zlib.h))
+
+    $(eval $(call cccheck,HAVE_LIBARCHIVE,,archive.h archive_entry.h))
+
+		ifeq ($(HAVE_LIBARCHIVE),1)
+			TARGETS += hfstar
+		else
+$(info libarchive not found, hfstar will not be built)
+		endif
 endif
 
 $(foreach cfg,OS CC AR RANLIB INSTALL TAR PREFIX WITH_UBLIO WITH_UTF8PROC XATTR_NAMESPACE CONFIG_CFLAGS $(FEATURES),$(eval CONFIG:=$(CONFIG)$(cfg)=$$($(cfg))\n))
@@ -208,9 +217,13 @@ hfsfuse: src/hfsfuse.o $(LIBS)
 hfsdump: LDLIBS += $(APP_LIB) -lpthread
 hfsdump: src/hfsdump.o $(LIBS)
 
+hfstar: CPPFLAGS += $(APP_FLAGS) -Ilib/uthash -DXATTR_NAMESPACE=$(XATTR_NAMESPACE)
+hfstar: LDLIBS += $(APP_LIB) -lpthread -larchive
+hfstar: src/hfstar.o $(LIBS)
+
 clean:
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir clean; done
-	$(RM) src/hfsfuse.o hfsfuse src/hfsdump.o hfsdump
+	$(RM) src/hfsfuse.o hfsfuse src/hfsdump.o hfsdump src/hfstar.o hfstar
 
 distclean: clean
 	$(RM) config.mak src/version.h AUTHORS
@@ -226,16 +239,17 @@ install: $(TARGETS)
 	mkdir -pm755 $(prefix)/add-ons/userlandfs/
 	$(INSTALL) -m644 hfsfuse $(DESTDIR)$(prefix)/add-ons/userlandfs/
 	$(INSTALL) -m755 hfsdump $(DESTDIR)$(bindir)
+	[ -f hfstar ] && $(INSTALL) -m755 hfstar $(DESTDIR)$(bindir)
 
 uninstall:
-	$(RM) $(DESTDIR)$(prefix)/add-ons/userlandfs/hfsfuse $(DESTDIR)$(bindir)/hfsdump
+	$(RM) $(DESTDIR)$(prefix)/add-ons/userlandfs/hfsfuse $(DESTDIR)$(bindir)/hfsdump $(DESTDIR)$(bindir)/hfstar
 else
 install: $(TARGETS)
 	mkdir -pm755 $(DESTDIR)$(bindir)
 	$(INSTALL) -m755 $^ $(DESTDIR)$(bindir)
 
 uninstall:
-	$(RM) $(DESTDIR)$(bindir)/hfsfuse $(DESTDIR)$(bindir)/hfsdump
+	$(RM) $(DESTDIR)$(bindir)/hfsfuse $(DESTDIR)$(bindir)/hfsdump $(DESTDIR)$(bindir)/hfstar
 endif
 
 version:
