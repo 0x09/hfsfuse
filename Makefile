@@ -256,7 +256,7 @@ version:
 	echo \#define HFSFUSE_VERSION_STRING $(VERSION_STRING) > src/version.h
 
 authors:
-	git shortlog -sne $(RELEASE_BRANCH) | cut -d $$'\t' -f 2- > AUTHORS
+	git shortlog -sne $(RELEASE_BRANCH) | cut -f 2- > AUTHORS
 
 showconfig:
 	@echo "$$CONFIG"
