@@ -101,6 +101,21 @@ jobs:
             sudo pkgin update
             sudo pkgin -y install gmake fuse
             gmake
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfuse-dev libarchive-dev
+      - name: Build in release configuration 
+        shell: bash
+        run: |
+          make dist RELEASE_NAME=hfsfuse RELEASE_BRANCH=HEAD
+          tar -xf hfsfuse.tar.gz
+          cd hfsfuse
+          make
   conformance-checks:
     runs-on: ubuntu-latest
     strategy:
