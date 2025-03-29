@@ -475,7 +475,7 @@ void hfs_serialize_finderinfo(hfs_catalog_keyed_record_t* rec, char buf[32]) {
 		buf = SWAPCOPY(buf, rec->file.user_info.location.v);
 		buf = SWAPCOPY(buf, rec->file.user_info.location.h);
 		buf += 10;
-		buf = SWAPCOPY(buf, rec->file.finder_info.extended_finder_flags);
+		SWAPCOPY(buf, rec->file.finder_info.extended_finder_flags);
 	}
 	else if(rec->type == HFS_REC_FLDR) {
 		buf = SWAPCOPY(buf, rec->folder.user_info.window_bounds.t);
@@ -486,7 +486,7 @@ void hfs_serialize_finderinfo(hfs_catalog_keyed_record_t* rec, char buf[32]) {
 		buf = SWAPCOPY(buf, rec->folder.user_info.location.v);
 		buf = SWAPCOPY(buf, rec->folder.user_info.location.h);
 		buf += 10;
-		buf = SWAPCOPY(buf, rec->folder.finder_info.extended_finder_flags);
+		SWAPCOPY(buf, rec->folder.finder_info.extended_finder_flags);
 	}
 }
 
