@@ -19,6 +19,10 @@
 #include <string.h>
 #include <time.h>
 
+#ifndef HFSFUSE_VERSION_STRING
+#include "version.h"
+#endif
+
 #define STR_(x) #x
 #define STR(x) STR_(x)
 #define XATTR_NAMESPACE_STR STR(XATTR_NAMESPACE)
