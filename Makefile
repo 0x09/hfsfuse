@@ -19,8 +19,6 @@ LOCAL_CFLAGS+=-Wall -Wextra -pedantic -Wno-gnu-zero-variadic-macro-arguments -Wn
 LOCAL_CFLAGS+=-Wno-missing-field-initializers -Wno-missing-braces
 
 TARGETS = hfsfuse hfsdump
-FUSE_FLAGS = -DFUSE_USE_VERSION=28
-FUSE_LIB = -lfuse
 
 XATTR_NAMESPACE ?= user.
 ifeq ($(OS), Darwin)
@@ -30,8 +28,8 @@ ifeq ($(OS), Darwin)
 	ifeq ($(shell [ -e /usr/local/lib/libosxfuse.dylib ] && echo 1), 1)
 		FUSE_FLAGS += -I/usr/local/include/osxfuse
 		FUSE_LIB = -losxfuse
-	else ifeq ($(shell [ -e /usr/local/lib/libfuse.dylib ] && echo 1), 1)
-		FUSE_FLAGS += -I/usr/local/include
+	else ifeq ($(shell [ -e /usr/local/lib/libfuse.dylib -o -e /usr/local/lib/libfuse3.dylib ] && echo 1), 1)
+		FUSE_FLAGS += -I/usr/local/include -Wno-language-extension-token
 	else ifeq ($(shell [ -e /usr/local/lib/libfuse-t.dylib ] && echo 1), 1)
 		FUSE_FLAGS += -I/usr/local/include/fuse
 		FUSE_LIB = -lfuse-t
@@ -59,8 +57,7 @@ else ifeq ($(OS), OpenBSD)
 else ifeq ($(OS), NetBSD)
 	APP_FLAGS += -I/usr/pkg/include
 	APP_LIB += -L/usr/pkg/lib -Wl,-R/usr/pkg/lib
-	FUSE_FLAGS += -I/usr/pkg/include
-	FUSE_LIB += -L/usr/pkg/lib/ -Wl,-R/usr/pkg/lib
+	FUSE_FLAGS += -I/usr/pkg/include -L/usr/pkg/lib/ -Wl,-R/usr/pkg/lib
 else ifeq ($(OS), SunOS)
 	FUSE_FLAGS += -I/usr/include/fuse
 else ifeq (MSYS, $(findstring MSYS, $(OS)))
@@ -145,6 +142,17 @@ ifneq ($(filter-out $(non_build_targets),$(or $(MAKECMDGOALS),all)),)
 			TARGETS += hfstar
 		else
 $(info libarchive not found, hfstar will not be built)
+		endif
+
+    CEXPR_CFLAGS =$(CFLAGS) $(LOCAL_CFLAGS) $(FUSE_FLAGS) -DFUSE_USE_VERSION=30
+    $(eval $(call cccheck,HAVE_FUSE3,,fuse3/fuse.h))
+
+		ifeq ($(HAVE_FUSE3),1)
+			FUSE_FLAGS += -DFUSE_USE_VERSION=35
+			FUSE_LIB ?= -lfuse3
+		else
+			FUSE_FLAGS += -DFUSE_USE_VERSION=29
+			FUSE_LIB ?= -lfuse
 		endif
 endif
 

@@ -29,7 +29,7 @@ hfsfuse aims to be widely portable across Unix-like systems. Build requirements 
 
 hfsfuse's supporting libraries and standalone hfsdump tool require only a POSIX-2008 compatible libc, and can also be built natively on Windows with either Mingw-w64 or msys2.
 
-The FUSE driver requires a version 2 compatible FUSE library, and is known to work with the following implementations:
+The FUSE driver requires a version 2 or 3 compatible FUSE library, and is known to work with the following implementations:
 
 * [libfuse](https://libfuse.github.io) on Linux and *BSD
 * [macFUSE](https://osxfuse.github.io)

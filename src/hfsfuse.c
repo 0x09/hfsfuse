@@ -9,7 +9,13 @@
 #include <errno.h>
 #include <limits.h>
 #include <inttypes.h>
+
+#if FUSE_USE_VERSION < 30
 #include <fuse.h>
+#else
+#include <fuse3/fuse.h>
+#endif
+
 #include <syslog.h>
 
 #ifndef HFSFUSE_VERSION_STRING
@@ -22,6 +28,14 @@
 #else
 #define ENOATTR 1
 #endif
+#endif
+
+#if FUSE_VERSION >= 30
+static void* hfsfuse_init(struct fuse_conn_info *conn, struct fuse_config *cfg) {
+	cfg->use_ino = 1;
+	cfg->nullpath_ok = 1;
+	return fuse_get_context()->private_data; // the hfs_volume
+}
 #endif
 
 static void hfsfuse_destroy(void* vol) {
@@ -115,22 +129,31 @@ static int hfsfuse_readlink(const char* path, char* buf, size_t size) {
 	return 0;
 }
 
-static int hfsfuse_getattr(const char* path, struct stat* st) {
-	hfs_volume* vol = fuse_get_context()->private_data;
-	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key; uint8_t fork;
-	int ret = hfs_lookup(vol,path,&rec,&key,&fork);
-	if(ret)
-		return ret;
+#if FUSE_DARWIN_ENABLE_EXTENSIONS
+#define stat_to_fuse_darwin_attr(rec,st) ((struct fuse_darwin_attr){\
+	.ino = (st).st_ino,\
+	.mode = (st).st_mode,\
+	.nlink = (st).st_nlink,\
+	.uid = (st).st_uid,\
+	.gid = (st).st_gid,\
+	.rdev = (st).st_rdev,\
+	.atimespec.tv_sec = (st).st_atime,\
+	.mtimespec.tv_sec = (st).st_mtime,\
+	.ctimespec.tv_sec = (st).st_ctime,\
+	.crtimespec.tv_sec = (st).st_birthtime,\
+	.bkuptimespec.tv_sec = HFSTIMETOEPOCH((rec).file.date_backedup),\
+	.size = (st).st_size,\
+	.blocks = (st).st_blocks,\
+	.blksize = (st).st_blksize,\
+	.flags = (st).st_flags,\
+})
+#endif
 
-	struct hfs_decmpfs_header h,* hp = NULL;
-	if(rec.type == HFS_REC_FILE && fork == HFS_DATAFORK && !hfs_decmpfs_lookup(vol,&rec.file,&h,NULL,NULL))
-		hp = &h;
-	hfs_stat(vol,&rec,st,fork,hp);
-
-	return 0;
-}
-
+#if FUSE_DARWIN_ENABLE_EXTENSIONS
+static int hfsfuse_fgetattr(const char* path, struct fuse_darwin_attr* darwin_attrs, struct fuse_file_info* info) {
+#else
 static int hfsfuse_fgetattr(const char* path, struct stat* st, struct fuse_file_info* info) {
+#endif
 	hfs_volume* vol = fuse_get_context()->private_data;
 	struct hf_file* f = (struct hf_file*)info->fh;
 	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key;
@@ -141,11 +164,52 @@ static int hfsfuse_fgetattr(const char* path, struct stat* st, struct fuse_file_
 	struct hfs_decmpfs_header h,* hp = NULL;
 	if(f->fork == HFS_DATAFORK && hfs_decmpfs_get_header(f->decmpfs,&h))
 		hp = &h;
+
+#if FUSE_DARWIN_ENABLE_EXTENSIONS
+	struct stat st;
+	hfs_stat(vol,&rec,&st,f->fork,hp);
+	*darwin_attrs = stat_to_fuse_darwin_attr(rec,st);
+#else
 	hfs_stat(vol,&rec,st,f->fork,hp);
+#endif
 
 	return 0;
 }
 
+
+#if FUSE_DARWIN_ENABLE_EXTENSIONS
+static int hfsfuse_getattr(const char* path, struct fuse_darwin_attr* st, struct fuse_file_info *fi) {
+#elif FUSE_VERSION >= 30
+static int hfsfuse_getattr(const char* path, struct stat* st, struct fuse_file_info *fi) {
+#else
+static int hfsfuse_getattr(const char* path, struct stat* st) {
+#endif
+
+#if FUSE_DARWIN_ENABLE_EXTENSIONS || FUSE_VERSION >= 30
+	if(fi)
+		return hfsfuse_fgetattr(path,st,fi);
+#endif
+
+	hfs_volume* vol = fuse_get_context()->private_data;
+	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key; uint8_t fork;
+	int ret = hfs_lookup(vol,path,&rec,&key,&fork);
+	if(ret)
+		return ret;
+
+	struct hfs_decmpfs_header h,* hp = NULL;
+	if(rec.type == HFS_REC_FILE && fork == HFS_DATAFORK && !hfs_decmpfs_lookup(vol,&rec.file,&h,NULL,NULL))
+		hp = &h;
+
+#if FUSE_DARWIN_ENABLE_EXTENSIONS
+	struct stat statbuf;
+	hfs_stat(vol,&rec,&statbuf,fork,hp);
+	*st = stat_to_fuse_darwin_attr(rec,statbuf);
+#else
+	hfs_stat(vol,&rec,st,fork,hp);
+#endif
+
+	return 0;
+}
 
 struct hf_dir {
 	hfs_catalog_keyed_record_t dir_record;
@@ -212,26 +276,48 @@ static int hfsfuse_releasedir(const char* path, struct fuse_file_info* info) {
 	return 0;
 }
 
+#if FUSE_DARWIN_ENABLE_EXTENSIONS
+static int hfsfuse_readdir(const char* path, void* buf, fuse_darwin_fill_dir_t filler, off_t offset, struct fuse_file_info* info, enum fuse_readdir_flags flags) {
+#elif FUSE_VERSION >= 30
+static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info* info, enum fuse_readdir_flags flags) {
+#else
 static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info* info) {
+#endif
 	hfs_volume* vol = fuse_get_context()->private_data;
 	struct hf_dir* d = (struct hf_dir*)info->fh;
 	if(offset < 1) {
 		struct stat st = {0};
 		hfs_stat(vol, &d->dir_record, &st, 0, NULL);
-		if(filler(buf, ".", &st, 1))
+		int ret;
+#if FUSE_DARWIN_ENABLE_EXTENSIONS
+		ret = filler(buf, ".", &stat_to_fuse_darwin_attr(d->dir_record,st), 1, FUSE_FILL_DIR_PLUS);
+#elif FUSE_VERSION >= 30
+		ret = filler(buf, ".", &st, 1, FUSE_FILL_DIR_PLUS);
+#else
+		ret = filler(buf, ".", &st, 1);
+#endif
+		if(ret)
 			return 0;
 	}
 	if(offset < 2) {
 		struct stat st = {0};
 		struct stat* stp = NULL;
+		hfs_catalog_keyed_record_t rec = {0};
 		if(d->dir_record.folder.cnid != HFS_CNID_ROOT_FOLDER) {
 			hfs_catalog_key_t key;
-			hfs_catalog_keyed_record_t rec;
 			hfslib_find_catalog_record_with_cnid(vol, d->parent_cnid, &rec, &key, NULL);
 			stp = &st;
 			hfs_stat(vol, &rec, stp, 0, NULL);
 		}
-		if(filler(buf, "..", stp, 2))
+		int ret;
+#if FUSE_DARWIN_ENABLE_EXTENSIONS
+		ret = filler(buf, "..", stp ? &stat_to_fuse_darwin_attr(rec,*stp) : NULL, 2, stp ? FUSE_FILL_DIR_PLUS : 0);
+#elif FUSE_VERSION >= 30
+		ret = filler(buf, "..", stp, 2, stp ? FUSE_FILL_DIR_PLUS : 0);
+#else
+		ret = filler(buf, "..", stp, 2);
+#endif
+		if(ret)
 			return 0;
 	}
 
@@ -252,14 +338,33 @@ static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, 
 
 		struct stat st = {0};
 		hfs_stat(vol,d->records+i,&st,0,NULL);
-		if(filler(buf,pelem,&st,i+3))
+		int ret;
+#if FUSE_DARWIN_ENABLE_EXTENSIONS
+		ret = filler(buf,pelem,&stat_to_fuse_darwin_attr(d->records[i],st),i+3,FUSE_FILL_DIR_PLUS);
+#elif FUSE_VERSION >= 30
+		ret = filler(buf,pelem,&st,i+3,FUSE_FILL_DIR_PLUS);
+#else
+		ret = filler(buf,pelem,&st,i+3);
+#endif
+		if(ret)
 			break;
 	}
 	free(fullpath);
 	return min(ret,0);
 }
 
-
+#if FUSE_DARWIN_ENABLE_EXTENSIONS
+static int hfsfuse_statfs(const char* path, struct statfs* st) {
+	hfs_volume* vol = fuse_get_context()->private_data;
+	st->f_bsize = vol->vh.block_size;
+	st->f_blocks = vol->vh.total_blocks;
+	st->f_bfree = vol->vh.free_blocks;
+	st->f_bavail = st->f_bfree;
+	st->f_files = UINT32_MAX - HFS_CNID_USER;
+	st->f_ffree = st->f_files - vol->vh.file_count - vol->vh.folder_count;
+	return 0;
+}
+#else
 static int hfsfuse_statfs(const char* path, struct statvfs* st) {
 	hfs_volume* vol = fuse_get_context()->private_data;
 	st->f_bsize = vol->vh.block_size;
@@ -274,8 +379,9 @@ static int hfsfuse_statfs(const char* path, struct statvfs* st) {
 	st->f_namemax = HFS_NAME_MAX;
 	return 0;
 }
+#endif
 
-#ifdef __APPLE__
+#if defined(__APPLE__) && FUSE_VERSION < 30
 static int hfsfuse_getxtimes(const char* path, struct timespec* bkuptime, struct timespec* crtime) {
 	hfs_volume* vol = fuse_get_context()->private_data;
 	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key;
@@ -471,7 +577,7 @@ end:
 	return ret;
 }
 
-#ifndef __APPLE__
+#if !(FUSE_DARWIN_ENABLE_EXTENSIONS || (defined(__APPLE__) && FUSE_VERSION < 30))
 #ifdef __HAIKU__
 static inline char hex4b(uint8_t dec) {
 	return dec < 10 ? '0' + dec : 'a' + (dec-10);
@@ -500,6 +606,9 @@ static int hfsfuse_getxattr(const char* path, const char* attr, char* value, siz
 #endif
 
 static struct fuse_operations hfsfuse_ops = {
+#if FUSE_VERSION >= 30
+	.init        = hfsfuse_init,
+#endif
 	.destroy     = hfsfuse_destroy,
 	.open        = hfsfuse_open,
 	.opendir     = hfsfuse_opendir,
@@ -510,20 +619,22 @@ static struct fuse_operations hfsfuse_ops = {
 	.statfs      = hfsfuse_statfs,
 	.getattr     = hfsfuse_getattr,
 	.readlink    = hfsfuse_readlink,
+#if FUSE_VERSION < 30
 	.fgetattr    = hfsfuse_fgetattr,
+#endif
 	.listxattr   = hfsfuse_listxattr,
-#ifdef __APPLE__
+#if FUSE_DARWIN_ENABLE_EXTENSIONS || (defined(__APPLE__) && FUSE_VERSION < 30)
 	.getxattr    = hfsfuse_getxattr_offset,
 #else
 	.getxattr    = hfsfuse_getxattr,
 #endif
-#ifdef __APPLE__
+#if defined(__APPLE__) && FUSE_VERSION < 30
 	.getxtimes   = hfsfuse_getxtimes,
 #endif
-#if FUSE_VERSION >= 29
+#if FUSE_VERSION >= 29 && FUSE_VERSION < 30
 	.flag_nopath = 1,
 #endif
-#if FUSE_VERSION >= 28
+#if FUSE_VERSION >= 28 && FUSE_VERSION < 30
 	.flag_nullpath_ok = 1
 #endif
 };
@@ -668,14 +779,19 @@ static int hfsfuse_opt_proc(void* data, const char* arg, int key, struct fuse_ar
 		case HFSFUSE_OPT_KEY_HELP:
 		case HFSFUSE_OPT_KEY_FULLHELP: {
 			help(args->argv[0], cfg);
-			fuse_opt_add_arg(args, "-ho");
-#ifndef __HAIKU__ // this is declared in the userlandfs headers but isn't actually in the library
+#if FUSE_VERSION < 30 && !defined(__HAIKU__) // this is declared in the userlandfs headers but isn't actually in the library
 			fuse_parse_cmdline(args, NULL, NULL, NULL);
 #endif
 			if(key == HFSFUSE_OPT_KEY_FULLHELP) {
+#if FUSE_VERSION < 30
+				fuse_opt_add_arg(args, "-ho");
 				// fuse_mount and fuse_new print their own set of options
 				fuse_mount("", args);
 				fuse_new(NULL, args, NULL, 0, NULL);
+#else
+				fuse_opt_add_arg(args, "-h");
+				fuse_main(args->argc, args->argv, &hfsfuse_ops, NULL);
+#endif
 			}
 			fuse_opt_free_args(args);
 			exit(0);
@@ -745,7 +861,9 @@ int main(int argc, char* argv[]) {
 	fuse_opt_add_opt(&opts, "ro");
 	if(!cfg.noallow_other)
 		fuse_opt_add_opt(&opts, "allow_other");
+#if FUSE_VERSION < 30
 	fuse_opt_add_opt(&opts, "use_ino");
+#endif
 	fuse_opt_add_opt(&opts, "subtype=hfs");
 	hfsfuse_opt_add_opt_escaped(&opts, fsname);
 	fuse_opt_add_arg(&args, "-o");
