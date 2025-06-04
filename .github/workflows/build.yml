@@ -28,7 +28,7 @@ jobs:
           brew install --cask macfuse
           brew install libarchive
       - name: Build
-        run: make HAVE_FUSE3=0
+        run: C_INCLUDE_PATH=/opt/homebrew/opt/libarchive/include LIBRARY_PATH=/opt/homebrew/opt/libarchive/lib make HAVE_FUSE3=0
   build-windows:
     runs-on: windows-latest
     steps:
