@@ -5,13 +5,13 @@ include (utils.cmake)
 disallow_intree_builds()
 
 # API version - be sure to update utf8proc.h and Makefile, too!
-project (utf8proc VERSION 2.10.0 LANGUAGES C)
+project (utf8proc VERSION 2.11.0 LANGUAGES C)
 
 # This is the ABI version number, which may differ from the
 # API version number (defined in utf8proc.h and above).
 # Be sure to also update these in Makefile and MANIFEST!
 set(SO_MAJOR 3)
-set(SO_MINOR 1)
+set(SO_MINOR 2)
 set(SO_PATCH 0)
 
 option(UTF8PROC_INSTALL "Enable installation of utf8proc" On)
@@ -24,7 +24,7 @@ add_library (utf8proc
 )
 
 # expose header path, for when this is part of a larger cmake project
-target_include_directories(utf8proc PUBLIC .)
+target_include_directories(utf8proc PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<INSTALL_INTERFACE:include>)
 
 if (BUILD_SHARED_LIBS)
   # Building shared library
@@ -53,20 +53,39 @@ set_target_properties (utf8proc PROPERTIES
 
 if (UTF8PROC_INSTALL)
   include(GNUInstallDirs)
-  install(FILES utf8proc.h DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
+  install(FILES utf8proc.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
   install(TARGETS utf8proc
-    ARCHIVE DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
-    LIBRARY DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
-    RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}"
+    EXPORT utf8proc-targets
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
   )
   configure_file(libutf8proc.pc.cmakein libutf8proc.pc @ONLY)
-  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libutf8proc.pc" DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}/pkgconfig")
+  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libutf8proc.pc" DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+  # Install CMake targets file.
+  install(EXPORT utf8proc-targets FILE utf8proc-targets.cmake DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/utf8proc" NAMESPACE utf8proc::)
+  include(CMakePackageConfigHelpers)
+  configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/utf8proc-config.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/utf8proc-config.cmake"
+    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/utf8proc"
+    NO_SET_AND_CHECK_MACRO
+  )
+  write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/utf8proc-config-version.cmake"
+    COMPATIBILITY SameMajorVersion
+  )
+  install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/utf8proc-config.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/utf8proc-config-version.cmake"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/utf8proc"
+  )
 endif()
 
 if(UTF8PROC_ENABLE_TESTING)
   enable_testing()
   file(MAKE_DIRECTORY data)
-  set(UNICODE_VERSION 16.0.0)
+  set(UNICODE_VERSION 17.0.0)
   file(DOWNLOAD https://www.unicode.org/Public/${UNICODE_VERSION}/ucd/NormalizationTest.txt ${CMAKE_BINARY_DIR}/data/NormalizationTest.txt SHOW_PROGRESS)
   file(DOWNLOAD https://www.unicode.org/Public/${UNICODE_VERSION}/ucd/auxiliary/GraphemeBreakTest.txt ${CMAKE_BINARY_DIR}/data/GraphemeBreakTest.txt SHOW_PROGRESS)
   add_executable(case test/tests.h test/tests.c utf8proc.h test/case.c)
@@ -81,12 +100,15 @@ if(UTF8PROC_ENABLE_TESTING)
   target_link_libraries(printproperty utf8proc)
   add_executable(valid test/tests.h test/tests.c utf8proc.h test/valid.c)
   target_link_libraries(valid utf8proc)
+  add_executable(maxdecomposition test/tests.h test/tests.c utf8proc.h test/maxdecomposition.c)
+  target_link_libraries(maxdecomposition utf8proc)
   add_test(utf8proc.testcase case)
   add_test(utf8proc.testcustom custom)
   add_test(utf8proc.testiterate iterate)
   add_test(utf8proc.testmisc misc)
   add_test(utf8proc.testprintproperty printproperty)
   add_test(utf8proc.testvalid valid)
+  add_test(utf8proc.testmaxdecomposition maxdecomposition)
 
   if (NOT WIN32)
     # no wcwidth function on Windows
