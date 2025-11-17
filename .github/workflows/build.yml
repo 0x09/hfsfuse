@@ -98,6 +98,19 @@ jobs:
             sudo pkgin update
             sudo pkgin -y install gmake fuse
             gmake
+  build-haiku:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        uses: cross-platform-actions/action@v0.30.0
+        with:
+          operating_system: haiku
+          architecture: x86-64
+          version: r1beta5
+          run: |
+            pkgman install -y userland_fs llvm12_clang libarchive_devel
+            make
   build-release:
     runs-on: ubuntu-latest
     steps:
