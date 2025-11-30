@@ -140,7 +140,7 @@ static int hfsfuse_readlink(const char* path, char* buf, size_t size) {
 	.atimespec.tv_sec = (st).st_atime,\
 	.mtimespec.tv_sec = (st).st_mtime,\
 	.ctimespec.tv_sec = (st).st_ctime,\
-	.crtimespec.tv_sec = (st).st_birthtime,\
+	.btimespec.tv_sec = (st).st_birthtime,\
 	.bkuptimespec.tv_sec = HFSTIMETOEPOCH((rec).file.date_backedup),\
 	.size = (st).st_size,\
 	.blocks = (st).st_blocks,\
