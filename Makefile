@@ -76,6 +76,10 @@ $(warning building with ublio is not supported under MinGW)
 	APP_LIB += -static
 	APP_FLAGS += -D_POSIX_THREAD_SAFE_FUNCTIONS
 	TARGETS = hfsdump
+else #linux
+	ifeq ($(findstring _POSIX_C_SOURCE, $(LOCAL_CFLAGS)),)
+		FUSE_FLAGS += -D_GNU_SOURCE #for statx
+	endif
 endif
 
 PREFIX ?= /usr/local
@@ -154,6 +158,8 @@ $(info libarchive not found, hfstar will not be built)
 			FUSE_FLAGS += -DFUSE_USE_VERSION=29
 			FUSE_LIB ?= -lfuse
 		endif
+
+    $(eval $(call cccheck,HAVE_STATX,{ (struct statx){0}; },sys/stat.h))
 endif
 
 $(foreach cfg,OS CC AR RANLIB INSTALL TAR PREFIX WITH_UBLIO WITH_UTF8PROC XATTR_NAMESPACE CONFIG_CFLAGS $(FEATURES),$(eval CONFIG:=$(CONFIG)$(cfg)=$$($(cfg))\n))

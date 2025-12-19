@@ -211,6 +211,62 @@ static int hfsfuse_getattr(const char* path, struct stat* st) {
 	return 0;
 }
 
+#if HAVE_STATX && FUSE_VERSION >= 318
+static int hfsfuse_statx(const char* path, int flags, int mask, struct statx* stx, struct fuse_file_info* info) {
+	hfs_volume* vol = fuse_get_context()->private_data;
+	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key; uint8_t fork;
+	struct hfs_decmpfs_header h,* hp = NULL;
+	if(info) {
+		struct hf_file* f = (struct hf_file*)info->fh;
+		int ret = hfslib_find_catalog_record_with_cnid(vol,f->cnid,&rec,&key,NULL);
+		if(ret < 0)
+			return ret;
+		else if(ret > 0)
+			return -ENOENT;
+		fork = f->fork;
+		if(fork == HFS_DATAFORK && hfs_decmpfs_get_header(f->decmpfs,&h))
+			hp = &h;
+	}
+	else {
+		int ret = hfs_lookup(vol,path,&rec,&key,&fork);
+		if(ret)
+			return ret;
+		if(rec.type == HFS_REC_FILE && fork == HFS_DATAFORK && !hfs_decmpfs_lookup(vol,&rec.file,&h,NULL,NULL))
+			hp = &h;
+	}
+
+	struct stat st;
+	hfs_stat(vol,&rec,&st,fork,hp);
+
+	stx->stx_mask = STATX_BASIC_STATS | STATX_BTIME;
+
+	stx->stx_blksize = st.st_blksize;
+	stx->stx_nlink = st.st_nlink;
+	stx->stx_uid = st.st_uid;
+	stx->stx_gid = st.st_gid;
+	stx->stx_mode = st.st_mode;
+	stx->stx_ino = st.st_ino;
+	stx->stx_size = st.st_size;
+	stx->stx_blocks = st.st_blocks;
+	stx->stx_atime.tv_sec = st.st_atime;
+	stx->stx_btime.tv_sec = HFSTIMETOEPOCH(rec.file.date_created);
+	stx->stx_ctime.tv_sec = st.st_ctime;
+	stx->stx_mtime.tv_sec = st.st_mtime;
+
+	__u16 mode_mask = 0;
+	if(mask & STATX_TYPE)
+		mode_mask |= S_IFMT;
+	if(mask & STATX_MODE)
+		mode_mask |= ~S_IFMT;
+	stx->stx_mode &= mode_mask;
+
+	if(hp)
+		stx->stx_attributes = stx->stx_attributes_mask = STATX_ATTR_COMPRESSED;
+
+	return 0;
+}
+#endif
+
 struct hf_dir {
 	hfs_catalog_keyed_record_t dir_record;
 	hfs_cnid_t parent_cnid;
@@ -621,6 +677,9 @@ static struct fuse_operations hfsfuse_ops = {
 	.readlink    = hfsfuse_readlink,
 #if FUSE_VERSION < 30
 	.fgetattr    = hfsfuse_fgetattr,
+#endif
+#if HAVE_STATX && FUSE_VERSION >= 318
+	.statx       = hfsfuse_statx,
 #endif
 	.listxattr   = hfsfuse_listxattr,
 #if FUSE_DARWIN_ENABLE_EXTENSIONS || (defined(__APPLE__) && FUSE_VERSION < 30)
