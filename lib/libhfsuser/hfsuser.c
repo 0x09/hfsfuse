@@ -331,9 +331,6 @@ end:
 	return ret;
 }
 
-
-#define HFSTIMETOSPEC(x) ((struct timespec){ .tv_sec = HFSTIMETOEPOCH(x) })
-
 // POSIX 08 specifies values for all file modes below 07777 but leaves the following to the implementation
 // so for these we translate to the system's modes from the definitions given in TN1150
 #ifndef S_IFLNK
