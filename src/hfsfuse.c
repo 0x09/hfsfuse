@@ -248,10 +248,10 @@ static int hfsfuse_statx(const char* path, int flags, int mask, struct statx* st
 	stx->stx_ino = st.st_ino;
 	stx->stx_size = st.st_size;
 	stx->stx_blocks = st.st_blocks;
-	stx->stx_atime.tv_sec = st.st_atime;
+	stx->stx_atime.tv_sec = HFSTIMETOEPOCH(rec.file.date_accessed);
 	stx->stx_btime.tv_sec = HFSTIMETOEPOCH(rec.file.date_created);
-	stx->stx_ctime.tv_sec = st.st_ctime;
-	stx->stx_mtime.tv_sec = st.st_mtime;
+	stx->stx_ctime.tv_sec = HFSTIMETOEPOCH(rec.file.date_attrib_mod);
+	stx->stx_mtime.tv_sec = HFSTIMETOEPOCH(rec.file.date_content_mod);
 
 	__u16 mode_mask = 0;
 	if(mask & STATX_TYPE)
