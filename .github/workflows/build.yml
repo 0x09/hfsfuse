@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: ['13.5', '14.3']
+        version: ['13.5', '14.3', '15.0']
     steps:
       - uses: actions/checkout@v4
       - name: Build in default configuration
