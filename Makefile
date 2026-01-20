@@ -209,13 +209,15 @@ endif
 
 export CONFIG PREFIX prefix bindir libdir includedir DESTDIR CC CFLAGS LOCAL_CFLAGS APP_FLAGS LIBDIRS AR RANLIB INSTALL INCLUDE
 
+DEPS = src/hfsfuse.d src/hfsdump.d src/hfstar.d
+
 vpath %.o src
 
 .PHONY: all clean always_check config showconfig install install-lib lib $(non_build_targets)
 
 all: $(TARGETS)
 
-%.o: CPPFLAGS += $(INCLUDE)
+%.o: CPPFLAGS += $(INCLUDE) -MMD -MP
 %.o: CFLAGS += $(LOCAL_CFLAGS)
 
 src/hfsfuse.o: CPPFLAGS += $(FUSE_FLAGS) -DXATTR_NAMESPACE=$(XATTR_NAMESPACE)
@@ -237,7 +239,7 @@ hfstar: src/hfstar.o $(LIBS)
 
 clean:
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir clean; done
-	$(RM) src/hfsfuse.o hfsfuse src/hfsdump.o hfsdump src/hfstar.o hfstar
+	$(RM) src/hfsfuse.o hfsfuse src/hfsdump.o hfsdump src/hfstar.o hfstar $(DEPS)
 
 distclean: clean
 	$(RM) config.mak src/version.h AUTHORS
@@ -280,3 +282,5 @@ config:
 
 dist: version authors
 	git archive $(RELEASE_BRANCH) -o "$(RELEASE_NAME).tar.gz" --prefix "$(RELEASE_NAME)/src/" --add-file src/version.h --prefix "$(RELEASE_NAME)/" --add-file AUTHORS
+
+-include $(DEPS)

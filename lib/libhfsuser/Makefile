@@ -1,6 +1,9 @@
 SRCS = $(wildcard *.c)
 OBJS = $(SRCS:%.c=%.o)
+DEPS = $(SRCS:%.c=%.d)
 TARGET = libhfsuser.a
+
+CPPFLAGS += -MMD -MP
 
 .PHONY: all install uninstall clean
 
@@ -20,4 +23,6 @@ uninstall:
 	$(RM) $(DESTDIR)$(includedir)/hfsuser.h $(DESTDIR)$(libdir)/$(TARGET)
 
 clean:
-	$(RM) $(OBJS) $(TARGET)
+	$(RM) $(OBJS) $(DEPS) $(TARGET)
+
+-include $(DEPS)
