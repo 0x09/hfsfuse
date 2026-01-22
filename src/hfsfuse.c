@@ -59,30 +59,9 @@ static int hfsfuse_open(const char* path, struct fuse_file_info* info) {
 	if(ret)
 		return ret;
 
-	struct hf_file* f = malloc(sizeof(*f));
+	struct hfs_file* f = hfs_file_open(vol,&rec,fork,&ret);
 	if(!f)
-		return -ENOMEM;
-
-	f->cnid = rec.file.cnid;
-	f->fork = fork;
-	f->extents = NULL;
-	f->nextents = 0;
-	f->logical_size = (fork == HFS_RSRCFORK ? rec.file.rsrc_fork : rec.file.data_fork).logical_size;
-	f->decmpfs = NULL;
-
-	struct hfs_decmpfs_header h;
-	uint32_t inlinelength;
-	unsigned char* inlinedata;
-	if(fork == HFS_DATAFORK && !hfs_decmpfs_lookup(vol,&rec.file,&h,&inlinelength,&inlinedata)) {
-		f->logical_size = h.logical_size;
-		f->decmpfs = hfs_decmpfs_create_context(vol,rec.file.cnid,inlinelength,inlinedata,&ret);
-		free(inlinedata);
-		if(!f->decmpfs) {
-			free(f);
-			return ret;
-		}
-	}
-	else f->nextents = hfslib_get_file_extents(vol,f->cnid,fork,&f->extents,NULL);
+		return ret;
 
 	info->fh = (uint64_t)f;
 	info->keep_cache = 1;
@@ -90,30 +69,15 @@ static int hfsfuse_open(const char* path, struct fuse_file_info* info) {
 }
 
 static int hfsfuse_release(const char* path, struct fuse_file_info* info) {
-	struct hf_file* f = (struct hf_file*)info->fh;
-	hfs_decmpfs_destroy_context(f->decmpfs);
-	free(f->extents);
-	free(f);
+	hfs_file_close((struct hfs_file*)info->fh);
 	return 0;
 }
 
 static int hfsfuse_read(const char* path, char* buf, size_t size, off_t offset, struct fuse_file_info* info) {
-	hfs_volume* vol = fuse_get_context()->private_data;
-	struct hf_file* f = (struct hf_file*)info->fh;
-	uint64_t bytes;
-	if(offset < 0)
-		return -EINVAL;
-	if((uint64_t)offset >= f->logical_size)
-		return 0;
-	if(size > f->logical_size - offset)
-		size = f->logical_size - offset;
-	if(f->decmpfs)
-		return hfs_decmpfs_read(vol,f->decmpfs,buf,size,offset);
-	int ret = hfslib_readd_with_extents(vol,buf,&bytes,size,offset,f->extents,f->nextents,NULL);
-	if(ret < 0)
-		return ret;
+	struct hfs_file* f = (struct hfs_file*)info->fh;
+	ssize_t bytes = hfs_file_pread(f,buf,size,offset);
 	if(bytes > INT_MAX)
-		return -(errno = EINVAL);
+		return -EINVAL;
 	return bytes;
 }
 
@@ -121,10 +85,13 @@ static int hfsfuse_readlink(const char* path, char* buf, size_t size) {
 	if(!size)
 		return -EINVAL;
 	struct fuse_file_info info;
-	if(hfsfuse_open(path,&info)) return -errno;
+	int ret;
+	if((ret = hfsfuse_open(path,&info)))
+		return ret;
 	int bytes = hfsfuse_read(path,buf,size-1,0,&info);
 	hfsfuse_release(NULL,&info);
-	if(bytes < 0) return -errno;
+	if(bytes < 0)
+		return bytes;
 	buf[bytes] = '\0';
 	return 0;
 }
@@ -154,23 +121,15 @@ static int hfsfuse_fgetattr(const char* path, struct fuse_darwin_attr* darwin_at
 #else
 static int hfsfuse_fgetattr(const char* path, struct stat* st, struct fuse_file_info* info) {
 #endif
-	hfs_volume* vol = fuse_get_context()->private_data;
-	struct hf_file* f = (struct hf_file*)info->fh;
-	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key;
-	int ret = hfslib_find_catalog_record_with_cnid(vol,f->cnid,&rec,&key,NULL);
-	if(ret < 0) return ret;
-	else if(ret > 0) return -ENOENT;
-
-	struct hfs_decmpfs_header h,* hp = NULL;
-	if(f->fork == HFS_DATAFORK && hfs_decmpfs_get_header(f->decmpfs,&h))
-		hp = &h;
+	struct hfs_file* f = (struct hfs_file*)info->fh;
 
 #if FUSE_DARWIN_ENABLE_EXTENSIONS
 	struct stat st;
-	hfs_stat(vol,&rec,&st,f->fork,hp);
+	hfs_catalog_keyed_record_t rec = hfs_file_get_catalog_record(f);
+	hfs_file_stat(f,&st);
 	*darwin_attrs = stat_to_fuse_darwin_attr(rec,st);
 #else
-	hfs_stat(vol,&rec,st,f->fork,hp);
+	hfs_file_stat(f,st);
 #endif
 
 	return 0;
@@ -214,29 +173,22 @@ static int hfsfuse_getattr(const char* path, struct stat* st) {
 #if HAVE_STATX && FUSE_VERSION >= 318
 static int hfsfuse_statx(const char* path, int flags, int mask, struct statx* stx, struct fuse_file_info* info) {
 	hfs_volume* vol = fuse_get_context()->private_data;
-	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key; uint8_t fork;
-	struct hfs_decmpfs_header h,* hp = NULL;
+	hfs_catalog_keyed_record_t rec;
+	struct stat st;
 	if(info) {
-		struct hf_file* f = (struct hf_file*)info->fh;
-		int ret = hfslib_find_catalog_record_with_cnid(vol,f->cnid,&rec,&key,NULL);
-		if(ret < 0)
-			return ret;
-		else if(ret > 0)
-			return -ENOENT;
-		fork = f->fork;
-		if(fork == HFS_DATAFORK && hfs_decmpfs_get_header(f->decmpfs,&h))
-			hp = &h;
+		struct hfs_file* f = (struct hfs_file*)info->fh;
+		hfs_file_stat(f,&st);
 	}
 	else {
+		hfs_catalog_key_t key; uint8_t fork;
+		struct hfs_decmpfs_header h,* hp = NULL;
 		int ret = hfs_lookup(vol,path,&rec,&key,&fork);
 		if(ret)
 			return ret;
 		if(rec.type == HFS_REC_FILE && fork == HFS_DATAFORK && !hfs_decmpfs_lookup(vol,&rec.file,&h,NULL,NULL))
 			hp = &h;
+		hfs_stat(vol,&rec,&st,fork,hp);
 	}
-
-	struct stat st;
-	hfs_stat(vol,&rec,&st,fork,hp);
 
 	stx->stx_mask = STATX_BASIC_STATS | STATX_BTIME;
 

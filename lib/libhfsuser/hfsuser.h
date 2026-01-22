@@ -110,4 +110,14 @@ int hfs_decmpfs_read(hfs_volume* vol, struct hfs_decmpfs_context*, char* buf, si
 // returns 0 if this is a compressed file, 1 if not, or negative errno on error
 int hfs_decmpfs_lookup(hfs_volume*, hfs_file_record_t*, struct hfs_decmpfs_header*, uint32_t* length, unsigned char** data);
 
+// high level file API
+struct hfs_file;
+
+struct hfs_file* hfs_file_open(hfs_volume*,hfs_catalog_keyed_record_t*,unsigned char fork,int* out_err);
+void hfs_file_close(struct hfs_file*);
+ssize_t hfs_file_pread(struct hfs_file*, void* restrict buf, size_t size, off_t offset);
+void hfs_file_stat(struct hfs_file*,struct stat*);
+size_t hfs_file_ideal_read_size(struct hfs_file*, size_t fallback);
+hfs_catalog_keyed_record_t hfs_file_get_catalog_record(struct hfs_file*);
+
 #endif

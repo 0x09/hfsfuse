@@ -212,46 +212,26 @@ static void hfstar_write_symlink(struct hfstar_archive_context* ctx, const char*
 }
 
 static void hfstar_write_file(struct hfstar_archive_context* ctx, hfs_catalog_keyed_record_t* rec, int fork) {
-	hfs_extent_descriptor_t* extents = NULL;
-	uint16_t nextents = hfslib_get_file_extents(ctx->vol,rec->file.cnid,fork,&extents,NULL);
-	if(!nextents)
+	struct hfs_file* f = hfs_file_open(ctx->vol,rec,fork,&ctx->hfs_err);
+	if(!f)
 		return;
 
-	uint64_t bytes = 0, offset = 0, size = fork == HFS_DATAFORK ? rec->file.data_fork.logical_size : rec->file.rsrc_fork.logical_size;
-	int entry_bytes;
-	while(!(ctx->hfs_err = hfslib_readd_with_extents(ctx->vol,ctx->read_buf,&bytes,ctx->read_bufsize,offset,extents,nextents,NULL)) && offset < size) {
-		size_t remain = size-offset < bytes ? size-offset : bytes;
-		if((entry_bytes = archive_write_data(ctx->archive,ctx->read_buf,remain)) < 0 || (size_t)entry_bytes != remain) {
-			if(entry_bytes == ARCHIVE_RETRY)
-				continue;
-			if(entry_bytes == ARCHIVE_WARN && !ctx->no_warn)
-				fprintf(stderr,"%s\n",archive_error_string(ctx->archive));
-			if(entry_bytes < ARCHIVE_OK)
-				ctx->archive_err = entry_bytes;
-			break;
+	size_t bufsize = hfs_file_ideal_read_size(f,16384);
+	if(bufsize > ctx->read_bufsize) {
+		char* tmp = realloc(ctx->read_buf,bufsize);
+		if(!tmp) {
+			ctx->hfs_err = -ENOMEM;
+			goto end;
 		}
-		offset += bytes;
-	}
-	free(extents);
-}
-
-static void hfstar_write_decmpfs_file(struct hfstar_archive_context* ctx, hfs_catalog_keyed_record_t* rec, struct hfs_decmpfs_header* h, unsigned char** decmpfs_data, uint32_t inlinelength) {
-	struct hfs_decmpfs_context* decmpfs = hfs_decmpfs_create_context(ctx->vol,rec->file.cnid,inlinelength,*decmpfs_data,&ctx->hfs_err);
-	if(!decmpfs)
-		return;
-
-	size_t bufsize = hfs_decmpfs_buffer_size(h);
-	unsigned char* decmpfs_data_tmp = *decmpfs_data;
-	if(!(*decmpfs_data = realloc(*decmpfs_data,bufsize))) {
-		free(decmpfs_data_tmp);
-		ctx->hfs_err = -ENOMEM;
-		return;
+		ctx->read_buf = tmp;
+		ctx->read_bufsize = bufsize;
 	}
 
 	off_t offset = 0;
-	int bytes = 0, entry_bytes;
-	while((bytes = hfs_decmpfs_read(ctx->vol,decmpfs,(char*)*decmpfs_data,bufsize,offset)) > 0) {
-		if((entry_bytes = archive_write_data(ctx->archive,*decmpfs_data,bytes)) != bytes) {
+	ssize_t bytes;
+	la_ssize_t entry_bytes;
+	while((bytes = hfs_file_pread(f,ctx->read_buf,bufsize,offset)) > 0) {
+		if((entry_bytes = archive_write_data(ctx->archive,ctx->read_buf,bytes)) != bytes) {
 			if(entry_bytes == ARCHIVE_RETRY)
 				continue;
 			if(entry_bytes == ARCHIVE_WARN && !ctx->no_warn)
@@ -265,7 +245,8 @@ static void hfstar_write_decmpfs_file(struct hfstar_archive_context* ctx, hfs_ca
 	if(bytes < 0)
 		ctx->hfs_err = bytes;
 
-	hfs_decmpfs_destroy_context(decmpfs);
+end:
+	hfs_file_close(f);
 }
 
 static void hfstar_write_rsrc_entry(struct hfstar_archive_context* ctx, const char* path, size_t pathlen, hfs_catalog_keyed_record_t* rec) {
@@ -281,7 +262,7 @@ static void hfstar_write_rsrc_entry(struct hfstar_archive_context* ctx, const ch
 	archive_entry_set_pathname_utf8(rsrc_entry,rsrc_path);
 
 	struct stat st;
-	hfs_stat(ctx->vol,rec,&st,HFS_RSRCFORK,NULL);
+	hfs_stat(ctx->vol,rec,&st,HFS_RSRCFORK);
 	archive_entry_copy_stat(rsrc_entry,&st);
 
 	if((ctx->archive_err = archive_write_header(ctx->archive,rsrc_entry))) {
@@ -315,14 +296,7 @@ static void hfstar_write_deferred_entry(struct hfstar_archive_context* ctx, stru
 		// stored in the archive header in hfstar_write_entry
 		goto entry_end;
 
-	struct hfs_decmpfs_header decmpfs_header;
-	uint32_t inlinelength;
-	unsigned char* decmpfs_data;
-	if(!hfs_decmpfs_lookup(ctx->vol,&rec.file,&decmpfs_header,&inlinelength,&decmpfs_data)) {
-		hfstar_write_decmpfs_file(ctx,&rec,&decmpfs_header,&decmpfs_data,inlinelength);
-		free(decmpfs_data);
-	}
-	else hfstar_write_file(ctx,&rec,HFS_DATAFORK);
+	hfstar_write_file(ctx,&rec,HFS_DATAFORK);
 
 	if(ctx->rsrc_ext && rec.file.rsrc_fork.logical_size)
 		hfstar_write_rsrc_entry(ctx,path,strlen(path),&rec);
@@ -455,11 +429,7 @@ static void hfstar_write_entry(struct hfstar_archive_context* ctx, const char* p
 
 	// actual file data
 	if(rec->type == HFS_REC_FILE) {
-		if(compressed) {
-			hfstar_write_decmpfs_file(ctx,rec,&decmpfs_header,&decmpfs_data,inlinelength);
-			free(decmpfs_data);
-		}
-		else hfstar_write_file(ctx,rec,HFS_DATAFORK);
+		hfstar_write_file(ctx,rec,HFS_DATAFORK);
 
 		if(unrecoverable_err(ctx))
 			goto entry_end;
