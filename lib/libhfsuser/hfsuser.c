@@ -357,7 +357,7 @@ end:
 	X(S_IFSOCK,HFS_S_IFSOCK)\
 	X(S_IFWHT, HFS_S_IFWHT)
 
-void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st, uint8_t fork, struct hfs_decmpfs_header* decmpfs_header) {
+void hfs_stat_with_decmpfs_header(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st, uint8_t fork, struct hfs_decmpfs_header* decmpfs_header) {
 	memset(st,0,sizeof(*st));
 
 	st->st_ino = key->file.cnid;
@@ -454,6 +454,13 @@ void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st,
 		st->st_blksize = vol->vh.block_size;
 #endif
 	}
+}
+
+void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* rec, struct stat* st, uint8_t fork) {
+	struct hfs_decmpfs_header h,* hp = NULL;
+	if(rec->type == HFS_REC_FILE && fork == HFS_DATAFORK && !hfs_decmpfs_lookup(vol,&rec->file,&h,NULL,NULL))
+		hp = &h;
+	hfs_stat_with_decmpfs_header(vol,rec,st,fork,hp);
 }
 
 static inline char* swapcopy(char* buf, char* src, size_t size) {

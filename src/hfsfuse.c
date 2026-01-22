@@ -155,16 +155,12 @@ static int hfsfuse_getattr(const char* path, struct stat* st) {
 	if(ret)
 		return ret;
 
-	struct hfs_decmpfs_header h,* hp = NULL;
-	if(rec.type == HFS_REC_FILE && fork == HFS_DATAFORK && !hfs_decmpfs_lookup(vol,&rec.file,&h,NULL,NULL))
-		hp = &h;
-
 #if FUSE_DARWIN_ENABLE_EXTENSIONS
 	struct stat statbuf;
-	hfs_stat(vol,&rec,&statbuf,fork,hp);
+	hfs_stat(vol,&rec,&statbuf,fork);
 	*st = stat_to_fuse_darwin_attr(rec,statbuf);
 #else
-	hfs_stat(vol,&rec,st,fork,hp);
+	hfs_stat(vol,&rec,st,fork);
 #endif
 
 	return 0;
@@ -181,12 +177,9 @@ static int hfsfuse_statx(const char* path, int flags, int mask, struct statx* st
 	}
 	else {
 		hfs_catalog_key_t key; uint8_t fork;
-		struct hfs_decmpfs_header h,* hp = NULL;
 		int ret = hfs_lookup(vol,path,&rec,&key,&fork);
 		if(ret)
 			return ret;
-		if(rec.type == HFS_REC_FILE && fork == HFS_DATAFORK && !hfs_decmpfs_lookup(vol,&rec.file,&h,NULL,NULL))
-			hp = &h;
 		hfs_stat(vol,&rec,&st,fork,hp);
 	}
 
@@ -295,7 +288,7 @@ static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, 
 	struct hf_dir* d = (struct hf_dir*)info->fh;
 	if(offset < 1) {
 		struct stat st = {0};
-		hfs_stat(vol, &d->dir_record, &st, 0, NULL);
+		hfs_stat(vol, &d->dir_record, &st, 0);
 		int ret;
 #if FUSE_DARWIN_ENABLE_EXTENSIONS
 		ret = filler(buf, ".", &stat_to_fuse_darwin_attr(d->dir_record,st), 1, FUSE_FILL_DIR_PLUS);
@@ -315,7 +308,7 @@ static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, 
 			hfs_catalog_key_t key;
 			hfslib_find_catalog_record_with_cnid(vol, d->parent_cnid, &rec, &key, NULL);
 			stp = &st;
-			hfs_stat(vol, &rec, stp, 0, NULL);
+			hfs_stat(vol, &rec, stp, 0);
 		}
 		int ret;
 #if FUSE_DARWIN_ENABLE_EXTENSIONS
@@ -345,7 +338,7 @@ static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, 
 		hfs_cache_path(vol,fullpath,d->pathlen+len,d->records+i);
 
 		struct stat st = {0};
-		hfs_stat(vol,d->records+i,&st,0,NULL);
+		hfs_stat(vol,d->records+i,&st,0);
 		int ret;
 #if FUSE_DARWIN_ENABLE_EXTENSIONS
 		ret = filler(buf,pelem,&stat_to_fuse_darwin_attr(d->records[i],st),i+3,FUSE_FILL_DIR_PLUS);
@@ -429,7 +422,7 @@ static int hfsfuse_listxattr(const char* path, char* attr, size_t size) {
 	if(!strcmp("user.",XATTR_NAMESPACE_STR)) {
 		// only regular files can contain user namespace xattrs on Linux
 		struct stat st;
-		hfs_stat(vol,&rec,&st,HFS_DATAFORK,NULL);
+		hfs_stat(vol,&rec,&st,HFS_DATAFORK);
 		if(!(S_ISREG(st.st_mode) || S_ISDIR(st.st_mode)))
 			return 0;
 	}

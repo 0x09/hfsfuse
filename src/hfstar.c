@@ -94,7 +94,7 @@ static inline char* relative_path(const char* srcpath, const char* dstpath) {
 	return relpath;
 }
 
-static void hfstar_write_automatic_xattrs(struct hfstar_archive_context* ctx, const char* path, hfs_catalog_keyed_record_t* rec, struct archive_entry* entry, bool compressed) {
+static void hfstar_write_automatic_xattrs(struct hfstar_archive_context* ctx, const char* path, hfs_catalog_keyed_record_t* rec, struct archive_entry* entry) {
 	archive_entry_set_birthtime(entry,HFSTIMETOEPOCH(rec->file.date_created),0);
 
 	char timebuf[25];
@@ -115,6 +115,9 @@ static void hfstar_write_automatic_xattrs(struct hfstar_archive_context* ctx, co
 	hfs_serialize_finderinfo(rec,finderinfo);
 	if(memcmp(finderinfo,&(char[32]){0},32))
 		archive_entry_xattr_add_entry(entry,attrname("com.apple.FinderInfo"),finderinfo,32);
+
+	struct hfs_decmpfs_header decmpfs_header;
+	bool compressed = rec->type == HFS_REC_FILE && !hfs_decmpfs_lookup(ctx->vol,&rec->file,&decmpfs_header,NULL,NULL);
 
 	if(!ctx->rsrc_ext && rec->type == HFS_REC_FILE && rec->file.rsrc_fork.logical_size && !compressed) {
 		hfs_extent_descriptor_t* extents = NULL;
@@ -368,12 +371,8 @@ static void hfstar_write_entry(struct hfstar_archive_context* ctx, const char* p
 	archive_entry_set_pathname_utf8(entry,path);
 
 	// store stat info
-	struct hfs_decmpfs_header decmpfs_header;
-	uint32_t inlinelength;
-	unsigned char* decmpfs_data;
-	bool compressed = rec->type == HFS_REC_FILE && !hfs_decmpfs_lookup(ctx->vol,&rec->file,&decmpfs_header,&inlinelength,&decmpfs_data);
 	struct stat st;
-	hfs_stat(ctx->vol,rec,&st,HFS_DATAFORK,compressed ? &decmpfs_header : NULL);
+	hfs_stat(ctx->vol,rec,&st,HFS_DATAFORK);
 	archive_entry_copy_stat(entry,&st);
 
 #if HAVE_STAT_FLAGS
@@ -387,7 +386,7 @@ static void hfstar_write_entry(struct hfstar_archive_context* ctx, const char* p
 	else archive_entry_set_filetype(entry,st.st_mode & AE_IFMT);
 
 	// extra data exposed as extended attributes
-	hfstar_write_automatic_xattrs(ctx,path,rec,entry,compressed);
+	hfstar_write_automatic_xattrs(ctx,path,rec,entry);
 	if(unrecoverable_err(ctx))
 		goto entry_end;
 

@@ -92,7 +92,7 @@ void hfs_file_stat(struct hfs_file* f, struct stat* st) {
 		hfs_decmpfs_get_header(f->decmpfs,&h);
 		hp = &h;
 	}
-	hfs_stat(f->vol,&f->rec,st,f->fork,hp);
+	hfs_stat_with_decmpfs_header(f->vol,&f->rec,st,f->fork,hp);
 }
 
 size_t hfs_file_ideal_read_size(struct hfs_file* f, size_t fallback) {
