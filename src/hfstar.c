@@ -258,7 +258,6 @@ static void hfstar_write_decmpfs_file(struct hfstar_archive_context* ctx, hfs_ca
 				fprintf(stderr,"%s\n",archive_error_string(ctx->archive));
 			if(entry_bytes < ARCHIVE_OK)
 				ctx->archive_err = entry_bytes;
-			hfs_decmpfs_destroy_context(decmpfs);
 			break;
 		}
 		offset += bytes;
