@@ -139,6 +139,7 @@ ifneq ($(filter-out $(non_build_targets),$(or $(MAKECMDGOALS),all)),)
 
     $(eval $(call cccheck,HAVE_LZFSE,,lzfse.h))
     $(eval $(call cccheck,HAVE_ZLIB,,zlib.h))
+    $(eval $(call cccheck,HAVE_LZVN,,FastCompression.h))
 
     $(eval $(call cccheck,HAVE_LIBARCHIVE,,archive.h archive_entry.h))
 
@@ -193,6 +194,7 @@ endif
 
 APP_LIB+=$(if $(filter $(HAVE_ZLIB),1),-lz)
 APP_LIB+=$(if $(filter $(HAVE_LZFSE),1),-llzfse)
+APP_LIB+=$(if $(filter $(HAVE_LZVN),1),-lFastCompression)
 
 RELEASE_NAME=hfsfuse
 RELEASE_BRANCH=master

@@ -32,4 +32,8 @@
 #endif
 #endif
 
+#if HAVE_LZVN
+#include "FastCompression.h"
+#endif
+
 #endif

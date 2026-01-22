@@ -28,8 +28,6 @@ enum decmpfs_compression {
 #define decmpfs_compression_zlib(type) (decmpfs_compression(type) == DECMPFS_COMPRESSION_ZLIB)
 #define decmpfs_compression_lzvn(type) (decmpfs_compression(type) == DECMPFS_COMPRESSION_LZVN)
 #define decmpfs_compression_lzfse(type) (decmpfs_compression(type) == DECMPFS_COMPRESSION_LZFSE)
-// liblzfse handles both lzvn and lzfse
-#define decmpfs_compression_lzx(type) (decmpfs_compression_lzvn(type) || decmpfs_compression_lzfse(type))
 
 #define decmpfs_storage_inline(type) ((type)%2)
 
@@ -83,7 +81,7 @@ bool hfs_decmpfs_parse_record(struct hfs_decmpfs_header* h, uint32_t length, uns
 
 int hfs_decmpfs_decompress(uint8_t type, unsigned char* decompressed_buf, size_t decompressed_buf_len, unsigned char* compressed_buf, size_t compressed_buf_len, size_t* bytes_read, void* scratch_buffer) {
 	if((decmpfs_compression_zlib(type) && compressed_buf[0] == 0xFF) ||
-	  (decmpfs_compression_lzx(type) && compressed_buf[0] == 0x06)) {
+	   ((decmpfs_compression_lzfse(type) || decmpfs_compression_lzvn(type)) && compressed_buf[0] == 0x06)) {
 		*bytes_read = compressed_buf_len-1;
 		memcpy(decompressed_buf,compressed_buf+1,*bytes_read);
 		return 0;
@@ -98,8 +96,15 @@ int hfs_decmpfs_decompress(uint8_t type, unsigned char* decompressed_buf, size_t
 	}
 #endif
 
+#if HAVE_LZVN
+	if(decmpfs_compression_lzvn(type)) {
+		*bytes_read = lzvn_decode(decompressed_buf, decompressed_buf_len, compressed_buf, compressed_buf_len);
+		return 0;
+	}
+#endif
+
 #if HAVE_LZFSE
-	if(decmpfs_compression_lzx(type)) {
+	if(decmpfs_compression_lzfse(type)) {
 		*bytes_read = lzfse_decode_buffer(decompressed_buf, decompressed_buf_len, compressed_buf, compressed_buf_len,scratch_buffer);
 		return 0;
 	}
@@ -175,36 +180,66 @@ struct hfs_decmpfs_context* hfs_decmpfs_create_context(hfs_volume* vol, hfs_cnid
 			err = -1;
 			goto err;
 		}
-		uint64_t bytes;
-		uint32_t rsrc_start; // usually 256
-		if((err = hfslib_readd_with_extents(vol,&rsrc_start,&bytes,4,0,ctx->extents,ctx->nextents,NULL)))
-			goto err;
-		if(bytes < 4) {
-			err = -EIO;
-			goto err;
-		}
-		rsrc_start = be32toh(rsrc_start);
+		if(compression_type == DECMPFS_COMPRESSION_ZLIB) {
+			uint64_t bytes;
+			uint32_t rsrc_start; // usually 256
+			if((err = hfslib_readd_with_extents(vol,&rsrc_start,&bytes,4,0,ctx->extents,ctx->nextents,NULL)))
+				goto err;
+			if(bytes < 4) {
+				err = -EIO;
+				goto err;
+			}
+			rsrc_start = be32toh(rsrc_start);
 
-		if((err = hfslib_readd_with_extents(vol,&ctx->nchunks,&bytes,4,rsrc_start+4,ctx->extents,ctx->nextents,NULL)))
-			goto err;
-		if(bytes < 4) {
-			err = -EIO;
-			goto err;
-		}
-		if(!(ctx->chunk_map = malloc(sizeof(*ctx->chunk_map)*ctx->nchunks))) {
-			err = -ENOMEM;
-			goto err;
-		}
-		if((err = hfslib_readd_with_extents(vol,ctx->chunk_map,&bytes,ctx->nchunks*sizeof(*ctx->chunk_map),rsrc_start+8,ctx->extents,ctx->nextents,NULL)))
-			goto err;
-		if(bytes < ctx->nchunks*sizeof(*ctx->chunk_map)) {
-			err = -EIO;
-			goto err;
-		}
+			if((err = hfslib_readd_with_extents(vol,&ctx->nchunks,&bytes,4,rsrc_start+4,ctx->extents,ctx->nextents,NULL)))
+				goto err;
+			if(bytes < 4) {
+				err = -EIO;
+				goto err;
+			}
+			if(!(ctx->chunk_map = malloc(sizeof(*ctx->chunk_map)*ctx->nchunks))) {
+				err = -ENOMEM;
+				goto err;
+			}
+			if((err = hfslib_readd_with_extents(vol,ctx->chunk_map,&bytes,ctx->nchunks*sizeof(*ctx->chunk_map),rsrc_start+8,ctx->extents,ctx->nextents,NULL)))
+				goto err;
+			if(bytes < ctx->nchunks*sizeof(*ctx->chunk_map)) {
+				err = -EIO;
+				goto err;
+			}
 
-		// adjust offets to be relative to start block
-		for(size_t i = 0; i < ctx->nchunks; i++)
-			ctx->chunk_map[i][0] += rsrc_start+4;
+			// adjust offets to be relative to start block
+			for(size_t i = 0; i < ctx->nchunks; i++)
+				ctx->chunk_map[i][0] += rsrc_start+4;
+		}
+		else {
+			uint64_t bytes;
+			uint32_t data_start;
+			if((err = hfslib_readd_with_extents(vol,&data_start,&bytes,4,0,ctx->extents,ctx->nextents,NULL)))
+				goto err;
+			if(bytes < 4 || data_start % sizeof(uint32_t)) {
+				err = -EIO;
+				goto err;
+			}
+			uint32_t* chunks = malloc(data_start);
+			if((err = hfslib_readd_with_extents(vol,chunks,&bytes,data_start,0,ctx->extents,ctx->nextents,NULL)))
+				goto err;
+			if(bytes < data_start) {
+				err = -EIO;
+				goto err;
+			}
+
+			ctx->nchunks = data_start/4-1;
+			if(!(ctx->chunk_map = malloc(sizeof(*ctx->chunk_map)*ctx->nchunks))) {
+				err = -ENOMEM;
+				goto err;
+			}
+			// normalize to the same chunk_map format as zlib compressed files
+			for(size_t i = 0; i < ctx->nchunks; i++) {
+				ctx->chunk_map[i][0] = chunks[i];
+				ctx->chunk_map[i][1] = chunks[i+1] - chunks[i];
+			}
+		}
 	}
 
 	if(out_err)
