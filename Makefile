@@ -221,7 +221,7 @@ else ifeq ($(wildcard src/version.h), )
 	CFLAGS += -DHFSFUSE_VERSION_STRING=\"omitted\"
 endif
 
-export CONFIG PREFIX prefix bindir libdir includedir DESTDIR CC CFLAGS LOCAL_CFLAGS LIBHFS_CFLAGS APP_FLAGS LIBDIRS AR RANLIB INSTALL INCLUDE
+export CONFIG PREFIX prefix bindir libdir includedir DESTDIR CC CFLAGS LIBDIRS AR RANLIB INSTALL
 
 DEPS = src/hfsfuse.d src/hfsdump.d src/hfstar.d
 
@@ -237,6 +237,9 @@ all: $(TARGETS)
 %.o: CFLAGS += $(LOCAL_CFLAGS)
 
 src/hfsfuse.o: CPPFLAGS += $(FUSE_FLAGS) -DXATTR_NAMESPACE=$(XATTR_NAMESPACE)
+
+lib/libhfs/libhfs.a: CFLAGS := $(LIBHFS_CFLAGS) $(CFLAGS)
+lib/libhfsuser/libhfsuser.a: CFLAGS := $(LOCAL_CFLAGS) $(INCLUDE) $(APP_FLAGS) $(CFLAGS)
 
 $(LIBS): always_check
 	$(MAKE) -C $(dir $@)

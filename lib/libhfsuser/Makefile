@@ -9,8 +9,6 @@ CPPFLAGS += -MMD -MP
 
 all: $(TARGET)
 
-CPPFLAGS += $(LOCAL_CFLAGS) $(INCLUDE) $(APP_FLAGS)
-
 $(TARGET): $(OBJS)
 	$(AR) rcs $@ $^
 	$(RANLIB) $@

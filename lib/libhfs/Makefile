@@ -18,7 +18,7 @@ LIBHFS_UPSTREAM_CFLAGS = -Wall -Wextra -Wno-unknown-warning-option\
     -fno-common -fno-delete-null-pointer-checks -fno-strict-aliasing\
     -std=gnu99 -O2
 
-CFLAGS := $(LIBHFS_UPSTREAM_CFLAGS) $(CFLAGS) $(LIBHFS_CFLAGS)
+CFLAGS := $(LIBHFS_UPSTREAM_CFLAGS) $(CFLAGS)
 
 $(TARGET): $(OBJS)
 	$(AR) rcs $@ $^
