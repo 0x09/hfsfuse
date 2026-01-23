@@ -260,7 +260,7 @@ clean:
 	$(RM) src/hfsfuse.o hfsfuse src/hfsdump.o hfsdump src/hfstar.o hfstar $(DEPS)
 
 distclean: clean
-	$(RM) config.mak src/version.h AUTHORS
+	$(RM) config.mak src/version.h AUTHORS "$(RELEASE_NAME).tar.gz"
 
 install-lib: $(LIBS)
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir install; done
