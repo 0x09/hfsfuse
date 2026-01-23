@@ -88,6 +88,7 @@ libdir = $(prefix)/lib
 includedir = $(prefix)/include
 WITH_UBLIO ?= local
 WITH_UTF8PROC ?= local
+WITH_LZVN ?= local
 
 CEXPR_TEST_CFLAGS = -Werror-implicit-function-declaration -Wno-unused-value -Wno-missing-braces\
  -Wno-missing-field-initializers -Wno-format-security -Wno-format-nonliteral
@@ -138,7 +139,6 @@ ifneq ($(filter-out $(non_build_targets),$(or $(MAKECMDGOALS),all)),)
 
     $(eval $(call cccheck,HAVE_LZFSE,,lzfse.h))
     $(eval $(call cccheck,HAVE_ZLIB,,zlib.h))
-    $(eval $(call cccheck,HAVE_LZVN,,FastCompression.h))
 
     $(eval $(call cccheck,HAVE_LIBARCHIVE,,archive.h archive_entry.h))
 
@@ -162,7 +162,7 @@ $(info libarchive not found, hfstar will not be built)
     $(eval $(call cccheck,HAVE_STATX,{ (struct statx){0}; },sys/stat.h))
 endif
 
-$(foreach cfg,OS CC AR RANLIB INSTALL TAR PREFIX WITH_UBLIO WITH_UTF8PROC XATTR_NAMESPACE CONFIG_CFLAGS $(FEATURES),$(eval CONFIG:=$(CONFIG)$(cfg)=$$($(cfg))\n))
+$(foreach cfg,OS CC AR RANLIB INSTALL TAR PREFIX WITH_UBLIO WITH_UTF8PROC WITH_LZVN XATTR_NAMESPACE CONFIG_CFLAGS $(FEATURES),$(eval CONFIG:=$(CONFIG)$(cfg)=$$($(cfg))\n))
 $(foreach feature,$(FEATURES),$(if $(filter $($(feature)),1),$(eval CFLAGS+=-D$(feature))))
 
 LIBS = lib/libhfsuser/libhfsuser.a lib/libhfs/libhfs.a
@@ -188,6 +188,16 @@ ifneq ($(WITH_UTF8PROC), none)
 		LIBS += lib/utf8proc/libutf8proc.a
 	else
 $(error Invalid option "$(WITH_UTF8PROC)" for WITH_UTF8PROC. Use one of: none, system, local)
+	endif
+endif
+ifneq ($(WITH_LZVN), none)
+	APP_FLAGS += -DHAVE_LZVN
+	ifeq ($(WITH_LZVN), system)
+		APP_LIB += -lFastCompression
+	else ifeq ($(WITH_LZVN), local)
+		LIBS += lib/LZVN/libFastCompression.a
+	else
+$(error Invalid option "$(WITH_LZVN)" for WITH_LZVN. Use one of: none, system, local)
 	endif
 endif
 

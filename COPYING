@@ -1,5 +1,5 @@
 This distribution incorporates third party source code from the NetBSD,
-utf8proc, ublio, and uthash projects. These projects are redistributed
+utf8proc, ublio, uthash, and LZVN projects. These projects are redistributed
 according to the terms of their respective licenses, which are included
 in each project's containing folder and/or source files directly.
 Original contributions to these projects' source files by the hfsfuse

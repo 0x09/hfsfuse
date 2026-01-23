@@ -40,9 +40,9 @@ hfsfuse optionally uses these additional libraries to enable certain functionali
 
 * [utf8proc](http://julialang.org/utf8proc/) for working with non-ASCII pathnames
 * [ublio](https://www.freshports.org/devel/libublio/) for read caching, which may improve performance
-* [zlib](https://www.zlib.net), [lzfse](https://github.com/lzfse/lzfse), and [lzvn](https://github.com/xerub/LZVN) for reading files with HFS+ compression
+* [zlib](https://www.zlib.net), [lzfse](https://github.com/0x09/lzfse), and [lzvn](https://github.com/xerub/LZVN) for reading files with HFS+ compression
 
-utf8proc and ublio are both bundled with hfsfuse and built by default. hfsfuse can be configured to use already-installed versions of these if available, or may be built without them entirely if the respective functionality is not needed (see [Configuring](#Configuring)).
+utf8proc, ublio, and LZVN are each bundled with hfsfuse and built by default. hfsfuse can be configured to use already-installed versions of these if available, or may be built without them entirely if the respective functionality is not needed (see [Configuring](#Configuring)).
 
 hfstar additionally requires [libarchive](https://www.libarchive.org). Like hfsdump it can also be built for Windows with Mingw-w64 or msys2.
 
@@ -50,16 +50,16 @@ hfstar additionally requires [libarchive](https://www.libarchive.org). Like hfsd
 hfsfuse is configured by passing options directly to `make`, and separate configure and build steps are not needed. `make showconfig` can be used to print available make options and their current values.  
 For repeated builds using the same options, or to more easily edit config values, `make config` can optionally be used to generate a config.mak file which will be used by future invocations.
 
-To configure hfsfuse's optional utf8proc and ublio dependencies, use WITH_*DEP*=(none/local/system). The default behavior with no arguments is to use the bundled versions of these and is the same as using
+To configure hfsfuse's optional utf8proc, ublio, and LZVN dependencies, use WITH_*DEP*=(none/local/system). The default behavior with no arguments is to use the bundled versions of these and is the same as using
 
-    make WITH_UBILIO=local WITH_UTF8PROC=local
+    make WITH_UBILIO=local WITH_UTF8PROC=local WITH_LZVN=local
 
 To ease portability, the Makefile will attempt to detect certain features of the host libc in an autoconf-like way, and creates a series of defines for these labeled HAVE_*FEATURENAME*. To override and skip checks for a given feature, these may be provided directly to `make` or overridden in config.mak.
 
 ## Building
 The default `make` and `make install` targets build and install hfsfuse, hfsdump, and hfstar. hfsdump and hfstar can also be built standalone with `make hfsdump hfstar`, in which case FUSE is not needed.
 
-hfsfuse's supporting libraries can be built and installed independently using `make lib` and `make install-lib`. Applications can use these to read from HFS+ volumes by including [hfsuser.h](lib/libhfsuser/hfsuser.h) and linking with libhfsuser, libhfs, and ublio/utf8proc if configured.
+hfsfuse's supporting libraries can be built and installed independently using `make lib` and `make install-lib`. Applications can use these to read from HFS+ volumes by including [hfsuser.h](lib/libhfsuser/hfsuser.h) and linking with libhfsuser, libhfs, and ublio/utf8proc/LZVN if configured.
 
 Some version information is generated from the git repository. For distributions outside of revision control, run `make version` within the repository first or provide your own version.h.
 
