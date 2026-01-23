@@ -1,0 +1,10 @@
+Fork of https://github.com/xerub/LZVN with a focus on portability.
+Original README is retained below.
+---
+
+LZVN encode and decode libraries and tool.
+Forked from Pike R Alpha's LZVN github branch.
+
+- Implemented raw encode and decode support
+- Added installer package and build script
+- Added C version for lzvn_encode
