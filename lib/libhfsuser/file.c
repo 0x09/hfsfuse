@@ -65,6 +65,18 @@ error:
 	return NULL;
 }
 
+struct hfs_file* hfs_file_open_path(hfs_volume* vol, const char* path, int* out_err) {
+	struct hfs_file* f = NULL;
+	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key; unsigned char fork;
+	int err = hfs_lookup(vol,path,&rec,&key,&fork);
+	if(!err)
+		f = hfs_file_open(vol,&rec,fork,&err);
+
+	if(out_err)
+		*out_err = err;
+	return f;
+}
+
 void hfs_file_close(struct hfs_file* f) {
 	if(!f)
 		return;

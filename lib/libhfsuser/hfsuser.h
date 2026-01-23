@@ -116,6 +116,7 @@ int hfs_decmpfs_lookup(hfs_volume*, hfs_file_record_t*, struct hfs_decmpfs_heade
 struct hfs_file;
 
 struct hfs_file* hfs_file_open(hfs_volume*,hfs_catalog_keyed_record_t*,unsigned char fork,int* out_err);
+struct hfs_file* hfs_file_open_path(hfs_volume*,const char* path,int* out_err);
 void hfs_file_close(struct hfs_file*);
 ssize_t hfs_file_pread(struct hfs_file*, void* restrict buf, size_t size, off_t offset);
 void hfs_file_stat(struct hfs_file*,struct stat*);

@@ -44,12 +44,8 @@ static void hfsfuse_destroy(void* vol) {
 
 static int hfsfuse_open(const char* path, struct fuse_file_info* info) {
 	hfs_volume* vol = fuse_get_context()->private_data;
-	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key; unsigned char fork;
-	int ret = hfs_lookup(vol,path,&rec,&key,&fork);
-	if(ret)
-		return ret;
-
-	struct hfs_file* f = hfs_file_open(vol,&rec,fork,&ret);
+	int ret;
+	struct hfs_file* f = hfs_file_open_path(vol,path,&ret);
 	if(!f)
 		return ret;
 
@@ -75,13 +71,9 @@ static int hfsfuse_readlink(const char* path, char* buf, size_t size) {
 	if(!size)
 		return -EINVAL;
 
+	int ret;
 	hfs_volume* vol = fuse_get_context()->private_data;
-	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key; unsigned char fork;
-	int ret = hfs_lookup(vol,path,&rec,&key,&fork);
-	if(ret)
-		return ret;
-
-	struct hfs_file* f = hfs_file_open(vol,&rec,fork,&ret);
+	struct hfs_file* f = hfs_file_open_path(vol,path,&ret);
 	if(!f)
 		return ret;
 
