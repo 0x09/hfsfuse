@@ -244,13 +244,13 @@ $(LIBS): always_check
 lib: $(LIBS)
 
 hfsfuse: LDLIBS += $(FUSE_LIB)
-hfsfuse: src/hfsfuse.o $(LIBS)
+hfsfuse: $(LIBS)
 
-hfsdump: src/hfsdump.o $(LIBS)
+hfsdump: $(LIBS)
 
 hfstar: CPPFLAGS += $(APP_FLAGS) -Ilib/uthash -DXATTR_NAMESPACE=$(XATTR_NAMESPACE)
 hfstar: LDLIBS += -larchive
-hfstar: src/hfstar.o $(LIBS)
+hfstar: $(LIBS)
 
 clean:
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir clean; done
