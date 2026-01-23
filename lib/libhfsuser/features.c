@@ -22,6 +22,9 @@ enum hfs_lib_features hfs_get_lib_features(void) {
 #if HAVE_LZFSE
 	     | HFS_LIB_FEATURES_LZFSE
 #endif
+#if HAVE_LZVN
+	     | HFS_LIB_FEATURES_LZVN
+#endif
 	;
 }
 

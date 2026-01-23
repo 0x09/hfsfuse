@@ -35,6 +35,7 @@ enum hfs_lib_features {
 	HFS_LIB_FEATURES_UTF8PROC = 1 << 1,
 	HFS_LIB_FEATURES_ZLIB = 1 << 2,
 	HFS_LIB_FEATURES_LZFSE = 1 << 3,
+	HFS_LIB_FEATURES_LZVN = 1 << 4,
 };
 
 enum hfs_lib_features hfs_get_lib_features(void);
@@ -42,7 +43,7 @@ enum hfs_lib_features hfs_get_lib_features(void);
 const char* hfs_lib_ublio_version(void);
 const char* hfs_lib_utf8proc_version(void);
 const char* hfs_lib_zlib_version(void);
-// lzfse has no embedded version info
+// lzfse and lzvn have no embedded version info
 
 struct hfs_volume_config {
 	size_t cache_size;
