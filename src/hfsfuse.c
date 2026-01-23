@@ -42,16 +42,6 @@ static void hfsfuse_destroy(void* vol) {
 	hfslib_close_volume(vol, NULL);
 }
 
-
-struct hf_file {
-	hfs_cnid_t cnid;
-	hfs_extent_descriptor_t* extents;
-	uint16_t nextents;
-	uint8_t fork;
-	uint64_t logical_size;
-	struct hfs_decmpfs_context* decmpfs;
-};
-
 static int hfsfuse_open(const char* path, struct fuse_file_info* info) {
 	hfs_volume* vol = fuse_get_context()->private_data;
 	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key; unsigned char fork;
