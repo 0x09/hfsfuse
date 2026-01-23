@@ -15,7 +15,8 @@ all: $(TARGET)
 LIBHFS_UPSTREAM_CFLAGS = -Wall -Wextra -Wno-unknown-warning-option\
     -Wpointer-arith -Wstrict-prototypes -Wold-style-definition -Wswitch -Wshadow -Wcast-qual -Wwrite-strings -Walloca -Wold-style-definition -Wmissing-prototypes -Wstack-usage=3584\
     -Wno-unused-parameter -Wno-sign-compare -Wno-conversion -Wno-self-assign\
-    -fno-common -fno-delete-null-pointer-checks -fno-strict-aliasing
+    -fno-common -fno-delete-null-pointer-checks -fno-strict-aliasing\
+    -std=gnu99 -O2
 
 $(TARGET): CFLAGS := $(LIBHFS_UPSTREAM_CFLAGS) $(CFLAGS) $(LIBHFS_CFLAGS)
 $(TARGET): $(OBJS)
