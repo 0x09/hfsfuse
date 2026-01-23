@@ -163,7 +163,10 @@ $(info libarchive not found, hfstar will not be built)
 endif
 
 $(foreach cfg,OS CC AR RANLIB INSTALL TAR PREFIX WITH_UBLIO WITH_UTF8PROC WITH_LZVN XATTR_NAMESPACE CONFIG_CFLAGS $(FEATURES),$(eval CONFIG:=$(CONFIG)$(cfg)=$$($(cfg))\n))
-$(foreach feature,$(FEATURES),$(if $(filter $($(feature)),1),$(eval CFLAGS+=-D$(feature))))
+$(foreach feature,$(FEATURES),$(if $(filter $($(feature)),1),$(eval FEATURE_CFLAGS+=-D$(feature))))
+
+LOCAL_CFLAGS += $(FEATURE_CFLAGS)
+LIBHFS_CFLAGS += $(FEATURE_CFLAGS)
 
 LIBS = lib/libhfsuser/libhfsuser.a lib/libhfs/libhfs.a
 LIBDIRS = $(abspath $(dir $(LIBS)))
@@ -218,7 +221,7 @@ else ifeq ($(wildcard src/version.h), )
 	CFLAGS += -DHFSFUSE_VERSION_STRING=\"omitted\"
 endif
 
-export CONFIG PREFIX prefix bindir libdir includedir DESTDIR CC CFLAGS LOCAL_CFLAGS APP_FLAGS LIBDIRS AR RANLIB INSTALL INCLUDE
+export CONFIG PREFIX prefix bindir libdir includedir DESTDIR CC CFLAGS LOCAL_CFLAGS LIBHFS_CFLAGS APP_FLAGS LIBDIRS AR RANLIB INSTALL INCLUDE
 
 DEPS = src/hfsfuse.d src/hfsdump.d src/hfstar.d
 
