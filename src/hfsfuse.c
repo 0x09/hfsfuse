@@ -84,12 +84,20 @@ static int hfsfuse_read(const char* path, char* buf, size_t size, off_t offset, 
 static int hfsfuse_readlink(const char* path, char* buf, size_t size) {
 	if(!size)
 		return -EINVAL;
-	struct fuse_file_info info;
-	int ret;
-	if((ret = hfsfuse_open(path,&info)))
+
+	hfs_volume* vol = fuse_get_context()->private_data;
+	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key; unsigned char fork;
+	int ret = hfs_lookup(vol,path,&rec,&key,&fork);
+	if(ret)
 		return ret;
-	int bytes = hfsfuse_read(path,buf,size-1,0,&info);
-	hfsfuse_release(NULL,&info);
+
+	struct hfs_file* f = hfs_file_open(vol,&rec,fork,&ret);
+	if(!f)
+		return ret;
+
+	ssize_t bytes = hfs_file_pread(f,buf,size-1,0);
+	hfs_file_close(f);
+
 	if(bytes < 0)
 		return bytes;
 	buf[bytes] = '\0';
