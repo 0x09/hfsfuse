@@ -14,7 +14,7 @@ This driver is read-only and cannot write to or alter the target filesystem.
 * Resource fork, Finder info, and creation/backup time access via extended attributes
 * birthtime (with compatible FUSE)
 * User-defined extended attributes
-* HFS+ compression with zlib and lzfse
+* HFS+ compression with zlib, lzvn, and lzfse
 
 **Not supported**
 
@@ -40,7 +40,7 @@ hfsfuse optionally uses these additional libraries to enable certain functionali
 
 * [utf8proc](http://julialang.org/utf8proc/) for working with non-ASCII pathnames
 * [ublio](https://www.freshports.org/devel/libublio/) for read caching, which may improve performance
-* [zlib](https://www.zlib.net) and [lzfse](https://github.com/lzfse/lzfse) for reading files with HFS+ compression
+* [zlib](https://www.zlib.net), [lzfse](https://github.com/lzfse/lzfse), and [lzvn](https://github.com/xerub/LZVN) for reading files with HFS+ compression
 
 utf8proc and ublio are both bundled with hfsfuse and built by default. hfsfuse can be configured to use already-installed versions of these if available, or may be built without them entirely if the respective functionality is not needed (see [Configuring](#Configuring)).
 
