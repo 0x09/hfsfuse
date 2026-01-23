@@ -225,6 +225,8 @@ export CONFIG PREFIX prefix bindir libdir includedir DESTDIR CC CFLAGS LOCAL_CFL
 
 DEPS = src/hfsfuse.d src/hfsdump.d src/hfstar.d
 
+LDLIBS += $(APP_LIB) -lpthread
+
 vpath %.o src
 
 .PHONY: all clean always_check config showconfig install install-lib lib $(non_build_targets)
@@ -241,14 +243,13 @@ $(LIBS): always_check
 
 lib: $(LIBS)
 
-hfsfuse: LDLIBS += $(APP_LIB) $(FUSE_LIB) -lpthread
+hfsfuse: LDLIBS += $(FUSE_LIB)
 hfsfuse: src/hfsfuse.o $(LIBS)
 
-hfsdump: LDLIBS += $(APP_LIB) -lpthread
 hfsdump: src/hfsdump.o $(LIBS)
 
 hfstar: CPPFLAGS += $(APP_FLAGS) -Ilib/uthash -DXATTR_NAMESPACE=$(XATTR_NAMESPACE)
-hfstar: LDLIBS += $(APP_LIB) -lpthread -larchive
+hfstar: LDLIBS += -larchive
 hfstar: src/hfstar.o $(LIBS)
 
 clean:
