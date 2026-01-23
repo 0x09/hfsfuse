@@ -4,6 +4,7 @@ DEPS = $(SRCS:%.c=%.d)
 TARGET = libhfs.a
 
 CPPFLAGS += -MMD -MP
+CPPFLAGS += "-D__KERNEL_RCSID(sec,string)=const char hfs_rcsid_$*[]=string"
 
 # from NetBSD syssrc usr/src/sys/conf/Makefile.kern.inc v 1.300
 LIBHFS_UPSTREAM_CFLAGS = -Wall -Wextra -Wno-unknown-warning-option\
@@ -17,8 +18,6 @@ CFLAGS := $(LIBHFS_UPSTREAM_CFLAGS) $(CFLAGS)
 .PHONY: all install uninstall clean
 
 all: $(TARGET)
-
-%.o: CPPFLAGS += "-D__KERNEL_RCSID(sec,string)=const char hfs_rcsid_$*[]=string"
 
 $(TARGET): $(OBJS)
 	$(AR) rcs $@ $^
