@@ -17,11 +17,11 @@
 #include "ublio.h"
 #endif
 
-#if HAVE_ZLIB
+#ifdef HAVE_ZLIB
 #include <zlib.h>
 #endif
 
-#if HAVE_LZFSE
+#ifdef HAVE_LZFSE
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wstrict-prototypes"
@@ -32,7 +32,7 @@
 #endif
 #endif
 
-#if HAVE_LZVN
+#ifdef HAVE_LZVN
 #include "FastCompression.h"
 #endif
 

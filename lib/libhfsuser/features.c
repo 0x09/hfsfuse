@@ -16,13 +16,13 @@ enum hfs_lib_features hfs_get_lib_features(void) {
 #ifdef HAVE_UTF8PROC
 	     | HFS_LIB_FEATURES_UTF8PROC
 #endif
-#if HAVE_ZLIB
+#ifdef HAVE_ZLIB
 	     | HFS_LIB_FEATURES_ZLIB
 #endif
-#if HAVE_LZFSE
+#ifdef HAVE_LZFSE
 	     | HFS_LIB_FEATURES_LZFSE
 #endif
-#if HAVE_LZVN
+#ifdef HAVE_LZVN
 	     | HFS_LIB_FEATURES_LZVN
 #endif
 	;
