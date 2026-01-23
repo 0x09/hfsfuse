@@ -1,3 +1,8 @@
+/*
+ * libhfsuser - Userspace support library for NetBSD's libhfs
+ * This file is part of the hfsfuse project.
+ */
+
 #include "hfsuser.h"
 
 #include <errno.h>
