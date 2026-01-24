@@ -507,6 +507,8 @@ static int hfsfuse_getxattr_offset(const char* path, const char* attr, char* val
 		memcpy(value, timebuf, 24);
 	});
 
+	if(strlen(attr) <= strlen(XATTR_NAMESPACE_STR))
+		return -EINVAL;
 	if(!strncmp(attr,XATTR_NAMESPACE_STR,strlen(XATTR_NAMESPACE_STR)))
 		attr += strlen(XATTR_NAMESPACE_STR);
 
