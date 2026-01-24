@@ -220,7 +220,7 @@ else ifeq ($(wildcard src/version.h), )
 	CFLAGS += -DHFSFUSE_VERSION_STRING=\"omitted\"
 endif
 
-export CONFIG PREFIX prefix bindir libdir includedir DESTDIR CC CFLAGS LIBDIRS AR INSTALL
+export CONFIG PREFIX prefix bindir libdir includedir DESTDIR CFLAGS LIBDIRS INSTALL
 
 DEPS = src/hfsfuse.d src/hfsdump.d src/hfstar.d
 
