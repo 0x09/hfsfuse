@@ -163,7 +163,6 @@ int main(int argc, char* argv[]) {
 	int ret = 0;
 	if((ret = hfs_open_volume(argv[1],&vol,&cfg))) {
 		fprintf(stderr,"Couldn't open volume: %s\n",strerror(-ret));
-		hfslib_done();
 		return 1;
 	}
 
