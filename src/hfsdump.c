@@ -19,7 +19,7 @@ static char* hfs_ctime_r(time_t clock, char* buf) {
 static const char* format_type_code(hfs_macos_type_code code, char code_str[5]) {
 	if(!code)
 		return "";
-	sprintf(code_str,"%c%c%c%c",code >> 24 & 0xFF,code >> 16 & 0xFF,code >> 8 & 0xFF,code & 0xFF);
+	snprintf(code_str,5,"%c%c%c%c",code >> 24 & 0xFF,code >> 16 & 0xFF,code >> 8 & 0xFF,code & 0xFF);
 	return code_str;
 }
 
