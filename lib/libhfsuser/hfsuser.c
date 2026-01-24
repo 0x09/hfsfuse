@@ -532,7 +532,7 @@ typedef struct partinfo diskinfo_type;
 #define BAIL(e) do { err = e; goto error; } while(0)
 
 int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
-	int err = 0;
+	int err = errno = 0;
 
 	struct hfs_device* dev = calloc(1,sizeof(*dev));
 	if(!(vol->cbdata = dev))
