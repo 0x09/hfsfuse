@@ -874,7 +874,6 @@ int main(int argc, char* argv[]) {
 	hfs_volume vol;
 	if(hfslib_open_volume(cfg.device, 1, &vol, &(hfs_callback_args){ .openvol = &cfg.volume_config })) {
 		perror("Couldn't open volume");
-		ret = errno;
 		goto done;
 	}
 	if(!hfslib_is_journal_clean(&vol)) {
@@ -883,7 +882,6 @@ int main(int argc, char* argv[]) {
 			fprintf(stderr," Attempting to mount anyway (--force).\n");
 		else {
 			fprintf(stderr," Canceling mount. Use --force to ignore.\n");
-			ret = EIO;
 			goto done;
 		}
 	}
