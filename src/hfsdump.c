@@ -153,7 +153,7 @@ int main(int argc, char* argv[]) {
 		return 0;
 	}
 
-	hfs_volume vol = {0};
+	hfs_volume vol;
 	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key; unsigned char fork;
 
 	struct hfs_volume_config cfg;
