@@ -11,7 +11,7 @@
 #include <inttypes.h>
 #include <string.h>
 
-char* hfs_ctime_r(time_t clock, char* buf) {
+static char* hfs_ctime_r(time_t clock, char* buf) {
 	char* t = ctime(&clock);
 	return t ? memcpy(buf,t,26) : NULL;
 }
