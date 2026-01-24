@@ -16,8 +16,7 @@ static char* hfs_ctime_r(time_t clock, char* buf) {
 	return t ? memcpy(buf,t,26) : NULL;
 }
 
-static const char* format_type_code(hfs_macos_type_code code) {
-	static char code_str[5];
+static const char* format_type_code(hfs_macos_type_code code, char code_str[5]) {
 	if(!code)
 		return "";
 	sprintf(code_str,"%c%c%c%c",code >> 24 & 0xFF,code >> 16 & 0xFF,code >> 8 & 0xFF,code & 0xFF);
@@ -73,6 +72,7 @@ static inline void dump_volume_header(hfs_volume_header_t vh) {
 
 static inline void dump_record(hfs_catalog_keyed_record_t rec) {
 	char ctimebuf[5][26] = {0};
+	char type_code_buf[2][5];
 	hfs_file_record_t file = rec.file; // dump union keys first
 	printf(
 		"type: %s\n"
@@ -135,8 +135,8 @@ static inline void dump_record(hfs_catalog_keyed_record_t rec) {
 			"finder_info.put_away_folder_cnid: %" PRIu32 "\n"
 			"data_fork.logical_size: %" PRIu64 "\n"
 			"rsrc_fork.logical_size: %" PRIu64 "\n",
-			format_type_code(file.user_info.file_type),
-			format_type_code(file.user_info.file_creator),
+			format_type_code(file.user_info.file_type,type_code_buf[0]),
+			format_type_code(file.user_info.file_creator,type_code_buf[1]),
 			file.user_info.finder_flags,
 			file.user_info.location.v,file.user_info.location.h,
 			file.finder_info.extended_finder_flags,
