@@ -145,8 +145,6 @@ int main(int argc, char* argv[]) {
 		return 0;
 	}
 
-	hfs_callbacks cb = {hfs_vprintf, hfs_malloc, hfs_realloc, hfs_free, hfs_open, hfs_close, hfs_read};
-	hfslib_init(&cb);
 	hfs_volume vol = {0};
 	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key; unsigned char fork;
 
@@ -155,7 +153,7 @@ int main(int argc, char* argv[]) {
 	cfg.cache_size = 0;
 
 	int ret = 0;
-	if((ret = hfslib_open_volume(argv[1],1,&vol,&(hfs_callback_args){ .openvol = &cfg }))) {
+	if((ret = hfs_open_volume(argv[1],&vol,&cfg))) {
 		fprintf(stderr,"Couldn't open volume: %s\n",strerror(-ret));
 		hfslib_done();
 		return 1;

@@ -698,12 +698,9 @@ int main(int argc, char* argv[]) {
 
 	hfs_catalog_keyed_record_t root_rec;
 
-	hfs_callbacks cb = {hfs_vprintf, hfs_malloc, hfs_realloc, hfs_free, hfs_open, hfs_close, hfs_read};
-	hfslib_init(&cb);
-
 	cfg.cache_size = 0;
 
-	if((ctx.hfs_err = hfslib_open_volume(argv[0],1,ctx.vol,&(hfs_callback_args){ .openvol = &cfg }))) {
+	if((ctx.hfs_err = hfs_open_volume(argv[0],ctx.vol,&cfg))) {
 		log_hfs_err(&ctx,"Couldn't open volume '%s'",argv[1]);
 		goto end;
 	}

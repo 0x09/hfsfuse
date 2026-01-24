@@ -494,6 +494,20 @@ void hfs_serialize_finderinfo(hfs_catalog_keyed_record_t* rec, char buf[32]) {
 	}
 }
 
+static void init_libhfs(void) {
+	hfslib_init(&(hfs_callbacks){hfs_vprintf, hfs_malloc, hfs_realloc, hfs_free, hfs_open, hfs_close, hfs_read});
+}
+
+int hfs_open_volume(const char* device, hfs_volume* vol, struct hfs_volume_config* cfg) {
+	static pthread_once_t libhfs_is_initialzed = PTHREAD_ONCE_INIT;
+	pthread_once(&libhfs_is_initialzed,init_libhfs);
+
+	int err = hfslib_open_volume(device, 1, vol, &(hfs_callback_args){ .openvol = cfg });
+	if(err)
+		return errno ? errno : err;
+	return 0;
+}
+
 #ifdef __APPLE__
 #include <sys/ioctl.h>
 #include <sys/disk.h>

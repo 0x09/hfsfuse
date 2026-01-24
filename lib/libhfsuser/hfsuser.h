@@ -71,6 +71,8 @@ struct hfs_decmpfs_context;
 
 void hfs_volume_config_defaults(struct hfs_volume_config*);
 
+int hfs_open_volume(const char* device, hfs_volume* vol, struct hfs_volume_config* cfg);
+
 ssize_t hfs_unistr_to_utf8(const hfs_unistr255_t* u16, char* u8);
 ssize_t hfs_utf8_to_unistr(const char* u8, hfs_unistr255_t* u16);
 ssize_t hfs_pathname_to_unix(const hfs_unistr255_t* u16, char* u8);

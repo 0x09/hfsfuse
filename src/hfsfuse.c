@@ -868,14 +868,13 @@ int main(int argc, char* argv[]) {
 	fuse_opt_add_arg(&args, "-s");
 	free(fsname);
 
-	hfslib_init(&(hfs_callbacks){hfs_vprintf, hfs_malloc, hfs_realloc, hfs_free, hfs_open, hfs_close, hfs_read});
-
 	// open volume
 	hfs_volume vol;
-	if(hfslib_open_volume(cfg.device, 1, &vol, &(hfs_callback_args){ .openvol = &cfg.volume_config })) {
+	int err;
+	if((err = hfs_open_volume(cfg.device, &vol, &cfg.volume_config))) {
 		fprintf(stderr,"Couldn't open volume");
-		if(errno)
-			fprintf(stderr,": %s",strerror(errno));
+		if(err < 0)
+			fprintf(stderr,": %s",strerror(-err));
 		fprintf(stderr,"\n");
 		goto done;
 	}
