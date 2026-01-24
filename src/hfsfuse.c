@@ -873,7 +873,10 @@ int main(int argc, char* argv[]) {
 	// open volume
 	hfs_volume vol;
 	if(hfslib_open_volume(cfg.device, 1, &vol, &(hfs_callback_args){ .openvol = &cfg.volume_config })) {
-		perror("Couldn't open volume");
+		fprintf(stderr,"Couldn't open volume");
+		if(errno)
+			fprintf(stderr,": %s",strerror(errno));
+		fprintf(stderr,"\n");
 		goto done;
 	}
 	if(!hfslib_is_journal_clean(&vol)) {
