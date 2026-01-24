@@ -265,7 +265,7 @@ int main(int argc, char* argv[]) {
 					case HFS_ATTR_FORK_DATA: {
 						hfs_extent_descriptor_t* extents;
 						uint16_t nextents;
-						if(hfslib_get_attribute_extents(&vol,&attrkey,&attrec,&nextents,&extents,NULL))
+						if((ret = hfslib_get_attribute_extents(&vol,&attrkey,&attrec,&nextents,&extents,NULL)))
 							break;
 						uint64_t bytes = 0, offset = 0, size = attrec.fork_record.fork.logical_size;
 						char data[4096];
