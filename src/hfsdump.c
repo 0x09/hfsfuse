@@ -287,5 +287,5 @@ int main(int argc, char* argv[]) {
 
 end:
 	hfslib_close_volume(&vol,NULL);
-	return ret;
+	return !!ret;
 }
