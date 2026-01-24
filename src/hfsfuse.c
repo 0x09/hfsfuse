@@ -164,6 +164,7 @@ static int hfsfuse_statx(const char* path, int flags, int mask, struct statx* st
 	if(info) {
 		struct hfs_file* f = (struct hfs_file*)info->fh;
 		hfs_file_stat(f,&st);
+		rec = hfs_file_get_catalog_record(f);
 	}
 	else {
 		hfs_catalog_key_t key; uint8_t fork;
