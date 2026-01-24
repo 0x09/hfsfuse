@@ -156,9 +156,9 @@ int main(int argc, char* argv[]) {
 
 	int ret = 0;
 	if((ret = hfslib_open_volume(argv[1],1,&vol,&(hfs_callback_args){ .openvol = &cfg }))) {
-		fprintf(stderr,"Couldn't open volume\n");
+		fprintf(stderr,"Couldn't open volume: %s\n",strerror(-ret));
 		hfslib_done();
-		return ret;
+		return 1;
 	}
 
 	if(argc < 4) {
