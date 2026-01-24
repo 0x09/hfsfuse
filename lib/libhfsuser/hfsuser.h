@@ -83,8 +83,8 @@ int hfs_pathname_from_unix(const char* u8, hfs_unistr255_t* u16);
 char* hfs_get_path(hfs_volume* vol, hfs_cnid_t cnid);
 void hfs_cache_path(hfs_volume*, const char* path, size_t len, hfs_catalog_keyed_record_t*);
 int  hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key, uint8_t* fork);
-void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st, uint8_t fork);
-void hfs_stat_with_decmpfs_header(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st, uint8_t fork, struct hfs_decmpfs_header*);
+void hfs_stat(hfs_volume* vol, hfs_catalog_keyed_record_t* rec, struct stat* st, uint8_t fork);
+void hfs_stat_with_decmpfs_header(hfs_volume* vol, hfs_catalog_keyed_record_t* rec, struct stat* st, uint8_t fork, struct hfs_decmpfs_header*);
 void hfs_serialize_finderinfo(hfs_catalog_keyed_record_t*, char[32]);
 
 // 0 if vol is a regular file

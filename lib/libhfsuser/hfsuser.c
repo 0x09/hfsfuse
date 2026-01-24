@@ -357,16 +357,16 @@ end:
 	X(S_IFSOCK,HFS_S_IFSOCK)\
 	X(S_IFWHT, HFS_S_IFWHT)
 
-void hfs_stat_with_decmpfs_header(hfs_volume* vol, hfs_catalog_keyed_record_t* key, struct stat* st, uint8_t fork, struct hfs_decmpfs_header* decmpfs_header) {
+void hfs_stat_with_decmpfs_header(hfs_volume* vol, hfs_catalog_keyed_record_t* rec, struct stat* st, uint8_t fork, struct hfs_decmpfs_header* decmpfs_header) {
 	memset(st,0,sizeof(*st));
 
-	st->st_ino = key->file.cnid;
+	st->st_ino = rec->file.cnid;
 
 	struct hfs_device* dev = vol->cbdata;
 
 	// per TN1150, in this case the mode, user, and group are treated as uninitialized and should use defaults
-	if(!(key->file.bsd.file_mode & HFS_S_IFMT)) {
-		if(key->type == HFS_REC_FILE) {
+	if(!(rec->file.bsd.file_mode & HFS_S_IFMT)) {
+		if(rec->type == HFS_REC_FILE) {
 			st->st_mode = dev->default_file_mode | S_IFREG;
 		} else {
 			st->st_mode = dev->default_dir_mode | S_IFDIR;
@@ -374,64 +374,64 @@ void hfs_stat_with_decmpfs_header(hfs_volume* vol, hfs_catalog_keyed_record_t* k
 		st->st_uid = dev->default_uid;
 		st->st_gid = dev->default_gid;
 	} else {
-		st->st_mode  = key->file.bsd.file_mode & 0xFFF;
+		st->st_mode  = rec->file.bsd.file_mode & 0xFFF;
 
-		#define X(mode,mask) if((key->file.bsd.file_mode & mask) == mask) st->st_mode |= mode;
+		#define X(mode,mask) if((rec->file.bsd.file_mode & mask) == mask) st->st_mode |= mode;
 		HFS_IFMODES
 		#undef X
 
 		if(dev->disable_symlinks && S_ISLNK(st->st_mode))
 			st->st_mode = (st->st_mode & ~S_IFLNK) | S_IFREG;
 
-		if(key->file.bsd.owner_id > UID_MAX) {
-			hfslib_error("hfs_stat: owner_id %" PRIu32 " too large for CNID %" PRIu32 ", using default",NULL,0,key->file.bsd.owner_id,key->file.cnid);
+		if(rec->file.bsd.owner_id > UID_MAX) {
+			hfslib_error("hfs_stat: owner_id %" PRIu32 " too large for CNID %" PRIu32 ", using default",NULL,0,rec->file.bsd.owner_id,rec->file.cnid);
 			st->st_uid = dev->default_uid;
 		}
-		else st->st_uid = key->file.bsd.owner_id;
+		else st->st_uid = rec->file.bsd.owner_id;
 
-		if(key->file.bsd.group_id > GID_MAX) {
-			hfslib_error("hfs_stat: group_id %" PRIu32 " too large for CNID %" PRIu32 ", using default",NULL,0,key->file.bsd.group_id,key->file.cnid);
+		if(rec->file.bsd.group_id > GID_MAX) {
+			hfslib_error("hfs_stat: group_id %" PRIu32 " too large for CNID %" PRIu32 ", using default",NULL,0,rec->file.bsd.group_id,rec->file.cnid);
 			st->st_gid = dev->default_gid;
 		}
-		else st->st_gid = key->file.bsd.group_id;
+		else st->st_gid = rec->file.bsd.group_id;
 	}
 
 #if HAVE_STAT_FLAGS
-	st->st_flags = (key->file.bsd.admin_flags << 16) | key->file.bsd.owner_flags;
+	st->st_flags = (rec->file.bsd.admin_flags << 16) | rec->file.bsd.owner_flags;
 #ifdef UF_HIDDEN
 	//infer UF_HIDDEN from the kIsInvisible Finder flag
-	if(key->file.user_info.finder_flags & 0x4000)
+	if(rec->file.user_info.finder_flags & 0x4000)
 		st->st_flags |= UF_HIDDEN;
 #endif
 #endif
 	if(S_ISBLK(st->st_mode) || S_ISCHR(st->st_mode))
-		st->st_rdev = key->file.bsd.special.raw_device;
-	else st->st_nlink = key->file.bsd.special.link_count;
+		st->st_rdev = rec->file.bsd.special.raw_device;
+	else st->st_nlink = rec->file.bsd.special.link_count;
 
-	st->st_atime = HFSTIMETOEPOCH(key->file.date_accessed);
-	st->st_mtime = HFSTIMETOEPOCH(key->file.date_content_mod);
-	st->st_ctime = HFSTIMETOEPOCH(key->file.date_attrib_mod);
+	st->st_atime = HFSTIMETOEPOCH(rec->file.date_accessed);
+	st->st_mtime = HFSTIMETOEPOCH(rec->file.date_content_mod);
+	st->st_ctime = HFSTIMETOEPOCH(rec->file.date_attrib_mod);
 #if HAVE_BIRTHTIME
-	st->st_birthtime = HFSTIMETOEPOCH(key->file.date_created);
+	st->st_birthtime = HFSTIMETOEPOCH(rec->file.date_created);
 #endif
-	if(key->type == HFS_REC_FILE) {
-		hfs_fork_t* f = fork == HFS_DATAFORK ? &key->file.data_fork : &key->file.rsrc_fork;
+	if(rec->type == HFS_REC_FILE) {
+		hfs_fork_t* f = fork == HFS_DATAFORK ? &rec->file.data_fork : &rec->file.rsrc_fork;
 		uint64_t logical_size = decmpfs_header ? decmpfs_header->logical_size : f->logical_size;
 		if(generic_int_max(st->st_size) < logical_size)
-			hfslib_error("hfs_stat: logical_size %" PRIu64 " too large for CNID %" PRIu32,NULL,0,logical_size,key->file.cnid);
+			hfslib_error("hfs_stat: logical_size %" PRIu64 " too large for CNID %" PRIu32,NULL,0,logical_size,rec->file.cnid);
 		else
 			st->st_size = logical_size;
 #if HAVE_STAT_BLOCKS
 		uint64_t nblocks = f->total_blocks * (uint64_t)(vol->vh.block_size/512);
 		if(generic_int_max(st->st_blocks) < nblocks)
-			hfslib_error("hfs_stat: total_blocks %" PRIu64 " too large for CNID %" PRIu32,NULL,0,nblocks,key->file.cnid);
+			hfslib_error("hfs_stat: total_blocks %" PRIu64 " too large for CNID %" PRIu32,NULL,0,nblocks,rec->file.cnid);
 		else
 			st->st_blocks = nblocks;
 #endif
 #if HAVE_STAT_BLKSIZE
 		size_t blksize = decmpfs_header ? hfs_decmpfs_buffer_size(decmpfs_header) : vol->vh.block_size;
 		if(generic_int_max(st->st_blksize) < blksize)
-			hfslib_error("hfs_stat: block_size %zu too large for CNID %" PRIu32,NULL,0,blksize,key->file.cnid);
+			hfslib_error("hfs_stat: block_size %zu too large for CNID %" PRIu32,NULL,0,blksize,rec->file.cnid);
 		else
 			st->st_blksize = blksize;
 #endif
@@ -439,13 +439,13 @@ void hfs_stat_with_decmpfs_header(hfs_volume* vol, hfs_catalog_keyed_record_t* k
 	else {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wtype-limits"
-		bool saturate_st_nlink = generic_int_max(st->st_nlink)-2 < key->folder.valence;
+		bool saturate_st_nlink = generic_int_max(st->st_nlink)-2 < rec->folder.valence;
 #pragma GCC diagnostic pop
 		if(saturate_st_nlink)
 			st->st_nlink = generic_int_max(st->st_nlink);
 		else {
 			//valence must be cast to the type of st_nlink to really guarantee no overflow here, but nlink_t is not always defined (e.g. mingw) hence separate ops
-			st->st_nlink = key->folder.valence;
+			st->st_nlink = rec->folder.valence;
 			st->st_nlink += 2;
 		}
 

@@ -203,10 +203,10 @@ int main(int argc, char* argv[]) {
 	}
 	else if(!strcmp(argv[2], "read")) {
 		if(rec.type == HFS_REC_FLDR) {
-			hfs_catalog_keyed_record_t* keys;
+			hfs_catalog_keyed_record_t* recs;
 			hfs_unistr255_t* names;
 			uint32_t count;
-			if((ret = hfslib_get_directory_contents(&vol,rec.folder.cnid,&keys,&names,&count,NULL)))
+			if((ret = hfslib_get_directory_contents(&vol,rec.folder.cnid,&recs,&names,&count,NULL)))
 				goto end;
 			for(size_t i = 0; i < count; i++) {
 				char name[HFS_NAME_MAX+1];
@@ -214,7 +214,7 @@ int main(int argc, char* argv[]) {
 				puts(name);
 			}
 			free(names);
-			free(keys);
+			free(recs);
 		}
 		else if(rec.type == HFS_REC_FILE) {
 			struct hfs_file* f = hfs_file_open(&vol,&rec,fork,&ret);
