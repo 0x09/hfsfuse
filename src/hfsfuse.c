@@ -892,7 +892,7 @@ int main(int argc, char* argv[]) {
 
 done:
 	hfslib_done();
-	free((void*)cfg.device);
+	free(cfg.device);
 opt_err:
 	fuse_opt_free_args(&args);
 	return ret;
