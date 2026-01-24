@@ -11,7 +11,7 @@
 
 #include "libhfs.h"
 
-#define HFSTIMETOEPOCH(x) ((x)-2082844800L)
+#define HFSTIMETOEPOCH(x) ((int64_t)(x)-2082844800)
 
 // maximum bytes an HFS+ path element can occupy in UTF-8
 #define HFS_NAME_MAX 765
