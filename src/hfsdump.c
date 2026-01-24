@@ -217,11 +217,9 @@ int main(int argc, char* argv[]) {
 			free(keys);
 		}
 		else if(rec.type == HFS_REC_FILE) {
-			int err;
-			struct hfs_file* f = hfs_file_open(&vol,&rec,fork,&err);
+			struct hfs_file* f = hfs_file_open(&vol,&rec,fork,&ret);
 			if(!f) {
-				fputs(strerror(-err),stderr);
-				ret = 1;
+				fputs(strerror(-ret),stderr);
 				goto end;
 			}
 			size_t bufsize = hfs_file_ideal_read_size(f,16384);
