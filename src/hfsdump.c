@@ -16,6 +16,14 @@ static char* hfs_ctime_r(time_t clock, char* buf) {
 	return t ? memcpy(buf,t,26) : NULL;
 }
 
+static const char* format_type_code(hfs_macos_type_code code) {
+	static char code_str[5];
+	if(!code)
+		return "";
+	sprintf(code_str,"%c%c%c%c",code >> 24 & 0xFF,code >> 16 & 0xFF,code >> 8 & 0xFF,code & 0xFF);
+	return code_str;
+}
+
 static inline void dump_volume_header(hfs_volume_header_t vh) {
 	char ctimebuf[4][26] = {0};
 	printf(
@@ -119,16 +127,16 @@ static inline void dump_record(hfs_catalog_keyed_record_t rec) {
 	}
 	else {
 		printf(
-			"user_info.file_type: %c%c%c%c\n"
-			"user_info.file_creator: %c%c%c%c\n"
+			"user_info.file_type: %s\n"
+			"user_info.file_creator: %s\n"
 			"user_info.finder_flags: %" PRIu16 "\n"
 			"user_info.location:  %" PRIu16 ", %" PRIu16 "\n"
 			"finder_info.extended_finder_flags: %" PRIu16 "\n"
 			"finder_info.put_away_folder_cnid: %" PRIu32 "\n"
 			"data_fork.logical_size: %" PRIu64 "\n"
 			"rsrc_fork.logical_size: %" PRIu64 "\n",
-			(file.user_info.file_type >> 24) & 0xFF,(file.user_info.file_type >> 16) & 0xFF, (file.user_info.file_type >> 8) & 0xFF, file.user_info.file_type & 0xFF,
-			(file.user_info.file_creator >> 24) & 0xFF,(file.user_info.file_creator >> 16) & 0xFF, (file.user_info.file_creator >> 8) & 0xFF, file.user_info.file_creator & 0xFF,
+			format_type_code(file.user_info.file_type),
+			format_type_code(file.user_info.file_creator),
 			file.user_info.finder_flags,
 			file.user_info.location.v,file.user_info.location.h,
 			file.finder_info.extended_finder_flags,
