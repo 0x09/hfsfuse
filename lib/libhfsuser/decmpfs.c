@@ -11,8 +11,6 @@
 #include <errno.h>
 #include <pthread.h>
 
-#define HFS_UF_COMPRESSED 0x00000020
-
 // note: these values are scaled down from the full decmpfs type to account for inline/rsrc variants,
 // e.g. a decmpfs_compression value of 2 corresponds to decmpfs types 3 and 4 (zlib compressed, inline or resource fork data respectively)
 // see the decmpfs_compression(type) macro below

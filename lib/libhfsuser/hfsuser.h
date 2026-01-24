@@ -27,6 +27,8 @@
 #define HFS_S_IFWHT  0160000
 #define HFS_S_IFMT   0170000
 
+#define HFS_UF_COMPRESSED 0x00000020
+
 extern const char hfs_rcsid_libhfs[], hfs_rcsid_unicode[];
 
 enum hfs_lib_features {
