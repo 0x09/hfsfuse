@@ -11,7 +11,6 @@ all: $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(AR) rcs $@ $^
-	$(RANLIB) $@
 
 install: $(TARGET)
 	mkdir -pm755 $(DESTDIR)$(includedir) $(DESTDIR)$(libdir)
