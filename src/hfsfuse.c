@@ -891,7 +891,6 @@ int main(int argc, char* argv[]) {
 	ret = fuse_main(args.argc, args.argv, &hfsfuse_ops, &vol);
 
 done:
-	hfslib_done();
 	free(cfg.device);
 opt_err:
 	fuse_opt_free_args(&args);

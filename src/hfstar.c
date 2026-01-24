@@ -805,7 +805,6 @@ end:
 	archive_write_free(ctx.archive);
 
 	hfslib_close_volume(ctx.vol,NULL);
-	hfslib_done();
 
 	free(ctx.read_buf);
 	free(ctx.vol);

@@ -280,6 +280,5 @@ int main(int argc, char* argv[]) {
 
 end:
 	hfslib_close_volume(&vol,NULL);
-	hfslib_done();
 	return ret;
 }
