@@ -7,6 +7,7 @@
 
 #include <errno.h>
 #include <limits.h>
+#include <pthread.h>
 
 struct hfs_file {
 	hfs_volume* vol;
@@ -16,6 +17,8 @@ struct hfs_file {
 	uint8_t fork;
 	uint64_t logical_size;
 	struct hfs_decmpfs_context* decmpfs;
+	off_t read_offset;
+	pthread_mutex_t read_mutex;
 };
 
 struct hfs_file* hfs_file_open(hfs_volume* vol, hfs_catalog_keyed_record_t* rec, unsigned char fork, int* out_err) {
@@ -39,6 +42,11 @@ struct hfs_file* hfs_file_open(hfs_volume* vol, hfs_catalog_keyed_record_t* rec,
 	f->nextents = 0;
 	f->logical_size = (fork == HFS_RSRCFORK ? rec->file.rsrc_fork : rec->file.data_fork).logical_size;
 	f->decmpfs = NULL;
+	f->read_offset = 0;
+	if((err = pthread_mutex_init(&f->read_mutex,NULL))) {
+		err = -err;
+		goto error;
+	}
 
 	struct hfs_decmpfs_header h;
 	uint32_t inlinelength;
@@ -100,6 +108,15 @@ ssize_t hfs_file_pread(struct hfs_file* f, void* restrict buf, size_t size, off_
 		return ret;
 	if(bytes > SSIZE_MAX)
 		return -EINVAL;
+	return bytes;
+}
+
+ssize_t hfs_file_read(struct hfs_file* f, void* restrict buf, size_t size) {
+	pthread_mutex_lock(&f->read_mutex);
+	ssize_t bytes = hfs_file_pread(f,buf,size,f->read_offset);
+	if(bytes > 0)
+		f->read_offset += bytes;
+	pthread_mutex_unlock(&f->read_mutex);
 	return bytes;
 }
 

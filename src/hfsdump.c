@@ -226,9 +226,8 @@ int main(int argc, char* argv[]) {
 				ret = 1;
 				goto end;
 			}
-			off_t offset = 0;
 			ssize_t bytes;
-			for(; (bytes = hfs_file_pread(f,data,bufsize,offset)) > 0; offset += bytes)
+			while((bytes = hfs_file_read(f,data,bufsize)) > 0)
 				fwrite(data,bytes,1,stdout);
 			if(bytes < 0)
 				ret = 1;

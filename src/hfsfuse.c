@@ -77,7 +77,7 @@ static int hfsfuse_readlink(const char* path, char* buf, size_t size) {
 	if(!f)
 		return ret;
 
-	ssize_t bytes = hfs_file_pread(f,buf,size-1,0);
+	ssize_t bytes = hfs_file_read(f,buf,size-1);
 	hfs_file_close(f);
 
 	if(bytes < 0)

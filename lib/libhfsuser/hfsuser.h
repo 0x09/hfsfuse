@@ -119,6 +119,7 @@ struct hfs_file* hfs_file_open(hfs_volume*,hfs_catalog_keyed_record_t*,unsigned 
 struct hfs_file* hfs_file_open_path(hfs_volume*,const char* path,int* out_err);
 void hfs_file_close(struct hfs_file*);
 ssize_t hfs_file_pread(struct hfs_file*, void* restrict buf, size_t size, off_t offset);
+ssize_t hfs_file_read(struct hfs_file*, void* restrict buf, size_t size);
 void hfs_file_stat(struct hfs_file*,struct stat*);
 size_t hfs_file_ideal_read_size(struct hfs_file*, size_t fallback);
 hfs_catalog_keyed_record_t hfs_file_get_catalog_record(struct hfs_file*);

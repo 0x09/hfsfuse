@@ -230,10 +230,9 @@ static void hfstar_write_file(struct hfstar_archive_context* ctx, hfs_catalog_ke
 		ctx->read_bufsize = bufsize;
 	}
 
-	off_t offset = 0;
 	ssize_t bytes;
 	la_ssize_t entry_bytes;
-	while((bytes = hfs_file_pread(f,ctx->read_buf,bufsize,offset)) > 0) {
+	while((bytes = hfs_file_read(f,ctx->read_buf,bufsize)) > 0)
 		if((entry_bytes = archive_write_data(ctx->archive,ctx->read_buf,bytes)) != bytes) {
 			if(entry_bytes == ARCHIVE_RETRY)
 				continue;
@@ -243,8 +242,7 @@ static void hfstar_write_file(struct hfstar_archive_context* ctx, hfs_catalog_ke
 				ctx->archive_err = entry_bytes;
 			break;
 		}
-		offset += bytes;
-	}
+
 	if(bytes < 0)
 		ctx->hfs_err = bytes;
 
