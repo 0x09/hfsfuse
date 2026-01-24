@@ -154,7 +154,8 @@ int main(int argc, char* argv[]) {
 	}
 
 	hfs_volume vol;
-	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key; unsigned char fork;
+	hfs_catalog_keyed_record_t rec;
+	unsigned char fork;
 
 	struct hfs_volume_config cfg;
 	hfs_volume_config_defaults(&cfg);
@@ -177,13 +178,13 @@ int main(int argc, char* argv[]) {
 	char* endptr;
 	uint32_t cnid = strtoul(argv[3], &endptr, 10);
 	if(!*endptr) {
-		if((ret = hfslib_find_catalog_record_with_cnid(&vol, cnid, &rec, &key, NULL))) {
+		if((ret = hfslib_find_catalog_record_with_cnid(&vol, cnid, &rec, NULL, NULL))) {
 			fprintf(stderr,"CNID lookup failure: %" PRIu32 "\n", cnid);
 			goto end;
 		}
 		fork = HFS_DATAFORK;
 	}
-	else if((ret = hfs_lookup(&vol,argv[3],&rec,&key,&fork))) {
+	else if((ret = hfs_lookup(&vol,argv[3],&rec,NULL,&fork))) {
 		fprintf(stderr,"Path lookup failure: %s\n", argv[3]);
 		fputs(strerror(-ret),stderr);
 		goto end;

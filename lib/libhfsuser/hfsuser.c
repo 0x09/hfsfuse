@@ -240,6 +240,10 @@ static inline void* hfs_memdup(const void* ptr, size_t size) {
 }
 
 int hfs_lookup(hfs_volume* vol, const char* path, hfs_catalog_keyed_record_t* record, hfs_catalog_key_t* key, uint8_t* fork) {
+	hfs_catalog_key_t key_buf;
+	if(!key)
+		key = &key_buf;
+
 	struct hfs_device* dev = vol->cbdata;
 	struct hfs_record_cache* cache = dev->cache;
 	int ret = 0;

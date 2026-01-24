@@ -726,7 +726,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	char* path = argc < 3 ? "/" : argv[2];
-	if((ctx.hfs_err = hfs_lookup(ctx.vol,path,&root_rec,&(hfs_catalog_key_t){0},NULL))) {
+	if((ctx.hfs_err = hfs_lookup(ctx.vol,path,&root_rec,NULL,NULL))) {
 		log_hfs_err(&ctx,"Path lookup failure for '%s'",argv[2]);
 		goto end;
 	}

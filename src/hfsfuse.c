@@ -140,8 +140,9 @@ static int hfsfuse_getattr(const char* path, struct stat* st) {
 #endif
 
 	hfs_volume* vol = fuse_get_context()->private_data;
-	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key; uint8_t fork;
-	int ret = hfs_lookup(vol,path,&rec,&key,&fork);
+	hfs_catalog_keyed_record_t rec;
+	uint8_t fork;
+	int ret = hfs_lookup(vol,path,&rec,NULL,&fork);
 	if(ret)
 		return ret;
 
@@ -167,8 +168,8 @@ static int hfsfuse_statx(const char* path, int flags, int mask, struct statx* st
 		rec = hfs_file_get_catalog_record(f);
 	}
 	else {
-		hfs_catalog_key_t key; uint8_t fork;
-		int ret = hfs_lookup(vol,path,&rec,&key,&fork);
+		uint8_t fork;
+		int ret = hfs_lookup(vol,path,&rec,NULL,&fork);
 		if(ret)
 			return ret;
 		hfs_stat(vol,&rec,&st,fork);
@@ -376,8 +377,8 @@ static int hfsfuse_statfs(const char* path, struct statvfs* st) {
 #if defined(__APPLE__) && FUSE_VERSION < 30
 static int hfsfuse_getxtimes(const char* path, struct timespec* bkuptime, struct timespec* crtime) {
 	hfs_volume* vol = fuse_get_context()->private_data;
-	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key;
-	int ret = hfs_lookup(vol,path,&rec,&key,NULL);
+	hfs_catalog_keyed_record_t rec;
+	int ret = hfs_lookup(vol,path,&rec,NULL,NULL);
 	if(ret)
 		return ret;
 
@@ -404,8 +405,8 @@ static int hfsfuse_getxtimes(const char* path, struct timespec* bkuptime, struct
 
 static int hfsfuse_listxattr(const char* path, char* attr, size_t size) {
 	hfs_volume* vol = fuse_get_context()->private_data;
-	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key;
-	int ret = hfs_lookup(vol,path,&rec,&key,NULL);
+	hfs_catalog_keyed_record_t rec;
+	int ret = hfs_lookup(vol,path,&rec,NULL,NULL);
 	if(ret)
 		return ret;
 
@@ -464,8 +465,8 @@ static int hfsfuse_listxattr(const char* path, char* attr, size_t size) {
 // apple supports an offset argument to getxattr, but this is only used for resource fork attributes
 static int hfsfuse_getxattr_offset(const char* path, const char* attr, char* value, size_t size, uint32_t offset) {
 	hfs_volume* vol = fuse_get_context()->private_data;
-	hfs_catalog_keyed_record_t rec; hfs_catalog_key_t key;
-	int ret = hfs_lookup(vol,path,&rec,&key,NULL);
+	hfs_catalog_keyed_record_t rec;
+	int ret = hfs_lookup(vol,path,&rec,NULL,NULL);
 	if(ret)
 		return ret;
 
