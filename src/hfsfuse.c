@@ -171,7 +171,7 @@ static int hfsfuse_statx(const char* path, int flags, int mask, struct statx* st
 		int ret = hfs_lookup(vol,path,&rec,&key,&fork);
 		if(ret)
 			return ret;
-		hfs_stat(vol,&rec,&st,fork,hp);
+		hfs_stat(vol,&rec,&st,fork);
 	}
 
 	stx->stx_mask = STATX_BASIC_STATS | STATX_BTIME;
@@ -196,7 +196,7 @@ static int hfsfuse_statx(const char* path, int flags, int mask, struct statx* st
 		mode_mask |= ~S_IFMT;
 	stx->stx_mode &= mode_mask;
 
-	if(hp)
+	if(rec.file.bsd.owner_flags & HFS_UF_COMPRESSED)
 		stx->stx_attributes = stx->stx_attributes_mask = STATX_ATTR_COMPRESSED;
 
 	return 0;
