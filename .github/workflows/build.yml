@@ -11,7 +11,7 @@ jobs:
   build-ubuntu:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -21,7 +21,7 @@ jobs:
   build-macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install dependencies
         run: |
           brew update
@@ -32,7 +32,7 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Add MinGW to PATH
         run: echo "C:\msys64\mingw32\bin" >> $GITHUB_PATH
         shell: bash
@@ -47,7 +47,7 @@ jobs:
       matrix:
         version: ['13.5', '14.3', '15.0']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build in default configuration
         uses: cross-platform-actions/action@v0.32.0
         with:
@@ -71,7 +71,7 @@ jobs:
   build-openbsd:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build
         uses: cross-platform-actions/action@v0.32.0
         with:
@@ -87,7 +87,7 @@ jobs:
       matrix:
         version: ['9.4', '10.1']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build
         uses: cross-platform-actions/action@v0.32.0
         with:
@@ -101,7 +101,7 @@ jobs:
   build-haiku:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build
         uses: cross-platform-actions/action@v0.32.0
         with:
@@ -114,7 +114,7 @@ jobs:
   build-release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -137,7 +137,7 @@ jobs:
       run:
         shell: sh
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install dependencies
         run: |
           sudo apt-get update
