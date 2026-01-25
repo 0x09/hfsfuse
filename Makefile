@@ -288,7 +288,7 @@ uninstall-lib:
 
 ifeq ($(OS), Haiku)
 install: $(TARGETS)
-	mkdir -pm755 $(prefix)/add-ons/userlandfs/
+	mkdir -pm755 $(DESTDIR)$(prefix)/add-ons/userlandfs/
 	$(INSTALL) -m644 hfsfuse $(DESTDIR)$(prefix)/add-ons/userlandfs/
 	$(INSTALL) -m755 hfsdump $(DESTDIR)$(bindir)
 	[ -f hfstar ] && $(INSTALL) -m755 hfstar $(DESTDIR)$(bindir)
