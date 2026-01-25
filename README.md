@@ -59,7 +59,8 @@ To ease portability, the Makefile will attempt to detect certain features of the
 ## Building
 The default `make` and `make install` targets build and install hfsfuse, hfsdump, and hfstar. hfsdump and hfstar can also be built standalone with `make hfsdump hfstar`, in which case FUSE is not needed.
 
-hfsfuse's supporting libraries can be built and installed independently using `make lib` and `make install-lib`. Applications can use these to read from HFS+ volumes by including [hfsuser.h](lib/libhfsuser/hfsuser.h) and linking with libhfsuser, libhfs, and ublio/utf8proc/LZVN if configured.
+hfsfuse's supporting libraries can be built and installed independently using `make lib` and `make install-lib`. Applications can use these to read from HFS+ volumes by including [hfsuser.h](lib/libhfsuser/hfsuser.h) and linking with libhfsuser, libhfs, and ublio/utf8proc/LZVN if configured.  
+A pkg-config file is provided and linker flags can be gotten with `pkg-config --libs --static libhfsuser`.
 
 Some version information is generated from the git repository. For distributions outside of revision control, run `make version` within the repository first or provide your own version.h.
 

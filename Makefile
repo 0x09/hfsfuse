@@ -85,6 +85,8 @@ prefix ?= $(PREFIX)
 bindir = $(prefix)/bin
 libdir = $(prefix)/lib
 includedir = $(prefix)/include
+pkgconfigdir = $(libdir)/pkgconfig
+
 WITH_UBLIO ?= local
 WITH_UTF8PROC ?= local
 WITH_LZVN ?= local
@@ -220,7 +222,18 @@ else ifeq ($(wildcard src/version.h), )
 	CFLAGS += -DHFSFUSE_VERSION_STRING=\"omitted\"
 endif
 
-export CONFIG PREFIX prefix bindir libdir includedir DESTDIR CFLAGS LIBDIRS INSTALL
+define pkg_config_file
+Name: libhfsuser
+Description: Userspace support library for libhfs.
+Version: $(VERSION)
+URL: http://github.com/0x09/hfsfuse
+
+Libs: $(APP_LIB) -lhfsuser
+Libs.private: $(filter-out -lhfsuser,$(foreach lib,$(LIBS),-l$(subst lib,,$(basename $(notdir $(lib))))))
+Cflags: -I$(includedir)
+endef
+
+export CONFIG PREFIX prefix bindir libdir includedir DESTDIR CFLAGS LIBDIRS INSTALL pkg_config_file
 
 DEPS = src/hfsfuse.d src/hfsdump.d src/hfstar.d
 
@@ -243,7 +256,10 @@ lib/libhfsuser/libhfsuser.a: CFLAGS := $(LOCAL_CFLAGS) $(INCLUDE) $(APP_FLAGS) $
 $(LIBS): always_check
 	$(MAKE) -C $(dir $@)
 
-lib: $(LIBS)
+libhfsuser.pc:
+	@echo "$$pkg_config_file" > $@
+
+lib: $(LIBS) libhfsuser.pc
 
 hfsfuse: LDLIBS += $(FUSE_LIB)
 hfsfuse: src/hfsfuse.o $(LIBS)
@@ -256,16 +272,18 @@ hfstar: src/hfstar.o $(LIBS)
 
 clean:
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir clean; done
-	$(RM) src/hfsfuse.o hfsfuse src/hfsdump.o hfsdump src/hfstar.o hfstar $(DEPS)
+	$(RM) src/hfsfuse.o hfsfuse src/hfsdump.o hfsdump src/hfstar.o hfstar libhfsuser.pc $(DEPS)
 
 distclean: clean
 	$(RM) config.mak src/version.h AUTHORS "$(RELEASE_NAME).tar.gz"
 
-install-lib: $(LIBS)
+install-lib: lib
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir install; done
+	install -m644 libhfsuser.pc $(DESTDIR)$(pkgconfigdir)
 
 uninstall-lib:
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir uninstall; done
+	$(RM) $(DESTDIR)$(pkgconfigdir)/libhfsuser.pc
 
 ifeq ($(OS), Haiku)
 install: $(TARGETS)
