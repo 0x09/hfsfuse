@@ -558,6 +558,8 @@ static void version(void) {
 		fprintf(stderr, "    zlib v%s\n", hfs_lib_zlib_version());
 	if(hfs_get_lib_features() & HFS_LIB_FEATURES_LZFSE)
 		fprintf(stderr, "    LZFSE\n");
+	if(hfs_get_lib_features() & HFS_LIB_FEATURES_LZVN)
+		fprintf(stderr, "    LZVN\n");
 
 	exit(0);
 }
