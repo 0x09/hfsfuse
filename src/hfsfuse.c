@@ -747,9 +747,9 @@ static void version(void) {
 	if(hfs_get_lib_features() & HFS_LIB_FEATURES_ZLIB)
 		fprintf(stderr, "    zlib v%s\n", hfs_lib_zlib_version());
 	if(hfs_get_lib_features() & HFS_LIB_FEATURES_LZFSE)
-		fprintf(stderr, "    lzfse\n");
+		fprintf(stderr, "    LZFSE\n");
 	if(hfs_get_lib_features() & HFS_LIB_FEATURES_LZVN)
-		fprintf(stderr, "    lzvn\n");
+		fprintf(stderr, "    LZVN\n");
 }
 
 #if FUSE_VERSION < 28 || defined(__HAIKU__)
