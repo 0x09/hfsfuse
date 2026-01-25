@@ -279,7 +279,7 @@ distclean: clean
 
 install-lib: lib
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir install; done
-	install -m644 libhfsuser.pc $(DESTDIR)$(pkgconfigdir)
+	$(INSTALL) -m644 libhfsuser.pc $(DESTDIR)$(pkgconfigdir)
 
 uninstall-lib:
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir uninstall; done
