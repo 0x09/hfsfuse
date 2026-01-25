@@ -5,6 +5,11 @@
 ##
 
 PREFIX ?= /usr/local
+prefix ?= $(PREFIX)
+exec_prefix = $(prefix)
+bindir = $(exec_prefix)/bin
+libdir = $(exec_prefix)/lib
+includedir = $(prefix)/include
 
 RANLIB ?= ranlib
 INSTALL ?= install
@@ -23,9 +28,9 @@ clean:
 	$(RM) *.o *.a lzvn
 
 install: lzvn
-	$(INSTALL) -m644 FastCompression.h $(PREFIX)/include
-	$(INSTALL) -m644 libFastCompression.a $(PREFIX)/lib
-	$(INSTALL) lzvn $(PREFIX)/bin
+	$(INSTALL) -m644 FastCompression.h $(DESTDIR)$(includedir)
+	$(INSTALL) -m644 libFastCompression.a $(DESTDIR)$(libdir)
+	$(INSTALL) lzvn $(DESTDIR)$(bindir)
 
 uninstall:
-	$(RM) $(PREFIX)/include/FastCompression.h $(PREFIX)/lib/libFastCompression.a $(PREFIX)/bin/lzvn
+	$(RM) $(DESTDIR)$(includedir)/FastCompression.h $(DESTDIR)$(libdir)/libFastCompression.a $(DESTDIR)$(bindir)/lzvn
