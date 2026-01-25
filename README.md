@@ -4,7 +4,7 @@ hfsfuse embeds and extends [NetBSD's HFS+ kernel driver](http://cvsweb.netbsd.or
 
 hfsfuse also includes two standalone tools, hfsdump and hfstar, which can be used without FUSE.
 
-This driver is read-only and cannot write to or alter the target filesystem.
+This driver and tools are read-only and cannot write to or alter the target filesystem.
 
 **Supported**
 
