@@ -264,7 +264,7 @@ distclean: clean
 install-lib: $(LIBS)
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir install; done
 
-uninstall-lib: $(LIBS)
+uninstall-lib:
 	for dir in $(LIBDIRS); do $(MAKE) -C $$dir uninstall; done
 
 ifeq ($(OS), Haiku)
