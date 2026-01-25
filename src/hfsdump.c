@@ -149,7 +149,22 @@ static inline void dump_record(hfs_catalog_keyed_record_t rec) {
 
 int main(int argc, char* argv[]) {
 	if(argc < 2) {
-		fprintf(stderr,"Usage: hfsdump <device> [<stat|read|xattr> <path|inode> [xattrname]\n");
+		fprintf(stderr,"Usage: hfsdump <device> [<stat|read|xattr> <path|inode> [xattrname]\n\n"
+			"hfsdump version " HFSFUSE_VERSION_STRING "\n"
+			"Built with:\n"
+			"    libhfs RCSIDs %s; %s\n",
+			hfs_rcsid_libhfs, hfs_rcsid_unicode
+		);
+		if(hfs_get_lib_features() & HFS_LIB_FEATURES_UBLIO)
+			fprintf(stderr, "    ublio v%s\n", hfs_lib_ublio_version());
+		if(hfs_get_lib_features() & HFS_LIB_FEATURES_UTF8PROC)
+			fprintf(stderr, "    utf8proc v%s\n", hfs_lib_utf8proc_version());
+		if(hfs_get_lib_features() & HFS_LIB_FEATURES_ZLIB)
+			fprintf(stderr, "    zlib v%s\n", hfs_lib_zlib_version());
+		if(hfs_get_lib_features() & HFS_LIB_FEATURES_LZFSE)
+			fprintf(stderr, "    LZFSE\n");
+		if(hfs_get_lib_features() & HFS_LIB_FEATURES_LZVN)
+			fprintf(stderr, "    LZVN\n");
 		return 0;
 	}
 
