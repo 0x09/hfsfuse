@@ -205,6 +205,9 @@ ifneq ($(WITH_LZVN), none)
 $(error Invalid option "$(WITH_LZVN)" for WITH_LZVN. Use one of: none, system, local)
 	endif
 endif
+ifneq ($(WITH_UTHASH), system)
+	UTHASH_FLAGS = -Ilib/uthash
+endif
 
 APP_LIB+=$(if $(filter $(HAVE_ZLIB),1),-lz)
 APP_LIB+=$(if $(filter $(HAVE_LZFSE),1),-llzfse)
@@ -267,7 +270,7 @@ hfsfuse: src/hfsfuse.o $(LIBS)
 
 hfsdump: src/hfsdump.o $(LIBS)
 
-hfstar: CPPFLAGS += $(APP_FLAGS) -Ilib/uthash -DXATTR_NAMESPACE=$(XATTR_NAMESPACE)
+hfstar: CPPFLAGS += $(APP_FLAGS) $(UTHASH_FLAGS) -DXATTR_NAMESPACE=$(XATTR_NAMESPACE)
 hfstar: LDLIBS += -larchive
 hfstar: src/hfstar.o $(LIBS)
 
