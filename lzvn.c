@@ -67,7 +67,11 @@ int main(int argc, const char * argv[])
 
                     return -1;
                 } else {
-                    fread(fileBuffer, fileLength, 1, fp);
+                    if (fread(fileBuffer, fileLength, 1, fp) != fileLength)
+                    {
+                       printf("ERROR: Failed to read file... exiting\nAborted!\n\n");
+                       fclose(fp);
+                   }
 
                     if (fp != NULL)
                     {
@@ -184,7 +188,11 @@ int main(int argc, const char * argv[])
  
                     return -1;
                 } else {
-                    fread(fileBuffer, fileLength, 1, fp);
+                    if (fread(fileBuffer, fileLength, 1, fp) != fileLength)
+                    {
+                       printf("ERROR: Failed to read file... exiting\nAborted!\n\n");
+                       fclose(fp);
+                   }
 
                     if (fp != NULL)
                     {
