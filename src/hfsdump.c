@@ -7,6 +7,10 @@
 
 #include "hfsuser.h"
 
+#ifndef HFSFUSE_VERSION_STRING
+#include "version.h"
+#endif
+
 #include <time.h>
 #include <inttypes.h>
 #include <string.h>
