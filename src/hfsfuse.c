@@ -30,6 +30,14 @@
 #endif
 #endif
 
+#if FUSE_DARWIN_ENABLE_EXTENSIONS
+typedef struct fuse_darwin_attr stat_type;
+typedef fuse_darwin_fill_dir_t fill_dir_type;
+#else
+typedef struct stat stat_type;
+typedef fuse_fill_dir_t fill_dir_type;
+#endif
+
 #if FUSE_VERSION >= 30
 static void* hfsfuse_init(struct fuse_conn_info *conn, struct fuse_config *cfg) {
 	cfg->use_ino = 1;
@@ -106,18 +114,14 @@ static int hfsfuse_readlink(const char* path, char* buf, size_t size) {
 })
 #endif
 
-#if FUSE_DARWIN_ENABLE_EXTENSIONS
-static int hfsfuse_fgetattr(const char* path, struct fuse_darwin_attr* darwin_attrs, struct fuse_file_info* info) {
-#else
-static int hfsfuse_fgetattr(const char* path, struct stat* st, struct fuse_file_info* info) {
-#endif
+static int hfsfuse_fgetattr(const char* path, stat_type* st, struct fuse_file_info* info) {
 	struct hfs_file* f = (struct hfs_file*)info->fh;
 
 #if FUSE_DARWIN_ENABLE_EXTENSIONS
-	struct stat st;
+	struct stat stbuf;
 	hfs_catalog_keyed_record_t rec = hfs_file_get_catalog_record(f);
-	hfs_file_stat(f,&st);
-	*darwin_attrs = stat_to_fuse_darwin_attr(rec,st);
+	hfs_file_stat(f,&stbuf);
+	*st = stat_to_fuse_darwin_attr(rec,stbuf);
 #else
 	hfs_file_stat(f,st);
 #endif
@@ -126,15 +130,13 @@ static int hfsfuse_fgetattr(const char* path, struct stat* st, struct fuse_file_
 }
 
 
-#if FUSE_DARWIN_ENABLE_EXTENSIONS
-static int hfsfuse_getattr(const char* path, struct fuse_darwin_attr* st, struct fuse_file_info *fi) {
-#elif FUSE_VERSION >= 30
-static int hfsfuse_getattr(const char* path, struct stat* st, struct fuse_file_info *fi) {
+#if FUSE_VERSION >= 30
+static int hfsfuse_getattr(const char* path, stat_type* st, struct fuse_file_info *fi) {
 #else
 static int hfsfuse_getattr(const char* path, struct stat* st) {
 #endif
 
-#if FUSE_DARWIN_ENABLE_EXTENSIONS || FUSE_VERSION >= 30
+#if FUSE_VERSION >= 30
 	if(fi)
 		return hfsfuse_fgetattr(path,st,fi);
 #endif
@@ -269,10 +271,8 @@ static int hfsfuse_releasedir(const char* path, struct fuse_file_info* info) {
 	return 0;
 }
 
-#if FUSE_DARWIN_ENABLE_EXTENSIONS
-static int hfsfuse_readdir(const char* path, void* buf, fuse_darwin_fill_dir_t filler, off_t offset, struct fuse_file_info* info, enum fuse_readdir_flags flags) {
-#elif FUSE_VERSION >= 30
-static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info* info, enum fuse_readdir_flags flags) {
+#if FUSE_VERSION >= 30
+static int hfsfuse_readdir(const char* path, void* buf, fill_dir_type filler, off_t offset, struct fuse_file_info* info, enum fuse_readdir_flags flags) {
 #else
 static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info* info) {
 #endif
