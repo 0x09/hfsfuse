@@ -10,12 +10,15 @@ env:
 jobs:
   build-ubuntu:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        libfuse_ver: ['libfuse', 'libfuse3']
     steps:
       - uses: actions/checkout@v6
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libfuse3-dev libarchive-dev
+          sudo apt-get install -y ${{matrix.libfuse_ver}}-dev libarchive-dev
       - name: Build
         run: make
   build-macos:
@@ -119,7 +122,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libfuse3-dev libarchive-dev
-      - name: Build in release configuration 
+      - name: Build in release configuration
         shell: bash
         run: |
           make dist RELEASE_NAME=hfsfuse RELEASE_BRANCH=HEAD
