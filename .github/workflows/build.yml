@@ -126,8 +126,8 @@ jobs:
         shell: bash
         run: |
           make dist RELEASE_NAME=hfsfuse RELEASE_BRANCH=HEAD
-          tar -xf hfsfuse.tar.gz
-          cd hfsfuse
+          tar -C /tmp -xf hfsfuse.tar.gz
+          cd /tmp/hfsfuse
           make
   conformance-checks:
     runs-on: ubuntu-latest
