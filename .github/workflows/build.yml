@@ -23,12 +23,15 @@ jobs:
         run: make
   build-macos:
     runs-on: macos-latest
+    strategy:
+      matrix:
+        fuse: ['macfuse', 'fuse-t']
     steps:
       - uses: actions/checkout@v6
       - name: Install dependencies
         run: |
           brew update
-          brew install --cask macfuse
+          brew install --cask ${{matrix.fuse}}
           brew install libarchive
       - name: Build
         run: make
