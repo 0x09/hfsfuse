@@ -159,7 +159,7 @@ static int hfsfuse_fgetattr(const char* path, stat_type* st, struct fuse_file_in
 	hfs_file_stat(f->file,&stbuf);
 	*st = stat_to_fuse_darwin_attr(rec,stbuf);
 #else
-	hfs_file_stat(f,st);
+	hfs_file_stat(f->file,st);
 #endif
 
 	pthread_rwlock_unlock(&f->lock);
@@ -939,7 +939,6 @@ int main(int argc, char* argv[]) {
 	hfsfuse_opt_add_opt_escaped(&opts, fsname);
 	fuse_opt_add_arg(&args, "-o");
 	fuse_opt_add_arg(&args, opts);
-	fuse_opt_add_arg(&args, "-s");
 	free(fsname);
 
 	// open volume
