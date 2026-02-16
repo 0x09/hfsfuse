@@ -1,5 +1,10 @@
 *.o
 *.a
 *.d
-src/version.h
-AUTHORS
+*.tar.gz
+/src/version.h
+/AUTHORS
+/Vagrantfile
+/hfsdump
+/hfsfuse
+/hfstar
