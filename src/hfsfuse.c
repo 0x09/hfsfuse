@@ -216,11 +216,22 @@ struct hf_dir {
 	size_t pathlen;
 };
 
+void hf_dir_close(struct hf_dir* d) {
+	free(d->names);
+	free(d->records);
+	free(d->path);
+	free(d);
+}
+
 static int hfsfuse_opendir(const char* path, struct fuse_file_info* info) {
 	hfs_volume* vol = fuse_get_context()->private_data;
 	struct hf_dir* d = malloc(sizeof(*d));
 	if(!d)
 		return -ENOMEM;
+
+	d->names = NULL;
+	d->records = NULL;
+	d->path = NULL;
 
 	hfs_catalog_key_t key;
 	int ret = hfs_lookup(vol,path,&d->dir_record,&key,NULL);
@@ -258,16 +269,12 @@ static int hfsfuse_opendir(const char* path, struct fuse_file_info* info) {
 
 end:
 	if(ret)
-		free(d);
+		hf_dir_close(d);
 	return ret;
 }
 
 static int hfsfuse_releasedir(const char* path, struct fuse_file_info* info) {
-	struct hf_dir* d = (struct hf_dir*)info->fh;
-	free(d->names);
-	free(d->records);
-	free(d->path);
-	free(d);
+	hf_dir_close((struct hf_dir*)info->fh);
 	return 0;
 }
 
