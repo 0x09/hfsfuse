@@ -112,7 +112,10 @@ ssize_t hfs_file_pread(struct hfs_file* f, void* restrict buf, size_t size, off_
 }
 
 ssize_t hfs_file_read(struct hfs_file* f, void* restrict buf, size_t size) {
-	pthread_mutex_lock(&f->read_mutex);
+	int err = pthread_mutex_lock(&f->read_mutex);
+	if(err)
+		return -err;
+
 	ssize_t bytes = hfs_file_pread(f,buf,size,f->read_offset);
 	if(bytes > 0)
 		f->read_offset += bytes;
