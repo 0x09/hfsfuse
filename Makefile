@@ -29,7 +29,7 @@ ifeq ($(OS), Darwin)
 	else ifeq ($(shell [ -e /usr/local/lib/libfuse.dylib -o -e /usr/local/lib/libfuse3.dylib ] && echo 1), 1)
 		FUSE_FLAGS += -I/usr/local/include -Wno-language-extension-token
 	else ifeq ($(shell [ -e /usr/local/lib/libfuse-t.dylib ] && echo 1), 1)
-		FUSE_FLAGS += -I/usr/local/include/fuse
+		FUSE_FLAGS += -I/Library/Application\ Support/fuse-t/include/fuse
 		FUSE_LIB = -lfuse-t
 	else
 $(info no FUSE library found, FUSE driver will not be built)
