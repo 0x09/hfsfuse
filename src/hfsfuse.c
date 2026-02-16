@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <inttypes.h>
+#include <pthread.h>
 
 #if FUSE_USE_VERSION < 30
 #include <fuse.h>
@@ -38,6 +39,11 @@ typedef struct stat stat_type;
 typedef fuse_fill_dir_t fill_dir_type;
 #endif
 
+struct hfsfuse_file {
+	struct hfs_file* file;
+	pthread_rwlock_t lock;
+};
+
 #if FUSE_VERSION >= 30
 static void* hfsfuse_init(struct fuse_conn_info *conn, struct fuse_config *cfg) {
 	cfg->use_ino = 1;
@@ -52,24 +58,50 @@ static void hfsfuse_destroy(void* vol) {
 
 static int hfsfuse_open(const char* path, struct fuse_file_info* info) {
 	hfs_volume* vol = fuse_get_context()->private_data;
-	int ret;
-	struct hfs_file* f = hfs_file_open_path(vol,path,&ret);
+	struct hfsfuse_file* f = malloc(sizeof(*f));
 	if(!f)
-		return ret;
+		return -ENOMEM;
+	f->file = NULL;
+	int ret = -pthread_rwlock_init(&f->lock,NULL);
+	if(ret)
+		goto err;
+	if(!(f->file = hfs_file_open_path(vol,path,&ret))) {
+		pthread_rwlock_destroy(&f->lock);
+		goto err;
+	}
 
 	info->fh = (uint64_t)f;
 	info->keep_cache = 1;
+
 	return 0;
+
+err:
+	free(f);
+	return ret;
 }
 
 static int hfsfuse_release(const char* path, struct fuse_file_info* info) {
-	hfs_file_close((struct hfs_file*)info->fh);
+	struct hfsfuse_file* f = (struct hfsfuse_file*)info->fh;
+	int ret = -pthread_rwlock_wrlock(&f->lock);
+	if(ret)
+		return ret;
+
+	hfs_file_close(f->file);
+
+	pthread_rwlock_unlock(&f->lock);
+	pthread_rwlock_destroy(&f->lock);
+	free(f);
 	return 0;
 }
 
 static int hfsfuse_read(const char* path, char* buf, size_t size, off_t offset, struct fuse_file_info* info) {
-	struct hfs_file* f = (struct hfs_file*)info->fh;
-	ssize_t bytes = hfs_file_pread(f,buf,size,offset);
+	struct hfsfuse_file* f = (struct hfsfuse_file*)info->fh;
+	int ret = -pthread_rwlock_tryrdlock(&f->lock);
+	if(ret)
+		return ret;
+
+	ssize_t bytes = hfs_file_pread(f->file,buf,size,offset);
+	pthread_rwlock_unlock(&f->lock);
 	if(bytes > INT_MAX)
 		return -EINVAL;
 	return bytes;
@@ -115,16 +147,22 @@ static int hfsfuse_readlink(const char* path, char* buf, size_t size) {
 #endif
 
 static int hfsfuse_fgetattr(const char* path, stat_type* st, struct fuse_file_info* info) {
-	struct hfs_file* f = (struct hfs_file*)info->fh;
+	struct hfsfuse_file* f = (struct hfsfuse_file*)info->fh;
+
+	int ret = -pthread_rwlock_tryrdlock(&f->lock);
+	if(ret)
+		return ret;
 
 #if FUSE_DARWIN_ENABLE_EXTENSIONS
 	struct stat stbuf;
-	hfs_catalog_keyed_record_t rec = hfs_file_get_catalog_record(f);
-	hfs_file_stat(f,&stbuf);
+	hfs_catalog_keyed_record_t rec = hfs_file_get_catalog_record(f->file);
+	hfs_file_stat(f->file,&stbuf);
 	*st = stat_to_fuse_darwin_attr(rec,stbuf);
 #else
 	hfs_file_stat(f,st);
 #endif
+
+	pthread_rwlock_unlock(&f->lock);
 
 	return 0;
 }
@@ -165,9 +203,15 @@ static int hfsfuse_statx(const char* path, int flags, int mask, struct statx* st
 	hfs_catalog_keyed_record_t rec;
 	struct stat st;
 	if(info) {
-		struct hfs_file* f = (struct hfs_file*)info->fh;
-		hfs_file_stat(f,&st);
+		struct hfsfuse_file* f = (struct hfsfuse_file*)info->fh;
+
+		int ret = -pthread_rwlock_tryrdlock(&f->lock);
+		if(ret)
+			return ret;
+
+		hfs_file_stat(f->file,&st);
 		rec = hfs_file_get_catalog_record(f);
+		pthread_rwlock_unlock(&f->lock);
 	}
 	else {
 		uint8_t fork;
@@ -214,13 +258,21 @@ struct hf_dir {
 	uint32_t nentries;
 	char* path;
 	size_t pathlen;
+	pthread_rwlock_t lock;
 };
 
-void hf_dir_close(struct hf_dir* d) {
+int hf_dir_close(struct hf_dir* d) {
+	int ret = pthread_rwlock_wrlock(&d->lock);
+	if(ret)
+		return -ret;
+
 	free(d->names);
 	free(d->records);
 	free(d->path);
+	pthread_rwlock_unlock(&d->lock);
+	pthread_rwlock_destroy(&d->lock);
 	free(d);
+	return 0;
 }
 
 static int hfsfuse_opendir(const char* path, struct fuse_file_info* info) {
@@ -229,12 +281,18 @@ static int hfsfuse_opendir(const char* path, struct fuse_file_info* info) {
 	if(!d)
 		return -ENOMEM;
 
+	int ret = -pthread_rwlock_init(&d->lock,NULL);
+	if(ret) {
+		free(d);
+		return ret;
+	}
+
 	d->names = NULL;
 	d->records = NULL;
 	d->path = NULL;
 
 	hfs_catalog_key_t key;
-	int ret = hfs_lookup(vol,path,&d->dir_record,&key,NULL);
+	ret = hfs_lookup(vol,path,&d->dir_record,&key,NULL);
 	if(ret)
 		goto end;
 	d->parent_cnid = key.parent_cnid;
@@ -274,8 +332,7 @@ end:
 }
 
 static int hfsfuse_releasedir(const char* path, struct fuse_file_info* info) {
-	hf_dir_close((struct hf_dir*)info->fh);
-	return 0;
+	return hf_dir_close((struct hf_dir*)info->fh);
 }
 
 #if FUSE_VERSION >= 30
@@ -285,10 +342,13 @@ static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, 
 #endif
 	hfs_volume* vol = fuse_get_context()->private_data;
 	struct hf_dir* d = (struct hf_dir*)info->fh;
+	int ret = -pthread_rwlock_tryrdlock(&d->lock);
+	if(ret)
+		return ret;
+
 	if(offset < 1) {
 		struct stat st = {0};
 		hfs_stat(vol, &d->dir_record, &st, 0);
-		int ret;
 #if FUSE_DARWIN_ENABLE_EXTENSIONS
 		ret = filler(buf, ".", &stat_to_fuse_darwin_attr(d->dir_record,st), 1, FUSE_FILL_DIR_PLUS);
 #elif FUSE_VERSION >= 30
@@ -297,7 +357,7 @@ static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, 
 		ret = filler(buf, ".", &st, 1);
 #endif
 		if(ret)
-			return 0;
+			goto end;
 	}
 	if(offset < 2) {
 		struct stat st = {0};
@@ -318,7 +378,7 @@ static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, 
 		ret = filler(buf, "..", stp, 2);
 #endif
 		if(ret)
-			return 0;
+			goto end;
 	}
 
 	char* fullpath = malloc(d->pathlen+HFS_NAME_MAX+1);
@@ -327,7 +387,7 @@ static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, 
 
 	memcpy(fullpath,d->path,d->pathlen);
 	char* pelem = fullpath + d->pathlen;
-	int ret = 0;
+	ret = 0;
 	for(off_t i = max(0,offset-2); i < d->nentries; i++) {
 		ssize_t len;
 		if((len = hfs_pathname_to_unix(d->names+i,pelem)) < 0) {
@@ -349,7 +409,11 @@ static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, 
 		if(ret)
 			break;
 	}
+
 	free(fullpath);
+
+end:
+	pthread_rwlock_unlock(&d->lock);
 	return min(ret,0);
 }
 
