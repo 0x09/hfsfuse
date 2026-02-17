@@ -749,14 +749,14 @@ static struct fuse_opt hfsfuse_opts[] = {
 	FUSE_OPT_END
 };
 
-static void usage(const char* self) {
-	fprintf(stderr,"usage: %s [-hHv] [-o options] volume mountpoint\n\n",self);
+static void usage(const char* self,FILE* stream) {
+	fprintf(stream,"usage: %s [-hHv] [-o options] volume mountpoint\n\n",self);
 }
 
 static void help(const char* self, struct hfsfuse_config* cfg) {
-	usage(self);
+	usage(self,stdout);
 	fprintf(
-		stderr,
+		stdout,
 		"general options:\n"
 		"    -o opt,[opt...]        mount options\n"
 		"    -h, --help             this help\n"
@@ -788,7 +788,7 @@ static void help(const char* self, struct hfsfuse_config* cfg) {
 	);
 	if(hfs_get_lib_features() & HFS_LIB_FEATURES_UBLIO) {
 		fprintf(
-			stderr,
+			stdout,
 			"    -o noublio             disable ublio read layer\n"
 			"    -o ublio_items=N       number of ublio cache entries, 0 for no caching (%" PRId32 ")\n"
 			"    -o ublio_grace=N       reclaim cache entries only after N requests (%" PRIu64 ")\n"
@@ -801,7 +801,7 @@ static void help(const char* self, struct hfsfuse_config* cfg) {
 
 static void version(void) {
 	fprintf(
-		stderr,
+		stdout,
 		"hfsfuse version " HFSFUSE_VERSION_STRING "\n"
 		"Built with:\n"
 		"    FUSE API v%d.%d\n"
@@ -915,7 +915,7 @@ int main(int argc, char* argv[]) {
 		goto opt_err;
 
 	if(!cfg.device) {
-		usage(args.argv[0]);
+		usage(args.argv[0],stderr);
 		goto opt_err;
 	}
 
