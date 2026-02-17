@@ -711,13 +711,14 @@ static struct fuse_operations hfsfuse_ops = {
 enum {
 	HFSFUSE_OPT_KEY_HELP,
 	HFSFUSE_OPT_KEY_FULLHELP,
-	HFSFUSE_OPT_KEY_VERSION
+	HFSFUSE_OPT_KEY_VERSION,
+	HFSFUSE_OPT_KEY_NOALLOW_OTHER,
 };
 
 struct hfsfuse_config {
 	struct hfs_volume_config volume_config;
 	char* device;
-	int noallow_other;
+	int allow_other_set;
 	int force;
 };
 
@@ -731,7 +732,8 @@ static struct fuse_opt hfsfuse_opts[] = {
 	FUSE_OPT_KEY("-v",        HFSFUSE_OPT_KEY_VERSION),
 	FUSE_OPT_KEY("--version", HFSFUSE_OPT_KEY_VERSION),
 	HFSFUSE_OPTION("--force",force),
-	HFSFUSE_OPTION("noallow_other",noallow_other),
+	HFSFUSE_OPTION("allow_other",allow_other_set),
+	FUSE_OPT_KEY("noallow_other",HFSFUSE_OPT_KEY_NOALLOW_OTHER),
 	HFS_OPTION("cache_size=%zu",cache_size),
 	HFS_OPTION("blksize=%" SCNu32,blksize),
 	HFS_OPTION("noublio", noublio),
@@ -764,7 +766,6 @@ static void help(const char* self, struct hfsfuse_config* cfg) {
 		"HFS+ options:\n"
 		"    --force                force mount volumes with dirty journal\n"
 		"    -o rsrc_only           only mount the resource forks of files\n"
-		"    -o noallow_other       restrict filesystem access to mounting user\n"
 		"    -o cache_size=N        size of lookup cache (%zu)\n"
 		"    -o blksize=N           set a custom read size/alignment in bytes\n"
 		"                           you should only set this if you are sure it is being misdetected\n"
@@ -872,6 +873,9 @@ static int hfsfuse_opt_proc(void* data, const char* arg, int key, struct fuse_ar
 			fuse_opt_free_args(args);
 			exit(0);
 		}
+		case HFSFUSE_OPT_KEY_NOALLOW_OTHER:
+			fputs("Warning: the noallow_other option is deprecated, allow_other is now off by default.\n", stderr);
+			return 0;
 		case FUSE_OPT_KEY_NONOPT:
 			if(!cfg->device) {
 				cfg->device = strdup(arg);
@@ -921,6 +925,9 @@ int main(int argc, char* argv[]) {
 		goto opt_err;
 	}
 
+	if(getenv("SUDO_COMMAND") && !cfg.allow_other_set)
+		fputs("Warning: mounting with sudo without -o allow_other. Previously hfsfuse set this by default, you may want to enable it.\n", stderr);
+
 	char* fsname = malloc(strlen("fsname=") + strlen(cfg.device) + 1);
 	if(!fsname)
 		goto opt_err;
@@ -930,8 +937,6 @@ int main(int argc, char* argv[]) {
 
 	char* opts = NULL;
 	fuse_opt_add_opt(&opts, "ro");
-	if(!cfg.noallow_other)
-		fuse_opt_add_opt(&opts, "allow_other");
 #if FUSE_VERSION < 30
 	fuse_opt_add_opt(&opts, "use_ino");
 #endif

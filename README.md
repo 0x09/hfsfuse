@@ -81,7 +81,6 @@ Use `hfsfuse -h` for general options or `hfsfuse -H` for a list of all switches 
     HFS+ options:
         --force                force mount volumes with dirty journal
         -o rsrc_only           only mount the resource forks of files
-        -o noallow_other       restrict filesystem access to mounting user
         -o cache_size=N        size of lookup cache (1024)
         -o blksize=N           set a custom read size/alignment in bytes
                                you should only set this if you are sure it is being misdetected
