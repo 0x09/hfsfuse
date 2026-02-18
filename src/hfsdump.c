@@ -205,7 +205,7 @@ int main(int argc, char* argv[]) {
 	}
 	else if((ret = hfs_lookup(&vol,argv[3],&rec,NULL,&fork))) {
 		fprintf(stderr,"Path lookup failure: %s\n", argv[3]);
-		fputs(strerror(-ret),stderr);
+		fprintf(stderr,"%s\n",strerror(-ret));
 		goto end;
 	}
 
