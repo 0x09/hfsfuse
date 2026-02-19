@@ -210,7 +210,7 @@ static int hfsfuse_statx(const char* path, int flags, int mask, struct statx* st
 			return ret;
 
 		hfs_file_stat(f->file,&st);
-		rec = hfs_file_get_catalog_record(f);
+		rec = hfs_file_get_catalog_record(f->file);
 		pthread_rwlock_unlock(&f->lock);
 	}
 	else {
