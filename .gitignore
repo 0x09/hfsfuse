@@ -2,6 +2,7 @@
 *.a
 *.d
 *.tar.gz
+*.dSYM
 /src/version.h
 /AUTHORS
 /Vagrantfile
