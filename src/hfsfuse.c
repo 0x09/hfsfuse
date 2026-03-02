@@ -312,16 +312,6 @@ static int hfsfuse_opendir(const char* path, struct fuse_file_info* info) {
 		ret = -1;
 		goto end;
 	}
-	hfs_catalog_keyed_record_t link;
-	for(hfs_catalog_keyed_record_t* record = d->records; record != d->records + d->nentries; record++)
-		if(record->type == HFS_REC_FILE && (
-		  (record->file.user_info.file_creator == HFS_HFSPLUS_CREATOR &&
-		   record->file.user_info.file_type    == HFS_HARD_LINK_FILE_TYPE &&
-		   !hfslib_get_hardlink(vol, record->file.bsd.special.inode_num, &link, NULL)) ||
-		  (record->file.user_info.file_creator == HFS_MACS_CREATOR &&
-		   record->file.user_info.file_type    == HFS_DIR_HARD_LINK_FILE_TYPE &&
-		   !hfslib_get_directory_hardlink(vol, record->file.bsd.special.inode_num, &link, NULL))))
-			*record = link;
 
 	info->fh = (uint64_t)d;
 
@@ -394,13 +384,30 @@ static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, 
 			ret = len;
 			continue;
 		}
-		hfs_cache_path(vol,fullpath,d->pathlen+len,d->records+i);
+
+		hfs_catalog_keyed_record_t* record = d->records + i;
+
+		hfs_catalog_keyed_record_t link;
+		if(record->type == HFS_REC_FILE) {
+			if(record->file.user_info.file_creator == HFS_HFSPLUS_CREATOR &&
+		       record->file.user_info.file_type == HFS_HARD_LINK_FILE_TYPE) {
+				if(!hfslib_get_hardlink(vol, record->file.bsd.special.inode_num, &link, NULL))
+					record = &link;
+			}
+			else if(record->file.user_info.file_creator == HFS_MACS_CREATOR &&
+			        record->file.user_info.file_type == HFS_DIR_HARD_LINK_FILE_TYPE) {
+		   		if(!hfslib_get_directory_hardlink(vol, record->file.bsd.special.inode_num, &link, NULL))
+					record = &link;
+			}
+		}
+
+		hfs_cache_path(vol,fullpath,d->pathlen+len,record);
 
 		struct stat st = {0};
-		hfs_stat(vol,d->records+i,&st,0);
+		hfs_stat(vol,record,&st,0);
 		int ret;
 #if FUSE_DARWIN_ENABLE_EXTENSIONS
-		ret = filler(buf,pelem,&stat_to_fuse_darwin_attr(d->records[i],st),i+3,FUSE_FILL_DIR_PLUS);
+		ret = filler(buf,pelem,&stat_to_fuse_darwin_attr(*record,st),i+3,FUSE_FILL_DIR_PLUS);
 #elif FUSE_VERSION >= 30
 		ret = filler(buf,pelem,&st,i+3,FUSE_FILL_DIR_PLUS);
 #else
