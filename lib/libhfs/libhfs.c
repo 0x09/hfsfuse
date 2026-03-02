@@ -1790,6 +1790,9 @@ hfslib_read_master_directory_block(void* in_bytes,
  *	out_record_ptr_sizes_array may be NULL if the caller is not interested in
  *	reading the records, but must not be NULL if out_record_ptrs_array is not.
  *
+ * if specified, the elements of out_record_ptrs_array point to memory in
+ * in_bytes and should not be used beyond the lifetime of in_bytes.
+ *
  *	in_parent_file is HFS_CATALOG_FILE, HFS_EXTENTS_FILE, or
  *	HFS_ATTRIBUTES_FILE, depending on the special file in which this node
  *	resides.
@@ -1971,12 +1974,6 @@ hfslib_reada_node(void* in_bytes,
 
 	for (i = 0; i < numrecords; i++)
 	{
-		(*out_record_ptrs_array)[i] =
-			hfslib_malloc((*out_record_ptr_sizes_array)[i], cbargs);
-
-		if ((*out_record_ptrs_array)[i] == NULL)
-			HFS_LIBERR("could not allocate node record #%i",i);
-
 		/*	
 		 *	If this is a keyed node (i.e., a leaf or index node), there are two
 		 *	boundary rules that each record must obey:
@@ -2024,8 +2021,7 @@ hfslib_reada_node(void* in_bytes,
 			HFS_LIBERR("record offset outside of node bounds %" PRIu16,
 				(*out_record_ptr_sizes_array)[i]);
 
-		memcpy((*out_record_ptrs_array)[i], ptr,
-				(*out_record_ptr_sizes_array)[i]);
+		(*out_record_ptrs_array)[i] = ptr;
 		ptr = (uint8_t*)ptr + (*out_record_ptr_sizes_array)[i];
 	}
 
@@ -2513,18 +2509,10 @@ hfslib_free_recs(
 	uint16_t* inout_num_recs,
 	hfs_callback_args* cbargs)
 {
-	uint16_t	i;
-
 	if (inout_num_recs == NULL || *inout_num_recs == 0)
 		return;
 
 	if (inout_node_recs != NULL && *inout_node_recs != NULL) {
-		for (i = 0 ; i < *inout_num_recs; i++) {
-			if ((*inout_node_recs)[i] != NULL) {
-				hfslib_free((*inout_node_recs)[i], cbargs);
-				(*inout_node_recs)[i] = NULL;
-			}		
-		}
 		hfslib_free(*inout_node_recs, cbargs);
 		*inout_node_recs = NULL;
 	}
