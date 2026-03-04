@@ -53,6 +53,10 @@ bool hfs_decmpfs_compression_supported(uint8_t type) {
 		case DECMPFS_COMPRESSION_SPARSE:
 			return decmpfs_storage_inline(type);
 		case DECMPFS_COMPRESSION_LZVN:
+#if HAVE_LZVN
+			return true;
+#endif
+			return false;
 		case DECMPFS_COMPRESSION_LZFSE:
 #if HAVE_LZFSE
 			return true;
@@ -382,7 +386,7 @@ int hfs_decmpfs_lookup(hfs_volume* vol, hfs_file_record_t* file, struct hfs_decm
 	if(hfslib_find_attribute_record_with_key(vol,&attrkey,&attr,(void*)&buf,NULL))
 		return 1;
 
-	// if this is a zlib or lzfse compressed file and hfsfuse wasn't built with these libraries, continue to treat it as a zero-length file
+	// if this is a zlib, lzvn, or lzfse compressed file and hfsfuse wasn't built with these libraries, continue to treat it as a zero-length file
 	// the com.apple.decmpfs xattr may still be inspected directly to access the compressed data
 	if(attr.type != HFS_ATTR_INLINE_DATA || !hfs_decmpfs_parse_record(h,attr.inline_record.length,buf)) {
 		free(buf);
