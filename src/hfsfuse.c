@@ -250,7 +250,7 @@ static int hfsfuse_statx(const char* path, int flags, int mask, struct statx* st
 }
 #endif
 
-struct hf_dir {
+struct hfsfuse_dir {
 	hfs_catalog_keyed_record_t dir_record;
 	hfs_cnid_t parent_cnid;
 	hfs_catalog_keyed_record_t* records;
@@ -261,7 +261,7 @@ struct hf_dir {
 	pthread_rwlock_t lock;
 };
 
-int hf_dir_close(struct hf_dir* d) {
+int hfsfuse_dir_close(struct hfsfuse_dir* d) {
 	int ret = pthread_rwlock_wrlock(&d->lock);
 	if(ret)
 		return -ret;
@@ -277,7 +277,7 @@ int hf_dir_close(struct hf_dir* d) {
 
 static int hfsfuse_opendir(const char* path, struct fuse_file_info* info) {
 	hfs_volume* vol = fuse_get_context()->private_data;
-	struct hf_dir* d = malloc(sizeof(*d));
+	struct hfsfuse_dir* d = malloc(sizeof(*d));
 	if(!d)
 		return -ENOMEM;
 
@@ -317,12 +317,12 @@ static int hfsfuse_opendir(const char* path, struct fuse_file_info* info) {
 
 end:
 	if(ret)
-		hf_dir_close(d);
+		hfsfuse_dir_close(d);
 	return ret;
 }
 
 static int hfsfuse_releasedir(const char* path, struct fuse_file_info* info) {
-	return hf_dir_close((struct hf_dir*)info->fh);
+	return hfsfuse_dir_close((struct hfsfuse_dir*)info->fh);
 }
 
 #if FUSE_VERSION >= 30
@@ -331,7 +331,7 @@ static int hfsfuse_readdir(const char* path, void* buf, fill_dir_type filler, of
 static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info* info) {
 #endif
 	hfs_volume* vol = fuse_get_context()->private_data;
-	struct hf_dir* d = (struct hf_dir*)info->fh;
+	struct hfsfuse_dir* d = (struct hfsfuse_dir*)info->fh;
 	int ret = -pthread_rwlock_tryrdlock(&d->lock);
 	if(ret)
 		return ret;
