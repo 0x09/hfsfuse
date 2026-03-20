@@ -40,7 +40,7 @@ hfsfuse optionally uses these additional libraries to enable certain functionali
 
 * [utf8proc](http://julialang.org/utf8proc/) for working with non-ASCII pathnames
 * [ublio](https://www.freshports.org/devel/libublio/) for read caching, which may improve performance
-* [zlib](https://www.zlib.net), [lzfse](https://github.com/0x09/lzfse), and [lzvn](https://github.com/xerub/LZVN) for reading files with HFS+ compression
+* [zlib](https://www.zlib.net), [lzfse](https://github.com/0x09/lzfse), and [lzvn](https://github.com/0x09/LZVN) for reading files with HFS+ compression
 
 utf8proc, ublio, and LZVN are each bundled with hfsfuse and built by default. hfsfuse can be configured to use already-installed versions of these if available, or may be built without them entirely if the respective functionality is not needed (see [Configuring](#Configuring)).
 
