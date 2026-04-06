@@ -267,6 +267,10 @@ lib: $(LIBS) libhfsuser.pc
 
 hfsfuse: LDLIBS += $(FUSE_LIB)
 hfsfuse: src/hfsfuse.o $(LIBS)
+	$(CC) -o $@ $(LDFLAGS) $^ $(LDLIBS)
+ifeq ($(OS), Darwin)
+	if ! otool -l hfsfuse | grep -q LC_RPATH; then install_name_tool -add_rpath /usr/local/lib hfsfuse; fi
+endif
 
 hfsdump: src/hfsdump.o $(LIBS)
 
