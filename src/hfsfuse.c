@@ -944,7 +944,7 @@ int main(int argc, char* argv[]) {
 
 	char* opts = NULL;
 	fuse_opt_add_opt(&opts, "ro");
-    // passthrough allow_other to fuse; otherwise our opt parser consumed it
+	// passthrough allow_other to fuse; otherwise our opt parser consumed it
 	if (cfg.allow_other_set)
 		fuse_opt_add_opt(&opts, "allow_other");
 #if FUSE_VERSION < 30
