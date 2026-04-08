@@ -703,7 +703,7 @@ int main(int argc, char* argv[]) {
 	cfg.cache_size = 0;
 
 	if((ctx.hfs_err = hfs_open_volume(argv[0],ctx.vol,&cfg))) {
-		log_hfs_err(&ctx,"Couldn't open volume '%s'",argv[1]);
+		log_hfs_err(&ctx,"Couldn't open volume '%s'",argv[0]);
 		goto end;
 	}
 
