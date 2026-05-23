@@ -127,6 +127,7 @@ static int hfsfuse_readlink(const char* path, char* buf, size_t size) {
 }
 
 #if FUSE_DARWIN_ENABLE_EXTENSIONS
+#if HAVE_DARWIN_ATTR_BTIME
 #define stat_to_fuse_darwin_attr(rec,st) ((struct fuse_darwin_attr){\
 	.ino = (st).st_ino,\
 	.mode = (st).st_mode,\
@@ -144,6 +145,25 @@ static int hfsfuse_readlink(const char* path, char* buf, size_t size) {
 	.blksize = (st).st_blksize,\
 	.flags = (st).st_flags,\
 })
+#else
+#define stat_to_fuse_darwin_attr(rec,st) ((struct fuse_darwin_attr){\
+	.ino = (st).st_ino,\
+	.mode = (st).st_mode,\
+	.nlink = (st).st_nlink,\
+	.uid = (st).st_uid,\
+	.gid = (st).st_gid,\
+	.rdev = (st).st_rdev,\
+	.atimespec.tv_sec = (st).st_atime,\
+	.mtimespec.tv_sec = (st).st_mtime,\
+	.ctimespec.tv_sec = (st).st_ctime,\
+	.crtimespec.tv_sec = (st).st_birthtime,\
+	.bkuptimespec.tv_sec = HFSTIMETOEPOCH((rec).file.date_backedup),\
+	.size = (st).st_size,\
+	.blocks = (st).st_blocks,\
+	.blksize = (st).st_blksize,\
+	.flags = (st).st_flags,\
+})
+#endif
 #endif
 
 static int hfsfuse_fgetattr(const char* path, stat_type* st, struct fuse_file_info* info) {

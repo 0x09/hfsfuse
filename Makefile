@@ -162,6 +162,8 @@ $(info libarchive not found, hfstar will not be built)
 		endif
 
     $(eval $(call cccheck,HAVE_STATX,{ (struct statx){0}; },sys/stat.h))
+
+    $(eval $(call cccheck,HAVE_DARWIN_ATTR_BTIME,{ (struct fuse_darwin_attr){0}.btimespec; },fuse3/fuse.h))
 endif
 
 $(foreach cfg,OS CC AR INSTALL TAR PREFIX WITH_UBLIO WITH_UTF8PROC WITH_LZVN XATTR_NAMESPACE CONFIG_CFLAGS $(FEATURES),$(eval CONFIG:=$(CONFIG)$(cfg)=$$($(cfg))\n))
