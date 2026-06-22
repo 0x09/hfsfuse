@@ -52,6 +52,7 @@ else ifeq ($(OS), DragonFly)
 else ifeq ($(OS), OpenBSD)
 	APP_FLAGS += -I/usr/local/include -I/usr/local/include/libutf8proc
 	APP_LIB += -L/usr/local/lib
+	FUSE_FLAGS += -I/usr/include/fuse
 else ifeq ($(OS), NetBSD)
 	APP_FLAGS += -I/usr/pkg/include
 	APP_LIB += -L/usr/pkg/lib -Wl,-R/usr/pkg/lib
