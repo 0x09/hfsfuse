@@ -14,7 +14,7 @@ jobs:
       matrix:
         libfuse_ver: ['libfuse', 'libfuse3']
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -27,7 +27,7 @@ jobs:
       matrix:
         fuse: ['macfuse', 'fuse-t']
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install dependencies
         run: |
           brew update
@@ -41,7 +41,7 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Add MinGW to PATH
         run: echo "C:\msys64\mingw32\bin" >> $GITHUB_PATH
         shell: bash
@@ -59,7 +59,7 @@ jobs:
       run:
         shell: cpa.sh {0}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Start VM
         uses: cross-platform-actions/action@v1.2.0
         with:
@@ -82,7 +82,7 @@ jobs:
       run:
         shell: cpa.sh {0}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Start VM
         uses: cross-platform-actions/action@v1.2.0
         with:
@@ -102,7 +102,7 @@ jobs:
       matrix:
         version: ['9.4', '10.1']
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Start VM
         uses: cross-platform-actions/action@v1.2.0
         with:
@@ -120,7 +120,7 @@ jobs:
       run:
         shell: cpa.sh {0}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Start VM
         uses: cross-platform-actions/action@v1.2.0
         with:
@@ -134,7 +134,7 @@ jobs:
   build-release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -157,7 +157,7 @@ jobs:
       run:
         shell: sh
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install dependencies
         run: |
           sudo apt-get update
