@@ -55,71 +55,82 @@ jobs:
     strategy:
       matrix:
         version: ['13.5', '14.4', '15.0']
+    defaults:
+      run:
+        shell: cpa.sh {0}
     steps:
       - uses: actions/checkout@v6
+      - name: Start VM
+        uses: cross-platform-actions/action@v1.2.0
+        with:
+          operating_system: freebsd
+          architecture: x86-64
+          version: ${{ matrix.version }}
       - name: Build in default configuration
-        uses: cross-platform-actions/action@v1.2.0
-        with:
-          operating_system: freebsd
-          architecture: x86-64
-          version: ${{ matrix.version }}
-          run: |
-            sudo pkg update
-            sudo pkg install -y gmake fusefs-libs3
-            gmake
+        run: |
+          sudo pkg update
+          sudo pkg install -y gmake fusefs-libs3
+          gmake
       - name: Build with ports tree configuration
-        uses: cross-platform-actions/action@v1.2.0
-        with:
-          operating_system: freebsd
-          architecture: x86-64
-          version: ${{ matrix.version }}
-          run: |
-            sudo pkg install -y gmake fusefs-libs libublio utf8proc
-            gmake clean
-            gmake WITH_UBLIO=system WITH_UTF8PROC=system config all
+        run: |
+          sudo pkg install -y gmake fusefs-libs libublio utf8proc
+          gmake clean
+          gmake WITH_UBLIO=system WITH_UTF8PROC=system config all
   build-openbsd:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: cpa.sh {0}
     steps:
       - uses: actions/checkout@v6
-      - name: Build
+      - name: Start VM
         uses: cross-platform-actions/action@v1.2.0
         with:
           operating_system: openbsd
           architecture: x86-64
           version: '7.9'
-          run: |
-            sudo pkg_add gmake
-            gmake
+      - name: Build
+        run: |
+          sudo pkg_add gmake
+          gmake
   build-netbsd:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: cpa.sh {0}
     strategy:
       matrix:
         version: ['9.4', '10.1']
     steps:
       - uses: actions/checkout@v6
-      - name: Build
+      - name: Start VM
         uses: cross-platform-actions/action@v1.2.0
         with:
           operating_system: netbsd
           architecture: x86-64
           version: ${{ matrix.version }}
-          run: |
-            sudo pkgin update
-            sudo pkgin -y install gmake fuse
-            gmake
+      - name: Build
+        run: |
+          sudo pkgin update
+          sudo pkgin -y install gmake fuse
+          gmake
   build-haiku:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: cpa.sh {0}
     steps:
       - uses: actions/checkout@v6
-      - name: Build
+      - name: Start VM
         uses: cross-platform-actions/action@v1.2.0
         with:
           operating_system: haiku
           architecture: x86-64
           version: r1beta5
-          run: |
-            pkgman install -y userland_fs llvm12_clang libarchive_devel
-            make
+      - name: Build
+        run: |
+          pkgman install -y userland_fs llvm12_clang libarchive_devel
+          make
   build-release:
     runs-on: ubuntu-latest
     steps:
