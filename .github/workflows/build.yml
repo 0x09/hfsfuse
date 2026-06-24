@@ -54,7 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: ['13.5', '14.4', '15.0']
+        version: ['13.5', '14.4', '15.1']
     defaults:
       run:
         shell: cpa.sh {0}
