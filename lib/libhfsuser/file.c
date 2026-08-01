@@ -57,7 +57,6 @@ struct hfs_file* hfs_file_open(hfs_volume* vol, hfs_catalog_keyed_record_t* rec,
 		free(inlinedata);
 		if(!f->decmpfs) {
 			free(f);
-			f = NULL;
 			goto error;
 		}
 	}
