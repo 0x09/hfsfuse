@@ -129,7 +129,7 @@ jobs:
           version: r1beta5
       - name: Build
         run: |
-          pkgman install -y userland_fs llvm12_clang libarchive_devel
+          pkgman install -y userland_fs llvm12_clang
           make
   build-release:
     runs-on: ubuntu-latest
