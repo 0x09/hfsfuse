@@ -44,6 +44,7 @@ struct hfs_file* hfs_file_open(hfs_volume* vol, hfs_catalog_keyed_record_t* rec,
 	f->decmpfs = NULL;
 	f->read_offset = 0;
 	if((err = pthread_mutex_init(&f->read_mutex,NULL))) {
+		free(f);
 		err = -err;
 		goto error;
 	}
