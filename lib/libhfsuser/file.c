@@ -56,6 +56,7 @@ struct hfs_file* hfs_file_open(hfs_volume* vol, hfs_catalog_keyed_record_t* rec,
 		f->decmpfs = hfs_decmpfs_create_context(vol,rec->file.cnid,inlinelength,inlinedata,&err);
 		free(inlinedata);
 		if(!f->decmpfs) {
+			pthread_mutex_destroy(&f->read_mutex);
 			free(f);
 			goto error;
 		}
@@ -88,6 +89,7 @@ void hfs_file_close(struct hfs_file* f) {
 	if(!f)
 		return;
 	hfs_decmpfs_destroy_context(f->decmpfs);
+	pthread_mutex_destroy(&f->read_mutex);
 	free(f->extents);
 	free(f);
 }
