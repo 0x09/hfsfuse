@@ -100,7 +100,7 @@ jobs:
         shell: cpa.sh {0}
     strategy:
       matrix:
-        version: ['9.4', '10.1']
+        version: ['9.4', '10.1', '11.0']
     steps:
       - uses: actions/checkout@v7
       - name: Start VM
