@@ -3,8 +3,8 @@
  * This file is part of the hfsfuse project.
  */
 
-#ifndef HFSFUSE_ENDIAN_H
-#define HFSFUSE_ENDIAN_H
+#ifndef HFSFUSE_BYTEORDER_H
+#define HFSFUSE_BYTEORDER_H
 
 #include <stdint.h>
 
