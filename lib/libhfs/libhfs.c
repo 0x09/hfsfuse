@@ -54,10 +54,6 @@ __KERNEL_RCSID(0, "$NetBSD: libhfs.c,v 1.19 2023/08/11 05:51:34 mrg Exp $");
 
 #include "libhfs.h"
 
-#ifndef _NETBSD_SOURCE
-#include "byteorder.h"
-#endif
-
 #if !defined(_KERNEL) && !defined(_STANDALONE)
 #include <inttypes.h>
 #endif /* !defined(_KERNEL) && defined(_STANDALONE) */
@@ -76,9 +72,13 @@ hfs_catalog_key_t* hfs_gPrivateObjectKeys[5] = {
 };
 
 
+#if defined(_KERNEL) || defined(_STANDALONE)
 extern uint16_t be16tohp(void** inout_ptr);
 extern uint32_t be32tohp(void** inout_ptr);
 extern uint64_t be64tohp(void** inout_ptr);
+#else
+#include "endian.h"
+#endif
 
 hfs_callbacks	hfs_gcb;	/* global callbacks */
  

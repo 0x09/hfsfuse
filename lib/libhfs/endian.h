@@ -27,15 +27,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef LIBHFS_ENDIAN_H
+#define LIBHFS_ENDIAN_H
+
 #include <string.h>
 #include "byteorder.h"
 
-// declared extern in libhfs.c
-uint16_t be16tohp(void** inout_ptr);
-uint32_t be32tohp(void** inout_ptr);
-uint64_t be64tohp(void** inout_ptr);
-
-uint16_t be16tohp(void** inout_ptr)
+static inline uint16_t be16tohp(void** inout_ptr)
 {
 	uint16_t	result;
 	
@@ -48,7 +46,7 @@ uint16_t be16tohp(void** inout_ptr)
 	return be16toh(result);
 }
 
-uint32_t be32tohp(void** inout_ptr)
+static inline uint32_t be32tohp(void** inout_ptr)
 {
 	uint32_t	result;
 	
@@ -60,7 +58,7 @@ uint32_t be32tohp(void** inout_ptr)
 	return be32toh(result);
 }
 
-uint64_t be64tohp(void** inout_ptr)
+static inline uint64_t be64tohp(void** inout_ptr)
 {
 	uint64_t	result;
 	
@@ -71,3 +69,5 @@ uint64_t be64tohp(void** inout_ptr)
 	*inout_ptr = (char *)*inout_ptr + sizeof(result);
 	return be64toh(result);
 }
+
+#endif
