@@ -234,8 +234,6 @@ static void hfstar_write_file(struct hfstar_archive_context* ctx, hfs_catalog_ke
 	la_ssize_t entry_bytes;
 	while((bytes = hfs_file_read(f,ctx->read_buf,bufsize)) > 0)
 		if((entry_bytes = archive_write_data(ctx->archive,ctx->read_buf,bytes)) != bytes) {
-			if(entry_bytes == ARCHIVE_RETRY)
-				continue;
 			if(entry_bytes == ARCHIVE_WARN && !ctx->no_warn)
 				fprintf(stderr,"%s\n",archive_error_string(ctx->archive));
 			if(entry_bytes < ARCHIVE_OK)
