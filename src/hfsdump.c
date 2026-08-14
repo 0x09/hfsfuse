@@ -301,7 +301,10 @@ int main(int argc, char* argv[]) {
 			}
 		}
 	}
-	else fprintf(stderr,"valid commands: stat, read, xattr\n");
+	else {
+		fprintf(stderr,"valid commands: stat, read, xattr\n");
+		ret = 1;
+	}
 
 end:
 	hfslib_close_volume(&vol,NULL);
