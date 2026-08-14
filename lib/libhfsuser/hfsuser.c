@@ -561,7 +561,11 @@ int hfs_open(hfs_volume* vol, const char* name, hfs_callback_args* cbargs) {
 	if(cbargs && cbargs->openvol)
 		cfg = *(struct hfs_volume_config*)cbargs->openvol;
 
-	if((dev->fd = open(name,O_RDONLY)) < 0)
+	int open_flags = O_RDONLY;
+#ifdef _WIN32
+	open_flags |= O_BINARY;
+#endif
+	if((dev->fd = open(name,open_flags)) < 0)
 		BAIL(errno);
 
 	dev->default_fork = cfg.rsrc_only ? HFS_RSRCFORK : HFS_DATAFORK;
