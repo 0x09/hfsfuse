@@ -17,7 +17,7 @@
 
 static char* hfs_ctime_r(time_t clock, char* buf) {
 	char* t = ctime(&clock);
-	return t ? memcpy(buf,t,26) : NULL;
+	return t ? memcpy(buf,t,26) : "(null)\n";
 }
 
 static const char* format_type_code(hfs_macos_type_code code, char code_str[5]) {
