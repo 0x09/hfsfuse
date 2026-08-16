@@ -266,7 +266,7 @@ int main(int argc, char* argv[]) {
 				char attrname[HFS_NAME_MAX+1];
 				ssize_t u8len = hfs_unistr_to_utf8(&attr_keys[i].name, attrname);
 				if(u8len > 0)
-					printf("%s\n",attrname);
+					puts(attrname);
 			}
 			free(attr_keys);
 		}
