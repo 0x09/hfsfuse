@@ -156,6 +156,8 @@ struct hfs_decmpfs_context* hfs_decmpfs_create_context(hfs_volume* vol, hfs_cnid
 
 	if(pthread_rwlock_init(&ctx->current_chunk_lock,NULL)) {
 		err = -errno;
+		free(ctx);
+		ctx = NULL;
 		goto err;
 	}
 
