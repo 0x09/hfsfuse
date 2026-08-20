@@ -15,6 +15,18 @@
 #include <inttypes.h>
 #include <string.h>
 
+#ifdef _WIN32
+#include <fcntl.h>
+#include <io.h>
+#endif
+
+void set_stdout_binary(void) {
+#ifdef _WIN32
+	fflush(stdout);
+	_setmode(_fileno(stdout),_O_BINARY);
+#endif
+}
+
 static char* hfs_ctime_r(time_t clock, char* buf) {
 	char* t = ctime(&clock);
 	return t ? memcpy(buf,t,26) : "(null)\n";
@@ -237,6 +249,7 @@ int main(int argc, char* argv[]) {
 			free(recs);
 		}
 		else if(rec.type == HFS_REC_FILE) {
+			set_stdout_binary();
 			struct hfs_file* f = hfs_file_open(&vol,&rec,fork,&ret);
 			if(!f) {
 				fputs(strerror(-ret),stderr);
@@ -271,6 +284,7 @@ int main(int argc, char* argv[]) {
 			free(attr_keys);
 		}
 		else {
+			set_stdout_binary();
 			hfs_attribute_record_t attrec;
 			hfs_unistr255_t attrname;
 			if(hfs_utf8_to_unistr(argv[4],&attrname) <= 0)
