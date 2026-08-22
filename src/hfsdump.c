@@ -22,7 +22,6 @@
 
 void set_stdout_binary(void) {
 #ifdef _WIN32
-	fflush(stdout);
 	_setmode(_fileno(stdout),_O_BINARY);
 #endif
 }
