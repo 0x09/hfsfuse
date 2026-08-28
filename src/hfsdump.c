@@ -241,8 +241,10 @@ int main(int argc, char* argv[]) {
 				goto end;
 			for(size_t i = 0; i < count; i++) {
 				char name[HFS_NAME_MAX+1];
-				hfs_pathname_to_unix(names+i,name);
-				puts(name);
+				if(hfs_pathname_to_unix(names+i,name) < 0)
+					fprintf(stderr,"Could not convert path name for CNID %" PRIu32,recs[i].file.cnid);
+				else
+					puts(name);
 			}
 			free(names);
 			free(recs);
