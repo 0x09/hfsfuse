@@ -122,6 +122,9 @@ jobs:
     defaults:
       run:
         shell: cpa.sh {0}
+    strategy:
+        matrix:
+          version: ['r1beta5', 'r1beta6']
     steps:
       - uses: actions/checkout@v7
       - name: Start VM
@@ -129,7 +132,7 @@ jobs:
         with:
           operating_system: haiku
           architecture: x86-64
-          version: r1beta5
+          version: ${{ matrix.version }}
       - name: Build
         run: |
           pkgman install -y userland_fs
