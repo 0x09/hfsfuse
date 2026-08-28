@@ -401,6 +401,7 @@ static int hfsfuse_readdir(const char* path, void* buf, fuse_fill_dir_t filler, 
 	for(off_t i = max(0,offset-2); i < d->nentries; i++) {
 		ssize_t len;
 		if((len = hfs_pathname_to_unix(d->names+i,pelem)) < 0) {
+			hfslib_error("Could not convert path name for CNID %" PRIu32,NULL,0,d->records[i].file.cnid);
 			ret = len;
 			continue;
 		}
