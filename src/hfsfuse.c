@@ -748,6 +748,7 @@ struct hfsfuse_config {
 	char* device;
 	int allow_other_set;
 	int force;
+	int foreground;
 };
 
 #define HFS_OPTION(t, p) { t, offsetof(struct hfs_volume_config, p), 1 }
@@ -761,6 +762,7 @@ static struct fuse_opt hfsfuse_opts[] = {
 	FUSE_OPT_KEY("--version", HFSFUSE_OPT_KEY_VERSION),
 	HFSFUSE_OPTION("--force",force),
 	HFSFUSE_OPTION("allow_other",allow_other_set),
+	HFSFUSE_OPTION("-f",foreground),
 	FUSE_OPT_KEY("noallow_other",HFSFUSE_OPT_KEY_NOALLOW_OTHER),
 	HFS_OPTION("cache_size=%zu",cache_size),
 	HFS_OPTION("blksize=%" SCNu32,blksize),
@@ -975,6 +977,8 @@ int main(int argc, char* argv[]) {
 	hfsfuse_opt_add_opt_escaped(&opts, fsname);
 	fuse_opt_add_arg(&args, "-o");
 	fuse_opt_add_arg(&args, opts);
+	if(cfg.foreground)
+		fuse_opt_add_arg(&args,"-f");
 	free(fsname);
 
 	// open volume
@@ -996,7 +1000,9 @@ int main(int argc, char* argv[]) {
 			goto done;
 		}
 	}
-	hfs_gcb.error = hfs_vsyslog; // prepare to daemonize
+	if(!cfg.foreground)
+		hfs_gcb.error = hfs_vsyslog; // prepare to daemonize
+
 	ret = fuse_main(args.argc, args.argv, &hfsfuse_ops, &vol);
 
 done:
