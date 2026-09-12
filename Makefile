@@ -141,6 +141,11 @@ ifneq ($(filter-out $(non_build_targets),$(or $(MAKECMDGOALS),all)),)
     $(eval $(call cccheck,HAVE_PREAD,{ pread(0,(void*){0},0,0); },unistd.h))
 
     $(eval $(call cccheck,HAVE_LZFSE,,lzfse.h))
+
+	ifeq ($(HAVE_LZFSE),0)
+$(info Warning: LZFSE is required for certain files, it's recommended you install it from your package manager or https://github.com/lzfse/lzfse and rebuild.)
+	endif
+
     $(eval $(call cccheck,HAVE_ZLIB,,zlib.h))
 
     $(eval $(call cccheck,HAVE_LIBARCHIVE,,archive.h archive_entry.h))
