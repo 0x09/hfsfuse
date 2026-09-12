@@ -145,22 +145,22 @@ ifneq ($(filter-out $(non_build_targets),$(or $(MAKECMDGOALS),all)),)
 
     $(eval $(call cccheck,HAVE_LIBARCHIVE,,archive.h archive_entry.h))
 
-		ifeq ($(HAVE_LIBARCHIVE),1)
-			TARGETS += hfstar
-		else
+	ifeq ($(HAVE_LIBARCHIVE),1)
+		TARGETS += hfstar
+	else
 $(info libarchive not found, hfstar will not be built)
-		endif
+	endif
 
     CEXPR_CFLAGS =$(CFLAGS) $(LOCAL_CFLAGS) $(FUSE_FLAGS) -DFUSE_USE_VERSION=30
     $(eval $(call cccheck,HAVE_FUSE3,,fuse3/fuse.h))
 
-		ifeq ($(HAVE_FUSE3),1)
-			FUSE_FLAGS += -DFUSE_USE_VERSION=35
-			FUSE_LIB ?= -lfuse3
-		else
-			FUSE_FLAGS += -DFUSE_USE_VERSION=29
-			FUSE_LIB ?= -lfuse
-		endif
+	ifeq ($(HAVE_FUSE3),1)
+		FUSE_FLAGS += -DFUSE_USE_VERSION=35
+		FUSE_LIB ?= -lfuse3
+	else
+		FUSE_FLAGS += -DFUSE_USE_VERSION=29
+		FUSE_LIB ?= -lfuse
+	endif
 
     $(eval $(call cccheck,HAVE_STATX,{ (struct statx){0}; },sys/stat.h))
 
