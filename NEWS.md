@@ -1,5 +1,35 @@
 # utf8proc release history #
 
+## Version 2.12.0 ##
+
+2026-09-25
+
+- Unicode 18 support ([#354]).  (This includes the modified grapheme-break rule
+   GB9c in UAX #29, which removes some grapheme breaks for Indic characters.)
+
+- `options` arguments are changed from an `enum` to `unsigned int`, since
+  they are generally bitwise "or" of `enum` values; this should be backwards
+  binary compatible ([#353]).
+
+- `int *last_boundclass` parameter of `utf8proc_decompose_char` is changed to
+  a `utf8proc_int32_t *` (affecting only rare systems where `int` is not 32 bits, on
+  which the `last_boundclass` argument would have produced incorrect results) ([#363]).
+
+- New `utf8proc_free` function to free memory allocated by utf8proc ([#338]).
+  (You can also use your own memory allocator by calling lower-level APIs.)
+
+- `utf8proc_normalize_utf32` can now handle invalid codepoints ≥ 0x110000.
+  They are passed through unchanged rather than dropped, and composition never
+  runs across one ([#352], [#355]).
+
+- Fix `UTF8PROC_CHARBOUND` emitting no `0xff` grapheme markers when combined
+  with `UTF8PROC_COMPOSE` or `UTF8PROC_DECOMPOSE`, a regression in 2.11.3
+  ([#355]).
+
+- [Zig](https://ziglang.org/learn/build-system/) build scripts ([#351]).
+
+- Minor build-system improvements ([#326], [#327], [#334]).
+
 ## Version 2.11.3 ##
 
 2025-12-30
@@ -491,3 +521,13 @@ Release of version 1.0.1
 [#311]: https://github.com/JuliaStrings/utf8proc/issues/311
 [#317]: https://github.com/JuliaStrings/utf8proc/issues/317
 [#323]: https://github.com/JuliaStrings/utf8proc/issues/323
+[#326]: https://github.com/JuliaStrings/utf8proc/issues/326
+[#327]: https://github.com/JuliaStrings/utf8proc/issues/327
+[#334]: https://github.com/JuliaStrings/utf8proc/issues/334
+[#338]: https://github.com/JuliaStrings/utf8proc/issues/338
+[#351]: https://github.com/JuliaStrings/utf8proc/issues/351
+[#352]: https://github.com/JuliaStrings/utf8proc/issues/352
+[#353]: https://github.com/JuliaStrings/utf8proc/issues/353
+[#354]: https://github.com/JuliaStrings/utf8proc/issues/354
+[#355]: https://github.com/JuliaStrings/utf8proc/issues/355
+[#363]: https://github.com/JuliaStrings/utf8proc/issues/363
