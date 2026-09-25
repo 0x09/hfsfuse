@@ -54,7 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: ['13.5', '14.5', '15.1']
+        version: ['14.5', '15.1']
     defaults:
       run:
         shell: cpa.sh {0}
@@ -103,7 +103,7 @@ jobs:
         shell: cpa.sh {0}
     strategy:
       matrix:
-        version: ['9.5', '10.1', '11.0']
+        version: ['10.1', '11.0']
     steps:
       - uses: actions/checkout@v7
       - name: Start VM
