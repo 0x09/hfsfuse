@@ -58,7 +58,7 @@ void checkline(const char *_buf, bool verbose) {
             check(!strcmp((char*)g, (char*)src),
                 "grapheme mismatch: \"%s\" instead of \"%s\"", (char*)g, (char*)src);
         }
-        free(g);
+        utf8proc_free(g);
     }
 
     if (si) { /* test manual calls to utf8proc_grapheme_break_stateful */
@@ -100,6 +100,7 @@ int main(int argc, char **argv)
     }
     fclose(f);
     printf("Passed tests after %zd lines!\n", lineno);
+    lineno = 0; /* no line numbers for subsequent tests */
 
     printf("Performing regression tests...\n");
 
@@ -112,7 +113,30 @@ int main(int argc, char **argv)
         glen = utf8proc_map(input, 6, &g, UTF8PROC_CHARBOUND);
         check(!strcmp((char*)g, (char*)output), "mishandled u+ffff and u+fffe grapheme breaks");
         check(glen != 6, "mishandled u+ffff and u+fffe grapheme breaks");
-        free(g);
+        utf8proc_free(g);
+    };
+
+    /* issue 356: UTF8PROC_CHARBOUND must still insert 0xff markers when
+       combined with UTF8PROC_COMPOSE or UTF8PROC_DECOMPOSE */
+    {
+        /* "e\u0301xy" -> NFC "\u00e9xy" with a marker before each grapheme */
+        utf8proc_uint8_t input[] = {0x65,0xcc,0x81,0x78,0x79,0x00};
+        utf8proc_uint8_t output[] = {0xff,0xc3,0xa9,0xff,0x78,0xff,0x79,0x00};
+        utf8proc_ssize_t glen;
+        utf8proc_uint8_t *g;
+        glen = utf8proc_map(input, 0, &g, UTF8PROC_NULLTERM | UTF8PROC_CHARBOUND | UTF8PROC_COMPOSE);
+        check(glen == 7, "CHARBOUND|COMPOSE returned length %zd, expected 7", glen);
+        check(!strcmp((char*)g, (char*)output), "CHARBOUND|COMPOSE dropped grapheme markers");
+        utf8proc_free(g);
+
+        /* same input, decomposed: "e\u0301xy" is unchanged by NFD */
+        {
+            utf8proc_uint8_t nfd[] = {0xff,0x65,0xcc,0x81,0xff,0x78,0xff,0x79,0x00};
+            glen = utf8proc_map(input, 0, &g, UTF8PROC_NULLTERM | UTF8PROC_CHARBOUND | UTF8PROC_DECOMPOSE);
+            check(glen == 8, "CHARBOUND|DECOMPOSE returned length %zd, expected 8", glen);
+            check(!strcmp((char*)g, (char*)nfd), "CHARBOUND|DECOMPOSE dropped grapheme markers");
+            utf8proc_free(g);
+        }
     };
 
     /* https://github.com/JuliaLang/julia/issues/37680 */
@@ -125,7 +149,7 @@ int main(int argc, char **argv)
     checkline("/ 0915 0300 094d 0300 094d 0924 / 0915 /", true);
     checkline("/ 0915 0300 0300 / 0924 / 0915 /", true);
     checkline("/ 0915 0300 094d 0300 / 0078 /", true);
-    checkline("/ 0300 094d 0300 / 0924 / 0915 /", true);
+    checkline("/ 0300 094d 0300 0924 / 0915 /", true); /* GB9c does not require a leading consonant */
 
     check(utf8proc_grapheme_break(0x03b1, 0x03b2), "failed 03b1 / 03b2 test");
     check(!utf8proc_grapheme_break(0x03b1, 0x0302), "failed 03b1 0302 test");
