@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ${{matrix.libfuse_ver}}-dev libarchive-dev
+          sudo apt-get install -y ${{matrix.libfuse_ver}}-dev libarchive-dev liblzfse-dev
       - name: Build
         run: make
   build-macos:
@@ -32,7 +32,7 @@ jobs:
         run: |
           brew update
           brew install --cask ${{matrix.fuse}}
-          brew install libarchive
+          brew install libarchive lzfse
       - name: Build
         run: make
         env:
@@ -167,7 +167,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libfuse3-dev libutf8proc-dev libarchive-dev
+          sudo apt-get install -y libfuse3-dev libutf8proc-dev libarchive-dev liblzfse-dev
       - name: Build
         run: make all clean
       - name: Build with conformance flags
