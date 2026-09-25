@@ -69,11 +69,11 @@ jobs:
       - name: Build in default configuration
         run: |
           sudo pkg update
-          sudo pkg install -y gmake fusefs-libs3
+          sudo pkg install -y gmake fusefs-libs3 lzfse libarchive
           gmake
       - name: Build with ports tree configuration
         run: |
-          sudo pkg install -y gmake fusefs-libs libublio utf8proc
+          sudo pkg install -y gmake fusefs-libs libublio utf8proc lzfse libarchive
           gmake clean
           gmake WITH_UBLIO=system WITH_UTF8PROC=system config all
   build-openbsd:
