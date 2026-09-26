@@ -92,6 +92,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 WITH_UBLIO ?= local
 WITH_UTF8PROC ?= local
 WITH_LZVN ?= local
+WITH_LZFSE ?= local
 
 CEXPR_TEST_CFLAGS = -Werror-implicit-function-declaration -Wno-unused-value -Wno-missing-braces\
  -Wno-missing-field-initializers -Wno-format-security -Wno-format-nonliteral
@@ -140,12 +141,6 @@ ifneq ($(filter-out $(non_build_targets),$(or $(MAKECMDGOALS),all)),)
     $(eval $(call cccheck,HAVE_VSYSLOG,{ vsyslog(0,(const char*){0},(va_list){0}); },syslog.h stdarg.h))
     $(eval $(call cccheck,HAVE_PREAD,{ pread(0,(void*){0},0,0); },unistd.h))
 
-    $(eval $(call cccheck,HAVE_LZFSE,,lzfse.h))
-
-	ifeq ($(HAVE_LZFSE),0)
-$(info Warning: LZFSE is required for certain files, it's recommended you install it from your package manager or https://github.com/lzfse/lzfse and rebuild.)
-	endif
-
     $(eval $(call cccheck,HAVE_ZLIB,,zlib.h))
 
     $(eval $(call cccheck,HAVE_LIBARCHIVE,,archive.h archive_entry.h))
@@ -179,7 +174,7 @@ LOCAL_CFLAGS += $(FEATURE_CFLAGS)
 LIBHFS_CFLAGS += $(FEATURE_CFLAGS)
 
 LIBS = lib/libhfsuser/libhfsuser.a lib/libhfs/libhfs.a
-LIBDIRS = $(abspath $(dir $(LIBS)))
+LIBDIRS = $(abspath $(foreach lib,$(LIBS),$(shell echo $(lib) | cut -d / -f 1-2)))
 INCLUDE = $(foreach lib,$(LIBDIRS),-iquote $(lib))
 
 ifneq ($(WITH_UBLIO), none)
@@ -213,12 +208,22 @@ ifneq ($(WITH_LZVN), none)
 $(error Invalid option "$(WITH_LZVN)" for WITH_LZVN. Use one of: none, system, local)
 	endif
 endif
+ifneq ($(WITH_LZFSE), none)
+	APP_FLAGS += -DHAVE_LZFSE
+	ifeq ($(WITH_LZFSE), system)
+		APP_LIB += -llzfse
+	else ifeq ($(WITH_LZFSE), local)
+		LIBS += lib/LZFSE/build/bin/liblzfse.a
+		INCLUDE += -iquote $(abspath lib/LZFSE/src)
+	else
+$(error Invalid option "$(WITH_LZFSE)" for WITH_LZVN. Use one of: none, system, local)
+	endif
+endif
 ifneq ($(WITH_UTHASH), system)
 	UTHASH_FLAGS = -Ilib/uthash
 endif
 
 APP_LIB+=$(if $(filter $(HAVE_ZLIB),1),-lz)
-APP_LIB+=$(if $(filter $(HAVE_LZFSE),1),-llzfse)
 
 RELEASE_NAME=hfsfuse
 RELEASE_BRANCH=master
@@ -265,7 +270,7 @@ lib/libhfs/libhfs.a: CFLAGS := $(LIBHFS_CFLAGS) $(CFLAGS)
 lib/libhfsuser/libhfsuser.a: CFLAGS := $(LOCAL_CFLAGS) $(INCLUDE) $(APP_FLAGS) $(CFLAGS)
 
 $(LIBS): always_check
-	$(MAKE) -C $(dir $@)
+	$(MAKE) -C $$(echo $@ | cut -d / -f 1-2)
 
 libhfsuser.pc:
 	@echo "$$pkg_config_file" > $@

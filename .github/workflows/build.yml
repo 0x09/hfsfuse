@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ${{matrix.libfuse_ver}}-dev libarchive-dev liblzfse-dev
+          sudo apt-get install -y ${{matrix.libfuse_ver}}-dev libarchive-dev
       - name: Build
         run: make
   build-macos:
@@ -32,7 +32,7 @@ jobs:
         run: |
           brew update
           brew install --cask ${{matrix.fuse}}
-          brew install libarchive lzfse
+          brew install libarchive
       - name: Build
         run: make
         env:
@@ -69,11 +69,11 @@ jobs:
       - name: Build in default configuration
         run: |
           sudo pkg update
-          sudo pkg install -y gmake fusefs-libs3 lzfse libarchive
+          sudo pkg install -y gmake fusefs-libs3 libarchive
           gmake
       - name: Build with ports tree configuration
         run: |
-          sudo pkg install -y gmake fusefs-libs libublio utf8proc lzfse libarchive
+          sudo pkg install -y gmake fusefs-libs libublio utf8proc libarchive
           gmake clean
           gmake WITH_UBLIO=system WITH_UTF8PROC=system config all
   build-openbsd:
@@ -167,7 +167,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libfuse3-dev libutf8proc-dev libarchive-dev liblzfse-dev
+          sudo apt-get install -y libfuse3-dev libutf8proc-dev libarchive-dev
       - name: Build
         run: make all clean
       - name: Build with conformance flags
