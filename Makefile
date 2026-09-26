@@ -20,7 +20,16 @@
 # WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 # USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-INSTALL_PREFIX ?= /usr/local
+PREFIX ?= /usr/local
+prefix ?= $(PREFIX)
+exec_prefix = $(prefix)
+bindir = $(exec_prefix)/bin
+libdir = $(exec_prefix)/lib
+includedir = $(prefix)/include
+
+INSTALL ?= install
+AR ?= ar
+ARFLAGS ?= rvs
 
 BUILD_DIR := ./build
 BIN_DIR := $(BUILD_DIR)/bin
@@ -40,24 +49,27 @@ CFLAGS := -Os -Wall -Wno-unknown-pragmas -Wno-unused-variable -DNDEBUG -D_POSIX_
 all: $(LZFSE_LIB) $(LZFSE_CMD) $(OBJS)
 
 install: $(LZFSE_LIB) $(LZFSE_CMD)
-	@[ -d $(INSTALL_PREFIX)/include ] || mkdir -p $(INSTALL_PREFIX)/include
-	@[ -d $(INSTALL_PREFIX)/lib ] || mkdir -p $(INSTALL_PREFIX)/lib
-	@[ -d $(INSTALL_PREFIX)/bin ] || mkdir -p $(INSTALL_PREFIX)/bin
-	install ./src/lzfse.h $(INSTALL_PREFIX)/include/lzfse.h
-	install $(LZFSE_LIB) $(INSTALL_PREFIX)/lib/liblzfse.a
-	install $(LZFSE_CMD) $(INSTALL_PREFIX)/bin/lzfse
+	@[ -d $(DESTDIR)$(includedir) ] || mkdir -p $(DESTDIR)$(includedir)
+	@[ -d $(DESTDIR)$(libdir) ] || mkdir -p $(DESTDIR)$(libdir)
+	@[ -d $(DESTDIR)$(bindir) ] || mkdir -p $(DESTDIR)$(bindir)
+	$(INSTALL) ./src/lzfse.h $(DESTDIR)$(includedir)/lzfse.h
+	$(INSTALL) $(LZFSE_LIB) $(DESTDIR)$(libdir)/liblzfse.a
+	$(INSTALL) $(LZFSE_CMD) $(DESTDIR)$(bindir)/lzfse
+
+uninstall:
+	$(RM) $(DESTDIR)$(includedir)/lzfse.h $(DESTDIR)$(libdir)/liblzfse.a $(DESTDIR)$(bindir)/lzfse
 
 $(LZFSE_LIB): $(LIB_OBJS)
 	@[ -d $(BIN_DIR) ] || mkdir -p $(BIN_DIR)
 	$(LD) -r -o $(OBJ_DIR)/liblzfse_master.o $(LIB_OBJS)
-	ar rvs $@ $(OBJ_DIR)/liblzfse_master.o
+	$(AR) $(ARFLAGS) $@ $(OBJ_DIR)/liblzfse_master.o
 
 $(LZFSE_CMD): $(CMD_OBJS) $(LZFSE_LIB)
 	@[ -d $(BIN_DIR) ] || mkdir -p $(BIN_DIR)
 	$(CC) $(CFLAGS) -o $@ $(CMD_OBJS) $(LZFSE_LIB)
 
 clean:
-	/bin/rm -rf $(BUILD_DIR)
+	$(RM) -r $(BUILD_DIR)
 
 $(OBJ_DIR)/%.o: src/%.c
 	@[ -d $(OBJ_DIR) ] || mkdir -p $(OBJ_DIR)
