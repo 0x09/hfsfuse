@@ -219,7 +219,6 @@ endif
 
 APP_LIB+=$(if $(filter $(HAVE_ZLIB),1),-lz)
 APP_LIB+=$(if $(filter $(HAVE_LZFSE),1),-llzfse)
-APP_LIB+=$(if $(filter $(HAVE_LZVN),1),-lFastCompression)
 
 RELEASE_NAME=hfsfuse
 RELEASE_BRANCH=master
