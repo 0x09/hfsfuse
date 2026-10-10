@@ -281,6 +281,8 @@ int main(int argc, char* argv[]) {
 				ssize_t u8len = hfs_unistr_to_utf8(&attr_keys[i].name, attrname);
 				if(u8len > 0)
 					puts(attrname);
+				else
+					fprintf(stderr,"Can't convert extended attribute name to UTF-8 for CNID %" PRIu32,rec.file.cnid);
 			}
 			free(attr_keys);
 		}

@@ -538,8 +538,10 @@ static int hfsfuse_listxattr(const char* path, char* attr, size_t size) {
 	for(uint32_t i = 0; i < nattrs; i++) {
 		char attrname[HFS_NAME_MAX+1];
 		ssize_t u8len = hfs_unistr_to_utf8(&attr_keys[i].name, attrname);
-		if(u8len <= 0)
+		if(u8len <= 0) {
+			hfslib_error("Can't convert extended attribute name to UTF-8 for CNID %" PRIu32,NULL,0,rec.file.cnid);
 			continue;
+		}
 		ret += u8len + strlen(XATTR_NAMESPACE_STR) + 1;
 		if(size >= (size_t)ret) {
 			attr = stpcpy(attr, XATTR_NAMESPACE_STR);
