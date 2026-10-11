@@ -90,15 +90,6 @@ void hfs_serialize_finderinfo(hfs_catalog_keyed_record_t*, char[32]);
 // 0 if vol is a regular file
 uint32_t hfs_device_block_size(hfs_volume* vol);
 
-// libhfs callbacks
-int  hfs_open(hfs_volume*,const char*,hfs_callback_args*);
-void hfs_close(hfs_volume*,hfs_callback_args*);
-int  hfs_read(hfs_volume*,void*,uint64_t,uint64_t,hfs_callback_args*);
-void*hfs_malloc(size_t,hfs_callback_args*);
-void*hfs_realloc(void*,size_t,hfs_callback_args*);
-void hfs_free(void*,hfs_callback_args*);
-void hfs_vprintf(const char*,const char*,int,va_list);
-
 // convenience wrapper to look up and parse the decmpfs attribute for a file if it exists and is supported.
 // returns 0 if this is a compressed file, 1 if not, or negative errno on error
 int hfs_decmpfs_lookup(hfs_volume*, hfs_file_record_t*, struct hfs_decmpfs_header*, uint32_t* length, unsigned char** data);

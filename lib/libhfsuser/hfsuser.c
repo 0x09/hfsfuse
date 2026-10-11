@@ -69,6 +69,15 @@ struct hfs_device {
 #endif
 };
 
+// libhfs callbacks
+int  hfs_open(hfs_volume*,const char*,hfs_callback_args*);
+void hfs_close(hfs_volume*,hfs_callback_args*);
+int  hfs_read(hfs_volume*,void*,uint64_t,uint64_t,hfs_callback_args*);
+void*hfs_malloc(size_t,hfs_callback_args*);
+void*hfs_realloc(void*,size_t,hfs_callback_args*);
+void hfs_free(void*,hfs_callback_args*);
+void hfs_vprintf(const char*,const char*,int,va_list);
+
 void hfs_volume_config_defaults(struct hfs_volume_config* cfg) {
 	*cfg = (struct hfs_volume_config) {
 		.cache_size = 1024,
