@@ -4,6 +4,7 @@
  */
 
 #include "hfsuser.h"
+#include "decmpfs.h"
 
 #include <errno.h>
 #include <limits.h>

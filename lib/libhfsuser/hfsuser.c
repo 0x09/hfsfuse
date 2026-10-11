@@ -6,6 +6,7 @@
 #include "hfsuser.h"
 #include "cache.h"
 #include "features.h"
+#include "decmpfs.h"
 
 #include <stdbool.h>
 #include <errno.h>

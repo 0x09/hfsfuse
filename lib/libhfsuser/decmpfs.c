@@ -6,6 +6,7 @@
 #include "byteorder.h"
 #include "features.h"
 #include "hfsuser.h"
+#include "decmpfs.h"
 
 #include <inttypes.h>
 #include <errno.h>
